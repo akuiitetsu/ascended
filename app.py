@@ -5,6 +5,7 @@ from datetime import datetime
 from functools import wraps
 from config import config
 from database import DatabaseManager
+import json
 
 app = Flask(__name__)
 
@@ -509,31 +510,261 @@ def clear_old_sessions():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-# Add a debug route to check users (remove this in production)
-@app.route('/debug/users')
-def debug_users():
-    """Debug route to check users in database"""
-    if not app.config.get('DEBUG'):
-        return jsonify({'error': 'Not available in production'}), 404
-    
+@app.route('/admin/level-editor')
+@login_required
+@admin_required
+def level_editor():
+    """Admin level editor interface"""
+    return render_template('admin/level-editor.html')
+
+@app.route('/api/admin/levels')
+@login_required
+@admin_required
+def get_all_levels():
+    """Get all levels for all rooms"""
     try:
         conn = db_manager.get_connection()
-        users = conn.execute('SELECT id, username, email, is_admin FROM users').fetchall()
+        levels = conn.execute('''
+            SELECT * FROM level_data 
+            ORDER BY room_id, level_number
+        ''').fetchall()
         conn.close()
         
-        users_list = []
-        for user in users:
-            users_list.append({
-                'id': user['id'],
-                'username': user['username'],
-                'email': user['email'],
-                'is_admin': bool(user['is_admin'])
+        levels_data = []
+        for level in levels:
+            levels_data.append({
+                'id': level['id'],
+                'room_id': level['room_id'],
+                'level_number': level['level_number'],
+                'name': level['name'],
+                'data': json.loads(level['data']) if level['data'] else {},
+                'created_at': level['created_at'],
+                'updated_at': level['updated_at']
             })
         
-        return jsonify({'users': users_list})
+        return jsonify({'status': 'success', 'levels': levels_data})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@app.route('/api/admin/levels/<int:room_id>')
+@login_required
+@admin_required
+def get_room_levels(room_id):
+    """Get levels for a specific room"""
+    try:
+        conn = db_manager.get_connection()
+        levels = conn.execute('''
+            SELECT * FROM level_data 
+            WHERE room_id = ?
+            ORDER BY level_number
+        ''', (room_id,)).fetchall()
+        conn.close()
+        
+        levels_data = []
+        for level in levels:
+            levels_data.append({
+                'id': level['id'],
+                'room_id': level['room_id'],
+                'level_number': level['level_number'],
+                'name': level['name'],
+                'data': json.loads(level['data']) if level['data'] else {},
+                'created_at': level['created_at'],
+                'updated_at': level['updated_at']
+            })
+        
+        return jsonify({'status': 'success', 'levels': levels_data})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/admin/levels', methods=['POST'])
+@login_required
+@admin_required
+def create_level():
+    """Create a new level"""
+    try:
+        data = request.get_json()
+        room_id = data.get('room_id')
+        level_number = data.get('level_number')
+        name = data.get('name')
+        level_data = data.get('data', {})
+        
+        if not all([room_id, level_number, name]):
+            return jsonify({'status': 'error', 'message': 'Missing required fields'}), 400
+        
+        conn = db_manager.get_connection()
+        
+        # Check if level already exists
+        existing = conn.execute(
+            'SELECT id FROM level_data WHERE room_id = ? AND level_number = ?',
+            (room_id, level_number)
+        ).fetchone()
+        
+        if existing:
+            conn.close()
+            return jsonify({'status': 'error', 'message': 'Level already exists'}), 409
+        
+        # Create new level
+        cursor = conn.execute('''
+            INSERT INTO level_data (room_id, level_number, name, data, created_at, updated_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ''', (room_id, level_number, name, json.dumps(level_data)))
+        
+        level_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'status': 'success', 'level_id': level_id, 'message': 'Level created successfully'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/admin/levels/<int:level_id>', methods=['PUT'])
+@login_required
+@admin_required
+def update_level(level_id):
+    """Update an existing level"""
+    try:
+        data = request.get_json()
+        name = data.get('name')
+        level_data = data.get('data', {})
+        
+        if not name:
+            return jsonify({'status': 'error', 'message': 'Name is required'}), 400
+        
+        conn = db_manager.get_connection()
+        
+        # Update level
+        conn.execute('''
+            UPDATE level_data 
+            SET name = ?, data = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (name, json.dumps(level_data), level_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'status': 'success', 'message': 'Level updated successfully'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/admin/levels/<int:level_id>', methods=['DELETE'])
+@login_required
+@admin_required
+def delete_level(level_id):
+    """Delete a level"""
+    try:
+        conn = db_manager.get_connection()
+        
+        # Check if level exists
+        level = conn.execute('SELECT * FROM level_data WHERE id = ?', (level_id,)).fetchone()
+        if not level:
+            conn.close()
+            return jsonify({'status': 'error', 'message': 'Level not found'}), 404
+        
+        # Delete level
+        conn.execute('DELETE FROM level_data WHERE id = ?', (level_id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'status': 'success', 'message': 'Level deleted successfully'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/admin/export-levels/<int:room_id>')
+@login_required
+@admin_required
+def export_room_levels(room_id):
+    """Export levels for a room as JSON"""
+    try:
+        conn = db_manager.get_connection()
+        levels = conn.execute('''
+            SELECT * FROM level_data 
+            WHERE room_id = ?
+            ORDER BY level_number
+        ''', (room_id,)).fetchall()
+        conn.close()
+        
+        export_data = {
+            'room_id': room_id,
+            'export_date': datetime.now().isoformat(),
+            'levels': []
+        }
+        
+        for level in levels:
+            export_data['levels'].append({
+                'level_number': level['level_number'],
+                'name': level['name'],
+                'data': json.loads(level['data']) if level['data'] else {}
+            })
+        
+        from flask import make_response
+        response = make_response(json.dumps(export_data, indent=2))
+        response.headers['Content-Type'] = 'application/json'
+        response.headers['Content-Disposition'] = f'attachment; filename=room_{room_id}_levels.json'
+        
+        return response
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/admin/import-levels', methods=['POST'])
+@login_required
+@admin_required
+def import_levels():
+    """Import levels from JSON file"""
+    try:
+        data = request.get_json()
+        room_id = data.get('room_id')
+        levels_data = data.get('levels', [])
+        overwrite = data.get('overwrite', False)
+        
+        if not room_id:
+            return jsonify({'status': 'error', 'message': 'Room ID is required'}), 400
+        
+        conn = db_manager.get_connection()
+        imported_count = 0
+        
+        for level_data in levels_data:
+            level_number = level_data.get('level_number')
+            name = level_data.get('name')
+            data_content = level_data.get('data', {})
+            
+            if not all([level_number, name]):
+                continue
+            
+            # Check if level exists
+            existing = conn.execute(
+                'SELECT id FROM level_data WHERE room_id = ? AND level_number = ?',
+                (room_id, level_number)
+            ).fetchone()
+            
+            if existing and not overwrite:
+                continue
+            elif existing and overwrite:
+                # Update existing level
+                conn.execute('''
+                    UPDATE level_data 
+                    SET name = ?, data = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE room_id = ? AND level_number = ?
+                ''', (name, json.dumps(data_content), room_id, level_number))
+                imported_count += 1
+            else:
+                # Create new level
+                conn.execute('''
+                    INSERT INTO level_data (room_id, level_number, name, data, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                ''', (room_id, level_number, name, json.dumps(data_content)))
+                imported_count += 1
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'status': 'success', 
+            'message': f'Imported {imported_count} levels successfully'
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ...existing code...
 if __name__ == '__main__':
     config_obj = config[config_name]
     app.run(

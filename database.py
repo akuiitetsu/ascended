@@ -97,6 +97,19 @@ class DatabaseManager:
                 )
             ''')
             
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS level_data (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    room_id INTEGER NOT NULL,
+                    level_number INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    data TEXT DEFAULT '{}',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(room_id, level_number)
+                )
+            ''')
+            
             conn.commit()
             conn.close()
             return True
@@ -117,11 +130,22 @@ class DatabaseManager:
                 conn.execute('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0')
                 migrations_applied.append('Added is_admin column to users table')
             
-            # Add more migrations here as needed in the future
-            # Example:
-            # if 'new_column' not in columns:
-            #     conn.execute('ALTER TABLE users ADD COLUMN new_column TEXT DEFAULT NULL')
-            #     migrations_applied.append('Added new_column to users table')
+            # Check if level_data table exists
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='level_data'")
+            if not cursor.fetchone():
+                conn.execute('''
+                    CREATE TABLE level_data (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        room_id INTEGER NOT NULL,
+                        level_number INTEGER NOT NULL,
+                        name TEXT NOT NULL,
+                        data TEXT DEFAULT '{}',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(room_id, level_number)
+                    )
+                ''')
+                migrations_applied.append('Created level_data table')
             
             conn.commit()
             conn.close()

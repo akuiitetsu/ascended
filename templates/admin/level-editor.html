@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Level Editor - AscendEd Admin</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <style>
+        .json-editor {
+            font-family: 'Courier New', monospace;
+            background: #1f2937;
+            color: #e5e7eb;
+            border: 1px solid #374151;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            min-height: 300px;
+            resize: vertical;
+        }
+        .room-tab.active {
+            background: #3b82f6;
+            color: white;
+        }
+        .level-item.selected {
+            background: #1e40af;
+            border-color: #3b82f6;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white font-mono">
+    <header class="bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-blue-100">
+                <i class="bi bi-tools"></i> Level Editor
+            </h1>
+            <div class="flex items-center space-x-4">
+                <a href="/admin" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded transition-colors">
+                    <i class="bi bi-arrow-left"></i> Back to Admin
+                </a>
+                <span class="text-blue-300">{{ current_user.username }}</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-6">
+        <!-- Room Tabs -->
+        <div class="mb-6">
+            <div class="flex space-x-2 border-b border-gray-700">
+                <button class="room-tab px-4 py-2 rounded-t-lg transition-colors active" data-room="1">
+                    <i class="bi bi-diagram-3"></i> Flowchart Lab
+                </button>
+                <button class="room-tab px-4 py-2 rounded-t-lg transition-colors" data-room="2">
+                    <i class="bi bi-router"></i> Network Nexus
+                </button>
+                <button class="room-tab px-4 py-2 rounded-t-lg transition-colors" data-room="3">
+                    <i class="bi bi-robot"></i> AI Systems
+                </button>
+                <button class="room-tab px-4 py-2 rounded-t-lg transition-colors" data-room="4">
+                    <i class="bi bi-database-x"></i> Database Crisis
+                </button>
+                <button class="room-tab px-4 py-2 rounded-t-lg transition-colors" data-room="5">
+                    <i class="bi bi-bug"></i> Programming Crisis
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-6">
+            <!-- Level List -->
+            <div class="col-span-4">
+                <div class="bg-gray-800 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-blue-400">Levels</h2>
+                        <div class="flex space-x-2">
+                            <button id="create-level-btn" class="bg-green-600 hover:bg-green-500 px-3 py-2 rounded text-sm transition-colors">
+                                <i class="bi bi-plus"></i> New
+                            </button>
+                            <button id="import-levels-btn" class="bg-purple-600 hover:bg-purple-500 px-3 py-2 rounded text-sm transition-colors">
+                                <i class="bi bi-upload"></i> Import
+                            </button>
+                            <button id="export-levels-btn" class="bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded text-sm transition-colors">
+                                <i class="bi bi-download"></i> Export
+                            </button>
+                        </div>
+                    </div>
+                    <div id="levels-list" class="space-y-2">
+                        <!-- Levels will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Level Editor -->
+            <div class="col-span-8">
+                <div class="bg-gray-800 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-blue-400">Level Editor</h2>
+                        <div class="flex space-x-2">
+                            <button id="save-level-btn" class="bg-green-600 hover:bg-green-500 px-4 py-2 rounded transition-colors" disabled>
+                                <i class="bi bi-save"></i> Save
+                            </button>
+                            <button id="delete-level-btn" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded transition-colors" disabled>
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="editor-content" class="space-y-4">
+                        <div class="text-center text-gray-400 py-12">
+                            <i class="bi bi-arrow-left text-4xl mb-2"></i>
+                            <p>Select a level to edit or create a new one</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Create Level Modal -->
+    <div id="create-level-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold mb-4 text-blue-400">Create New Level</h3>
+            <form id="create-level-form">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Level Number</label>
+                        <input type="number" name="level_number" min="1" required 
+                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Level Name</label>
+                        <input type="text" name="name" required 
+                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                        <button type="button" id="cancel-create" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-500 rounded transition-colors">
+                            Create
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Import Levels Modal -->
+    <div id="import-levels-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 p-6 rounded-lg max-w-2xl w-full mx-4">
+            <h3 class="text-xl font-bold mb-4 text-blue-400">Import Levels</h3>
+            <form id="import-levels-form">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">JSON Data</label>
+                        <textarea name="json_data" rows="10" required 
+                                  class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white font-mono"
+                                  placeholder="Paste your exported JSON data here..."></textarea>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" name="overwrite" id="overwrite-levels" class="mr-2">
+                        <label for="overwrite-levels" class="text-sm">Overwrite existing levels</label>
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                        <button type="button" id="cancel-import" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded transition-colors">
+                            Import
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/admin/level-editor.js"></script>
+</body>
+</html>
