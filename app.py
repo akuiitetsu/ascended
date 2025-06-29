@@ -24,6 +24,72 @@ db_manager = DatabaseManager(
     database_dir=app.config.get('DATABASE_DIR', 'database')
 )
 
+# Auto-initialize database on startup
+def init_app_database():
+    """Initialize database automatically on app startup"""
+    try:
+        # Check if database exists
+        if not os.path.exists(app.config['DATABASE']):
+            print("Database not found. Creating new database...")
+            result = db_manager.init_database()
+            if result is True:
+                print("✓ Database created successfully!")
+                # Create default admin account after initial database creation
+                create_default_admin()
+            else:
+                print(f"✗ Database creation failed: {result[1]}")
+                return False
+        else:
+            # Database exists, check for schema updates
+            print("Database found. Checking for schema updates...")
+            result = db_manager.migrate_schema()
+            if result is True:
+                print("✓ Database schema is up to date!")
+            else:
+                print(f"✓ Database schema updated: {result}")
+            # Check if admin exists, create if not
+            create_default_admin()
+        
+        # Ensure database directory exists
+        os.makedirs(app.config.get('DATABASE_DIR', 'database'), exist_ok=True)
+        return True
+    except Exception as e:
+        print(f"✗ Database initialization failed: {str(e)}")
+        return False
+
+def create_default_admin():
+    """Create default admin account if none exists"""
+    try:
+        # Check if admin already exists
+        conn = db_manager.get_connection()
+        admin_exists = conn.execute('SELECT id FROM users WHERE is_admin = 1').fetchone()
+        conn.close()
+        
+        if not admin_exists:
+            print("No admin account found. Creating default admin...")
+            # Get admin credentials from environment or use defaults
+            admin_username = os.environ.get('ADMIN_USERNAME', 'admin')
+            admin_email = os.environ.get('ADMIN_EMAIL', 'admin@ascended.local')
+            admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
+            
+            result = db_manager.create_admin(admin_username, admin_email, admin_password)
+            if result['success']:
+                print(f"✓ Default admin account created:")
+                print(f"  Username: {admin_username}")
+                print(f"  Email: {admin_email}")
+                print(f"  Password: {admin_password}")
+                print("  ⚠️  Please change the default password after first login!")
+            else:
+                print(f"✗ Failed to create admin account: {result['error']}")
+        else:
+            print("✓ Admin account already exists")
+    except Exception as e:
+        print(f"✗ Error checking/creating admin account: {str(e)}")
+
+# Initialize database on startup
+with app.app_context():
+    init_app_database()
+
 @login_manager.user_loader
 def load_user(user_id):
     """Load user for Flask-Login"""
@@ -89,6 +155,12 @@ def setup():
             setup_result = {'success': True, 'message': 'Database initialized successfully!'}
         else:
             setup_result = {'success': False, 'message': f'Setup failed: {result[1]}'}
+    elif request.args.get('action') == 'migrate':
+        result = db_manager.migrate_schema()
+        if result is True:
+            setup_result = {'success': True, 'message': 'Database schema is already up to date!'}
+        else:
+            setup_result = {'success': True, 'message': f'Database schema updated: {result}'}
     
     return render_template('setup.html', setup_result=setup_result, config=app.config)
 
@@ -192,6 +264,23 @@ def get_current_user():
         })
     else:
         return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+
+@app.route('/setup_admin', methods=['POST'])
+def setup_admin():
+    """
+    Create an admin account if it does not exist.
+    Expects JSON: { "username": "...", "email": "...", "password": "..." }
+    """
+    data = request.get_json()
+    username = data.get('username', 'admin')
+    email = data.get('email', 'admin@example.com')
+    password = data.get('password', 'admin123')
+
+    result = db_manager.create_admin(username, email, password)
+    if result['success']:
+        return jsonify({'status': 'success', 'message': 'Admin account created'})
+    else:
+        return jsonify({'status': 'error', 'message': result['error']}), 400
 
 if __name__ == '__main__':
     config_obj = config[config_name]

@@ -56,7 +56,7 @@ class DatabaseManager:
             
             conn = self.get_connection()
             
-            # Create tables
+            # Create tables with all current columns
             conn.execute('''
                 CREATE TABLE IF NOT EXISTS game_state (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,6 +84,7 @@ class DatabaseManager:
                     username TEXT UNIQUE,
                     email TEXT UNIQUE,
                     password_hash TEXT,
+                    is_admin INTEGER DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
@@ -93,6 +94,50 @@ class DatabaseManager:
             return True
         except Exception as e:
             return False, str(e)
+    
+    def migrate_schema(self):
+        """Handle database schema migrations for existing databases"""
+        try:
+            conn = self.get_connection()
+            migrations_applied = []
+            
+            # Check if is_admin column exists in users table
+            cursor = conn.execute("PRAGMA table_info(users)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            if 'is_admin' not in columns:
+                conn.execute('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0')
+                migrations_applied.append('Added is_admin column to users table')
+            
+            # Add more migrations here as needed in the future
+            # Example:
+            # if 'new_column' not in columns:
+            #     conn.execute('ALTER TABLE users ADD COLUMN new_column TEXT DEFAULT NULL')
+            #     migrations_applied.append('Added new_column to users table')
+            
+            conn.commit()
+            conn.close()
+            
+            if migrations_applied:
+                return f"Applied migrations: {', '.join(migrations_applied)}"
+            else:
+                return True  # No migrations needed
+        except Exception as e:
+            return False, str(e)
+    
+    def check_database_exists(self):
+        """Check if database file exists and is accessible"""
+        try:
+            if not os.path.exists(self.database_path):
+                return False
+            
+            # Try to connect and run a simple query
+            conn = self.get_connection()
+            conn.execute("SELECT 1")
+            conn.close()
+            return True
+        except Exception:
+            return False
     
     def test_connection(self):
         """Test database connection and return status info"""
@@ -226,3 +271,27 @@ class DatabaseManager:
             return None
         except Exception:
             return None
+    
+    def create_admin(self, username, email, password):
+        """Create an admin account if it does not exist"""
+        try:
+            conn = self.get_connection()
+            # Check if any admin exists
+            admin = conn.execute(
+                'SELECT * FROM users WHERE is_admin = 1'
+            ).fetchone()
+            if admin:
+                conn.close()
+                return {'success': False, 'error': 'Admin account already exists'}
+            password_hash = generate_password_hash(password)
+            conn.execute(
+                'INSERT INTO users (username, email, password_hash, is_admin) VALUES (?, ?, ?, 1)',
+                (username, email, password_hash)
+            )
+            conn.commit()
+            conn.close()
+            return {'success': True}
+        except sqlite3.IntegrityError:
+            return {'success': False, 'error': 'Username or email already exists'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}

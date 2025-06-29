@@ -11,6 +11,11 @@ class Config:
     LOGIN_MESSAGE = 'Please log in to access this page.'
     REMEMBER_COOKIE_DURATION = 86400  # 24 hours
     
+    # Admin account defaults (can be overridden by environment variables)
+    DEFAULT_ADMIN_USERNAME = 'admin'
+    DEFAULT_ADMIN_EMAIL = 'admin@ascended.local'
+    DEFAULT_ADMIN_PASSWORD = 'admin123'
+    
     # Database configuration
     DATABASE_DIR = 'database'
     
