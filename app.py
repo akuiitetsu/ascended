@@ -24,27 +24,7 @@ def check_file_exists(filepath):
 @app.route('/')
 def root():
     """Serve the actual game index.html"""
-    # Try different locations for index.html
-    possible_paths = app.config.get('STATIC_FILE_PATHS', [
-        'index.html',
-        'static/index.html',
-        'templates/index.html'
-    ])
-    
-    for path in possible_paths:
-        if check_file_exists(path):
-            try:
-                if path.startswith('static/'):
-                    return app.send_static_file(path.replace('static/', ''))
-                else:
-                    # Serve file from root directory
-                    from flask import send_from_directory
-                    return send_from_directory('.', path)
-            except:
-                continue
-    
-    # If no index.html found, show the Flask status page
-    return index()
+    return render_template('index.html')
 
 # Add a catch-all route for static files in root directory
 @app.route('/<path:filename>')
