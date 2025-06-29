@@ -98,56 +98,7 @@ def setup():
         else:
             setup_result = {'success': False, 'message': f'Setup failed: {result[1]}'}
     
-    template = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Database Setup - Ascended Prototype</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: #fff; }
-            .container { max-width: 600px; margin: 0 auto; }
-            .btn { display: inline-block; padding: 12px 24px; margin: 10px; background: #007acc; color: white; text-decoration: none; border-radius: 5px; border: none; cursor: pointer; }
-            .btn:hover { background: #005a99; }
-            .btn.danger { background: #cc0000; }
-            .btn.danger:hover { background: #990000; }
-            .result { padding: 15px; margin: 15px 0; border-radius: 5px; }
-            .success { background: #004400; border: 1px solid #00aa00; }
-            .error { background: #440000; border: 1px solid #aa0000; }
-            .code { background: #222; padding: 10px; margin: 10px 0; border-radius: 3px; font-family: monospace; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>🗄️ Database Setup</h1>
-            
-            {% if setup_result %}
-                <div class="result {{ 'success' if setup_result.success else 'error' }}">
-                    {{ setup_result.message }}
-                </div>
-            {% endif %}
-            
-            <p>This will create the SQLite database and required tables for the game.</p>
-            
-            <div class="code">
-                Database: {{ config.DATABASE }}<br>
-                Tables: game_state, user_progress
-            </div>
-            
-            <a href="/setup?action=init" class="btn">Initialize Database</a>
-            <a href="/verify" class="btn">Verify System</a>
-            <a href="/" class="btn">Back to Game</a>
-            
-            <h3>Manual Setup (if needed):</h3>
-            <div class="code">
-                # Create database directory<br>
-                mkdir database<br><br>
-                # The Flask app will automatically create tables
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-    return render_template_string(template, setup_result=setup_result, config=app.config)
+    return render_template('setup.html', setup_result=setup_result, config=app.config)
 
 # Add authentication middleware for protected routes
 def login_required(f):
