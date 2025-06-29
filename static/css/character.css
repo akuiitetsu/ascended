@@ -1,0 +1,128 @@
+/* Character Avatar Styles */
+.character-avatar {
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.character-avatar-display {
+    position: relative;
+    min-height: 200px;
+}
+
+.character-visual {
+    position: relative;
+    display: inline-block;
+}
+
+.character-accessories {
+    margin-top: 10px;
+}
+
+/* Cosmetic Menu Styles */
+.cosmetic-item {
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.cosmetic-item:hover:not(.locked) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.cosmetic-item.locked {
+    cursor: not-allowed;
+    filter: grayscale(100%);
+}
+
+.cosmetic-category {
+    border-bottom: 1px solid #374151;
+    padding-bottom: 1rem;
+}
+
+.cosmetic-category:last-child {
+    border-bottom: none;
+}
+
+/* Character Preview Animations */
+.character-visual {
+    animation: gentle-bob 3s ease-in-out infinite;
+}
+
+@keyframes gentle-bob {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+}
+
+/* Victory Character Display */
+.victory-character {
+    background: linear-gradient(135deg, #1f2937, #374151);
+    border-radius: 15px;
+    padding: 20px;
+    max-width: 400px;
+    margin: 0 auto;
+    border: 2px solid #10b981;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+/* Unlock Animation */
+.cosmetic-unlock-animation {
+    animation: unlock-glow 2s ease-in-out;
+}
+
+@keyframes unlock-glow {
+    0% { box-shadow: 0 0 0 rgba(168, 85, 247, 0); }
+    50% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.8); }
+    100% { box-shadow: 0 0 0 rgba(168, 85, 247, 0); }
+}
+
+/* Character Stats Display */
+.character-stats {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 15px;
+}
+
+.character-stats p {
+    margin: 4px 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .cosmetic-options {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+    
+    .character-visual {
+        font-size: 4rem !important;
+    }
+    
+    .cosmetic-item {
+        min-height: 60px;
+        padding: 8px;
+    }
+}
+
+/* Equipment Categories */
+.cosmetic-category h4 {
+    border-left: 4px solid currentColor;
+    padding-left: 8px;
+    margin-bottom: 8px;
+}
+
+/* Special Effects for Rare Items */
+.cosmetic-item[data-item="biohazard"],
+.cosmetic-item[data-item="bio-helmet"],
+.cosmetic-item[data-item="bio-scanner"] {
+    background: linear-gradient(45deg, #1f2937, #7c3aed);
+}
+
+.cosmetic-item[data-item="radiation"],
+.cosmetic-item[data-item="dosimeter"] {
+    background: linear-gradient(45deg, #1f2937, #eab308);
+}

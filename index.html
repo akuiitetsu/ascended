@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escape the Lab - Tech Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="static/css/main.css">
+    <link rel="stylesheet" href="static/css/character.css">
+</head>
+
+<body class="bg-gray-900 text-white font-mono">
+    <!-- Welcome Screen -->
+    <div id="welcome-screen" class="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
+        <div class="text-center p-8 max-w-2xl mx-auto">
+            <div class="mb-8">
+                <i class="bi bi-cpu text-8xl text-blue-400 animate-pulse"></i>
+            </div>
+            <h1 class="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                AscendEd
+            </h1>
+            <h2 class="text-2xl text-gray-300 mb-6">Tech Lab Breakout</h2>
+            <p class="text-lg text-gray-400 mb-8 leading-relaxed">
+                A Gamified Learning Simulation for Mastering Technical
+                Skills - Only a true tech master can escape!
+            </p>
+            
+            <!-- User Status Display -->
+            <div id="user-welcome" class="mb-6 hidden">
+                <div class="bg-gray-800 border border-gray-600 rounded-lg p-4 inline-block">
+                    <p class="text-green-400 font-medium">Welcome back, <span id="welcome-username"></span>!</p>
+                    <p class="text-gray-400 text-sm">Ready to continue your escape from the lab?</p>
+                </div>
+            </div>
+            
+            <div id="auth-forms" class="space-y-4 mb-8">
+                <!-- Login Form -->
+                <form id="login-form" class="bg-gray-800 border border-gray-600 rounded-lg p-6 mb-4">
+                    <h3 class="text-xl font-bold mb-4 text-blue-400">Login</h3>
+                    <div class="space-y-4">
+                        <input type="text" name="email" placeholder="Email or Username" class="w-full challenge-input px-4 py-2 rounded" required>
+                        <input type="password" name="password" placeholder="Password" class="w-full challenge-input px-4 py-2 rounded" required>
+                        <button type="submit" class="w-full btn-primary px-4 py-2 rounded">Login</button>
+                    </div>
+                    <p class="text-sm text-gray-400 mt-4">
+                        No account? <a href="#" id="show-register" class="text-blue-400">Register here</a>
+                    </p>
+                </form>
+
+                <!-- Register Form -->
+                <form id="register-form" class="bg-gray-800 border border-gray-600 rounded-lg p-6 hidden">
+                    <h3 class="text-xl font-bold mb-4 text-blue-400">Register</h3>
+                    <div class="space-y-4">
+                        <input type="text" name="username" placeholder="Username" class="w-full challenge-input px-4 py-2 rounded" required>
+                        <input type="email" name="email" placeholder="Email" class="w-full challenge-input px-4 py-2 rounded" required>
+                        <input type="password" name="password" placeholder="Password" class="w-full challenge-input px-4 py-2 rounded" required>
+                        <input type="password" name="confirm_password" placeholder="Confirm Password" class="w-full challenge-input px-4 py-2 rounded" required>
+                        <button type="submit" class="w-full btn-primary px-4 py-2 rounded">Register</button>
+                    </div>
+                    <p class="text-sm text-gray-400 mt-4">
+                        Already have an account? <a href="#" id="show-login" class="text-blue-400">Login here</a>
+                    </p>
+                </form>
+            </div>
+            <!-- Move start game button after auth forms -->
+            <div class="space-y-4">
+                <button id="start-game" class="hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 px-8 py-4 rounded-lg text-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg">
+                    <i class="bi bi-play-fill mr-2"></i>START ESCAPE SEQUENCE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <header id="game-header" class="bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 p-4 shadow-lg hidden">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-blue-100">
+                <i class="bi bi-cpu"></i> AscendEd: Tech Lab Breakout
+            </h1>
+            <div class="flex items-center space-x-4">
+                <div class="user-menu">
+                    <span id="user-display" class="text-blue-300 mr-4"></span>
+                    <button id="logout-btn" class="bg-red-600 hover:bg-red-500 px-3 py-2 rounded transition-colors hidden">
+                        Logout
+                    </button>
+                </div>
+                <div class="room-indicator bg-gray-800 border border-gray-600 px-4 py-2 rounded">
+                    Room: <span id="current-room">1</span>/5
+                </div>
+                <button id="character-menu-btn" class="bg-purple-700 hover:bg-purple-600 px-3 py-2 rounded transition-colors" title="Character Customization">
+                    <i class="bi bi-person-gear"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Testing Wave Navigation -->
+        <div class="container mx-auto mt-3">
+            <div class="bg-gray-800 border-2 border-blue-500 p-3 rounded">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="bi bi-wrench text-blue-300 mr-2"></i>
+                        <span class="text-blue-100 font-bold">COMMAND CENTER:</span>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="wave-nav-btn bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm transition-colors" data-room="1">
+                            <i class="bi bi-diagram-3"></i> Flowchart Lab
+                        </button>
+                        <button class="wave-nav-btn bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm transition-colors" data-room="2">
+                            <i class="bi bi-router"></i> Network Nexus
+                        </button>
+                        <button class="wave-nav-btn bg-purple-600 hover:bg-purple-500 px-3 py-1 rounded text-sm transition-colors" data-room="3">
+                            <i class="bi bi-robot"></i> AI Systems
+                        </button>
+                        <button class="wave-nav-btn bg-red-600 hover:bg-red-500 px-3 py-1 rounded text-sm transition-colors" data-room="4">
+                            <i class="bi bi-database-x"></i> Database Crisis
+                        </button>
+                        <button class="wave-nav-btn bg-pink-600 hover:bg-pink-500 px-3 py-1 rounded text-sm transition-colors" data-room="5">
+                            <i class="bi bi-bug"></i> Programming Crisis
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main id="game-main" class="container mx-auto p-4 hidden">
+        <div id="game-container" class="min-h-screen">
+            <!-- Room content will be loaded here -->
+            <div id="room-content" class="bg-gray-800 rounded-lg p-6 shadow-xl">
+                <div class="loading text-center">
+                    <i class="bi bi-gear-fill animate-spin text-4xl text-yellow-400"></i>
+                    <p class="mt-4">Initializing Technology Systems...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Modal -->
+        <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-green-800 p-8 rounded-lg text-center max-w-md">
+                <i class="bi bi-check-circle-fill text-6xl text-green-400 mb-4"></i>
+                <h2 class="text-2xl font-bold mb-4">System Secured!</h2>
+                <p id="success-message" class="mb-6"></p>
+                <div class="flex gap-3 justify-center">
+                    <button id="next-room-btn" class="bg-green-600 hover:bg-green-700 px-6 py-2 rounded transition-colors">
+                        Next System <i class="bi bi-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div id="gameover-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-red-800 p-8 rounded-lg text-center max-w-md">
+                <i class="bi bi-x-circle-fill text-6xl text-red-400 mb-4"></i>
+                <h2 class="text-2xl font-bold mb-4">System Failure</h2>
+                <p id="failure-message" class="mb-6"></p>
+                <button id="restart-btn" class="bg-red-600 hover:bg-red-700 px-6 py-2 rounded transition-colors">
+                    Restart System <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Initialize character menu button functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            // Start game functionality
+            const startGameBtn = document.getElementById('start-game');
+            const welcomeScreen = document.getElementById('welcome-screen');
+            const gameHeader = document.getElementById('game-header');
+            const gameMain = document.getElementById('game-main');
+            
+            startGameBtn.addEventListener('click', () => {
+                // Hide welcome screen
+                welcomeScreen.classList.add('hidden');
+                // Show game elements
+                gameHeader.classList.remove('hidden');
+                gameMain.classList.remove('hidden');
+                
+                // Load first room
+                if (window.game && window.game.loadRoom) {
+                    window.game.loadRoom(1);
+                }
+            });
+            
+            const characterMenuBtn = document.getElementById('character-menu-btn');
+            characterMenuBtn.addEventListener('click', () => {
+                if (window.game && window.game.showCosmeticMenu) {
+                    window.game.showCosmeticMenu();
+                }
+            });
+            
+            // Wave navigation for testing
+            document.querySelectorAll('.wave-nav-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const roomNumber = parseInt(e.currentTarget.dataset.room);
+                    if (window.game && window.game.loadRoom) {
+                        console.log(`Testing: Jumping to Room ${roomNumber}`);
+                        window.game.loadRoom(roomNumber);
+                    }
+                });
+            });
+        });
+    </script>
+    <script type="module" src="static/js/main.js"></script>
+</body>
+    <script type="module" src="static/js/auth.js"></script>
+    <script type="module" src="static/js/main.js"></script>
+</html>

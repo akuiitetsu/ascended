@@ -1,0 +1,318 @@
+{
+  "system_info": {
+    "application": "CoreBusiness Financial Platform",
+    "environment": "Production",
+    "severity": "Critical - P0 Incident",
+    "impact": "Complete service outage affecting all operations",
+    "affected_users": "2.8 million active users globally",
+    "revenue_loss": "$3.2 million per hour downtime"
+  },
+  "critical_bugs": [
+    {
+      "id": "memory-leak",
+      "name": "Memory Leak",
+      "description": "Unchecked object allocation causing heap overflow",
+      "severity": "Critical",
+      "impact": "System crash",
+      "icon": "🧠"
+    },
+    {
+      "id": "null-pointer",
+      "name": "Null Pointer Exception",
+      "description": "Unvalidated object references causing crashes",
+      "severity": "Critical",
+      "impact": "Application failure",
+      "icon": "⚠️"
+    },
+    {
+      "id": "race-condition",
+      "name": "Race Condition",
+      "description": "Concurrent thread access to shared resources",
+      "severity": "Critical",
+      "impact": "Data corruption",
+      "icon": "🏃"
+    },
+    {
+      "id": "buffer-overflow",
+      "name": "Buffer Overflow",
+      "description": "Input validation bypass allowing memory corruption",
+      "severity": "Critical",
+      "impact": "Security vulnerability",
+      "icon": "💥"
+    },
+    {
+      "id": "deadlock",
+      "name": "Database Deadlock",
+      "description": "Circular dependency in transaction locks",
+      "severity": "High",
+      "impact": "Performance degradation",
+      "icon": "🔒"
+    },
+    {
+      "id": "stack-overflow",
+      "name": "Stack Overflow",
+      "description": "Recursive function calls without termination",
+      "severity": "High",
+      "impact": "Thread crashes",
+      "icon": "📚"
+    },
+    {
+      "id": "sql-injection",
+      "name": "SQL Injection Vulnerability",
+      "description": "Unsanitized database queries allowing code injection",
+      "severity": "High",
+      "impact": "Data breach risk",
+      "icon": "💉"
+    },
+    {
+      "id": "logic-error",
+      "name": "Business Logic Error",
+      "description": "Incorrect calculation in financial processing",
+      "severity": "Medium",
+      "impact": "Data inconsistency",
+      "icon": "🧮"
+    }
+  ],
+  "crisis_info": {
+    "type": "Critical System Debugging Emergency",
+    "cause": "Multiple system bugs causing cascading failures",
+    "affected_components": "Core application logic, memory management, network protocols",
+    "severity": "System-wide instability with potential data corruption",
+    "resolution_method": "Code-based navigation and debugging using Python-like commands",
+    "time_limit": "10 minutes before complete system failure"
+  },
+  "bug_types": [
+    {
+      "id": "syntax_error",
+      "name": "Syntax Error",
+      "description": "Invalid code syntax causing parse failures",
+      "health": 30,
+      "reward_energy": 8,
+      "icon": "🔴",
+      "color": "#dc2626"
+    },
+    {
+      "id": "type_error",
+      "name": "Type Error",
+      "description": "Incorrect data type operations",
+      "health": 25,
+      "reward_energy": 6,
+      "icon": "🟡",
+      "color": "#f59e0b"
+    },
+    {
+      "id": "logic_error",
+      "name": "Logic Error",
+      "description": "Flawed algorithmic logic causing incorrect results",
+      "health": 40,
+      "reward_energy": 10,
+      "icon": "🟣",
+      "color": "#8b5cf6"
+    },
+    {
+      "id": "runtime_error",
+      "name": "Runtime Error",
+      "description": "Errors that occur during program execution",
+      "health": 50,
+      "reward_energy": 12,
+      "icon": "🟠",
+      "color": "#f97316"
+    },
+    {
+      "id": "memory_leak",
+      "name": "Memory Leak",
+      "description": "Improper memory management causing resource exhaustion",
+      "health": 60,
+      "reward_energy": 15,
+      "icon": "💧",
+      "color": "#06b6d4"
+    },
+    {
+      "id": "race_condition",
+      "name": "Race Condition",
+      "description": "Concurrent access issues causing unpredictable behavior",
+      "health": 70,
+      "reward_energy": 18,
+      "icon": "🏃",
+      "color": "#10b981"
+    },
+    {
+      "id": "buffer_overflow",
+      "name": "Buffer Overflow",
+      "description": "Memory buffer boundary violations",
+      "health": 80,
+      "reward_energy": 20,
+      "icon": "💥",
+      "color": "#ef4444"
+    }
+  ],
+  "obstacle_types": [
+    {
+      "id": "wall",
+      "name": "System Wall",
+      "description": "Impenetrable system barrier",
+      "icon": "🧱",
+      "color": "#6b7280"
+    },
+    {
+      "id": "firewall",
+      "name": "Security Firewall",
+      "description": "Active security barrier that blocks movement",
+      "icon": "🔥",
+      "color": "#f59e0b"
+    },
+    {
+      "id": "encrypted_wall",
+      "name": "Encrypted Barrier",
+      "description": "Advanced encryption preventing access",
+      "icon": "🔒",
+      "color": "#7c3aed"
+    }
+  ],
+  "powerup_types": [
+    {
+      "id": "health_pack",
+      "name": "System Repair Kit",
+      "description": "Restores player health",
+      "value_range": [20, 40],
+      "icon": "💊",
+      "color": "#10b981"
+    },
+    {
+      "id": "energy_boost",
+      "name": "Processing Power Boost",
+      "description": "Increases available energy for commands",
+      "value_range": [15, 30],
+      "icon": "⚡",
+      "color": "#3b82f6"
+    },
+    {
+      "id": "debug_tool",
+      "name": "Advanced Debug Tool",
+      "description": "Powerful debugging utility",
+      "value_range": [25, 35],
+      "icon": "🔧",
+      "color": "#8b5cf6"
+    },
+    {
+      "id": "super_debug",
+      "name": "Super Debug Scanner",
+      "description": "Ultimate debugging tool with enhanced capabilities",
+      "value_range": [40, 60],
+      "icon": "🛠️",
+      "color": "#f59e0b"
+    }
+  ],
+  "command_reference": {
+    "movement": [
+      {
+        "command": "move('up')",
+        "description": "Move player one cell up",
+        "energy_cost": 2,
+        "example": "move('up')"
+      },
+      {
+        "command": "move('down')",
+        "description": "Move player one cell down", 
+        "energy_cost": 2,
+        "example": "move('down')"
+      },
+      {
+        "command": "move('left')",
+        "description": "Move player one cell left",
+        "energy_cost": 2,
+        "example": "move('left')"
+      },
+      {
+        "command": "move('right')",
+        "description": "Move player one cell right",
+        "energy_cost": 2,
+        "example": "move('right')"
+      }
+    ],
+    "combat": [
+      {
+        "command": "attack('direction')",
+        "description": "Attack bug in specified direction",
+        "energy_cost": 5,
+        "damage": "25-40",
+        "example": "attack('up')"
+      }
+    ],
+    "utility": [
+      {
+        "command": "scan()",
+        "description": "Reveal information about nearby objects",
+        "energy_cost": 3,
+        "range": "3x3 area around player",
+        "example": "scan()"
+      },
+      {
+        "command": "wait()",
+        "description": "Skip turn and recover energy",
+        "energy_cost": 0,
+        "energy_gain": 5,
+        "example": "wait()"
+      },
+      {
+        "command": "collect()",
+        "description": "Pick up items at current position",
+        "energy_cost": 0,
+        "example": "collect()"
+      },
+      {
+        "command": "use_item('item_type')",
+        "description": "Use item from inventory",
+        "energy_cost": 0,
+        "example": "use_item('health_pack')"
+      }
+    ]
+  },
+  "level_progression": [
+    {
+      "level": 1,
+      "name": "Basic Debugging",
+      "description": "Simple bug fixes with basic movement",
+      "bug_count": 3,
+      "difficulty": "Beginner",
+      "objectives": [
+        "Learn basic movement commands",
+        "Defeat all syntax and type errors",
+        "Collect power-ups for health and energy"
+      ]
+    },
+    {
+      "level": 2,
+      "name": "Intermediate System Repair",
+      "description": "More complex bugs with obstacles",
+      "bug_count": 4,
+      "difficulty": "Intermediate", 
+      "objectives": [
+        "Navigate around firewall obstacles",
+        "Defeat logic and runtime errors",
+        "Use scan() to locate threats efficiently"
+      ]
+    },
+    {
+      "level": 3,
+      "name": "Advanced Crisis Resolution",
+      "description": "Critical system bugs requiring strategic approach",
+      "bug_count": 5,
+      "difficulty": "Advanced",
+      "objectives": [
+        "Defeat memory leaks and race conditions",
+        "Navigate encrypted barriers",
+        "Optimize energy usage for complex operations"
+      ]
+    }
+  ],
+  "programming_tips": [
+    "Use scan() frequently to gather information before moving",
+    "Manage energy carefully - wait() when you need to recover",
+    "Attack bugs from a distance when possible",
+    "Collect power-ups before engaging in combat",
+    "Plan your route to avoid unnecessary energy expenditure",
+    "Use loops and sequences to automate repetitive movements",
+    "Remember that debugging is both an art and a science"
+  ]
+}

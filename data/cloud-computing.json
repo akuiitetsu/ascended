@@ -1,0 +1,129 @@
+{
+  "incident_info": {
+    "event": "Viral content causing massive traffic surge",
+    "cause": "Celebrity endorsement + social media viral trend",
+    "affected_services": "Main website infrastructure",
+    "impact": "Traffic increased 5000% in 30 minutes",
+    "sla_status": "99.9% SLA at risk - uptime critical",
+    "customer_impact": "Potential revenue loss of $50K per minute"
+  },
+  "node_types": [
+    {
+      "id": "web-server",
+      "name": "Web Server",
+      "description": "Handles HTTP requests and serves content",
+      "cost": 50,
+      "capacity": 1000,
+      "icon": "🖥️",
+      "color": "#3b82f6"
+    },
+    {
+      "id": "load-balancer",
+      "name": "Load Balancer",
+      "description": "Distributes traffic across multiple servers",
+      "cost": 100,
+      "capacity": 5000,
+      "icon": "⚖️",
+      "color": "#10b981"
+    },
+    {
+      "id": "database",
+      "name": "Database",
+      "description": "Stores and retrieves application data",
+      "cost": 150,
+      "capacity": 2000,
+      "icon": "🗄️",
+      "color": "#8b5cf6"
+    },
+    {
+      "id": "cdn",
+      "name": "CDN Node",
+      "description": "Content delivery network for static assets",
+      "cost": 75,
+      "capacity": 3000,
+      "icon": "🌐",
+      "color": "#f59e0b"
+    },
+    {
+      "id": "cache",
+      "name": "Cache Server",
+      "description": "Redis/Memcached for faster data access",
+      "cost": 80,
+      "capacity": 1500,
+      "icon": "💨",
+      "color": "#ef4444"
+    }
+  ],
+  "upgrade_types": [
+    {
+      "id": "cpu-upgrade",
+      "name": "CPU Upgrade",
+      "description": "Increase processing power by 50%",
+      "cost": 30,
+      "multiplier": 1.5,
+      "icon": "⚡"
+    },
+    {
+      "id": "memory-upgrade",
+      "name": "Memory Upgrade", 
+      "description": "Double available RAM",
+      "cost": 25,
+      "multiplier": 2.0,
+      "icon": "🧠"
+    },
+    {
+      "id": "network-upgrade",
+      "name": "Network Upgrade",
+      "description": "Increase bandwidth by 75%",
+      "cost": 40,
+      "multiplier": 1.75,
+      "icon": "📡"
+    }
+  ],
+  "traffic_patterns": [
+    {
+      "time": 0,
+      "requests_per_second": 500,
+      "description": "Normal baseline traffic"
+    },
+    {
+      "time": 30,
+      "requests_per_second": 2500,
+      "description": "Social media spike begins"
+    },
+    {
+      "time": 60,
+      "requests_per_second": 8000,
+      "description": "Viral content spreading"
+    },
+    {
+      "time": 90,
+      "requests_per_second": 15000,
+      "description": "Peak viral traffic"
+    },
+    {
+      "time": 120,
+      "requests_per_second": 25000,
+      "description": "News outlets picking up story"
+    },
+    {
+      "time": 150,
+      "requests_per_second": 35000,
+      "description": "International attention"
+    },
+    {
+      "time": 180,
+      "requests_per_second": 20000,
+      "description": "Traffic stabilizing but high"
+    }
+  ],
+  "audio_cues": {
+    "node_place": "static/audio/node-place.mp3",
+    "connection_made": "static/audio/connection.mp3",
+    "upgrade_complete": "static/audio/upgrade.mp3",
+    "traffic_surge": "static/audio/traffic-surge.mp3",
+    "server_overload": "static/audio/server-overload.mp3",
+    "system_stable": "static/audio/system-stable.mp3",
+    "infrastructure_collapse": "static/audio/collapse.mp3"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "room_name": "Network Nexus",
+  "description": "Build the Backbone - Master network fundamentals",
+  "device_types": [
+    {
+      "id": "pc",
+      "name": "PC",
+      "icon": "💻",
+      "color": "#3b82f6",
+      "ports": 1,
+      "type": "endpoint"
+    },
+    {
+      "id": "router",
+      "name": "Router",
+      "icon": "🔀",
+      "color": "#10b981",
+      "ports": 4,
+      "type": "layer3"
+    },
+    {
+      "id": "switch",
+      "name": "Switch",
+      "icon": "�",
+      "color": "#8b5cf6",
+      "ports": 8,
+      "type": "layer2"
+    }
+  ],
+  "cable_types": [
+    {
+      "id": "ethernet",
+      "name": "Ethernet Cable",
+      "icon": "━━━",
+      "color": "#fbbf24",
+      "type": "straight-through"
+    }
+  ],
+  "network_scenarios": {
+    "subnets": [
+      "192.168.1.0/24",
+      "192.168.2.0/24",
+      "10.0.0.0/24"
+    ],
+    "common_ips": [
+      "192.168.1.1",
+      "192.168.1.10",
+      "192.168.1.11",
+      "192.168.2.1",
+      "192.168.2.10"
+    ]
+  }
+}

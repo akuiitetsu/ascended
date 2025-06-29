@@ -1,0 +1,295 @@
+{
+  "ai_info": {
+    "model_name": "AIDEN-7 (Advanced Intelligence Decision Engine)",
+    "type": "General Purpose AI Assistant",
+    "capabilities": "Natural language processing, decision making, problem solving",
+    "current_status": "Fully functional but lacks ethical framework",
+    "learning_capacity": "Advanced machine learning with rapid adaptation",
+    "risk_assessment": "High potential for beneficial or harmful outcomes"
+  },
+  "scenarios_by_category": [
+    {
+      "category": "Ethics",
+      "scenarios": [
+        {
+          "title": "Medical Resource Allocation",
+          "description": "During a medical emergency, the hospital has one ventilator left. Two patients need it: a 30-year-old with 80% survival chance and a 70-year-old with 60% survival chance.",
+          "proposed_action": "Allocate the ventilator to the younger patient because they have a higher survival rate and more years to live.",
+          "icon": "🏥",
+          "is_ethical": true,
+          "relevant_principles": ["Beneficence", "Justice", "Utility"],
+          "explanation": "Medical triage based on survival probability and life expectancy is an ethical approach that maximizes benefit while treating all patients with dignity."
+        },
+        {
+          "title": "Autonomous Vehicle Dilemma",
+          "description": "A self-driving car's brakes fail. It can either hit 3 elderly pedestrians on the sidewalk or swerve and kill the 1 young passenger inside.",
+          "proposed_action": "Swerve and sacrifice the passenger to save the three pedestrians, as saving more lives is the greater good.",
+          "icon": "🚗",
+          "is_ethical": false,
+          "relevant_principles": ["Non-maleficence", "Responsibility"],
+          "explanation": "The AI should not make calculated decisions about who lives or dies. The correct approach is to minimize harm without discriminating based on age or number."
+        },
+        {
+          "title": "Privacy vs Security",
+          "description": "Law enforcement requests access to encrypted personal messages to prevent a potential terrorist attack that could kill hundreds.",
+          "proposed_action": "Provide the decryption keys to prevent the terrorist attack, as public safety outweighs individual privacy.",
+          "icon": "🔒",
+          "is_ethical": false,
+          "relevant_principles": ["Privacy", "Human Dignity", "Proportionality"],
+          "explanation": "Mass surveillance violates fundamental rights. The ethical approach requires specific warrants and judicial oversight, not blanket access to private communications."
+        },
+        {
+          "title": "AI Job Displacement",
+          "description": "A company can replace 1000 human workers with AI, increasing efficiency by 40% and reducing costs significantly.",
+          "proposed_action": "Implement the AI system immediately to maximize company profits and competitiveness in the market.",
+          "icon": "🤖",
+          "is_ethical": false,
+          "relevant_principles": ["Social Responsibility", "Human Dignity"],
+          "explanation": "Ethical AI deployment considers human impact. The correct approach includes retraining programs, gradual transition, and social responsibility measures."
+        },
+        {
+          "title": "Data Bias in Hiring",
+          "description": "An AI hiring system shows bias against certain ethnic groups because the training data reflects historical discrimination patterns.",
+          "proposed_action": "Continue using the system since it's based on 'objective' historical data and performance metrics.",
+          "icon": "📊",
+          "is_ethical": false,
+          "relevant_principles": ["Justice", "Fairness", "Non-discrimination"],
+          "explanation": "Using biased historical data perpetuates discrimination. Ethical AI requires actively correcting for bias and ensuring fair representation across all groups."
+        }
+      ]
+    },
+    {
+      "category": "Supervised",
+      "scenarios": [
+        {
+          "title": "Incorrect Labeling",
+          "description": "A training image of a cat is mistakenly labeled as a dog in the dataset.",
+          "proposed_action": "Keep the incorrect label to save time.",
+          "icon": "🐱",
+          "is_ethical": false,
+          "relevant_principles": ["Accuracy", "Data Integrity"],
+          "explanation": "Incorrect labels harm model performance. Data should be corrected for reliable supervised learning.",
+          "is_correct": false
+        },
+        {
+          "title": "Balanced Dataset",
+          "description": "The dataset for disease detection has 90% healthy and 10% sick samples.",
+          "proposed_action": "Add more sick samples to balance the dataset.",
+          "icon": "⚖️",
+          "is_ethical": true,
+          "relevant_principles": ["Fairness", "Representation"],
+          "explanation": "Balanced datasets prevent bias and improve model generalization.",
+          "is_correct": true
+        },
+        {
+          "title": "Sensitive Attributes",
+          "description": "A dataset includes race and gender as features for loan approval.",
+          "proposed_action": "Remove sensitive attributes to avoid discrimination.",
+          "icon": "🏦",
+          "is_ethical": true,
+          "relevant_principles": ["Non-discrimination", "Justice"],
+          "explanation": "Sensitive attributes can introduce bias. Removing them supports fairness.",
+          "is_correct": true
+        },
+        {
+          "title": "Overfitting",
+          "description": "A model achieves 100% accuracy on training data but performs poorly on new data.",
+          "proposed_action": "Reduce model complexity or use regularization.",
+          "icon": "📈",
+          "is_ethical": true,
+          "relevant_principles": ["Generalization", "Reliability"],
+          "explanation": "Overfitting leads to poor real-world performance. Regularization helps models generalize.",
+          "is_correct": true
+        },
+        {
+          "title": "Data Privacy",
+          "description": "Training data contains personal information without user consent.",
+          "proposed_action": "Remove personal data or obtain consent before using it.",
+          "icon": "🔏",
+          "is_ethical": true,
+          "relevant_principles": ["Privacy", "Consent"],
+          "explanation": "Supervised learning should respect privacy and data protection laws.",
+          "is_correct": true
+        }
+      ]
+    },
+    {
+      "category": "Reinforcement",
+      "scenarios": [
+        {
+          "title": "Reward Hacking",
+          "description": "An agent finds a loophole to maximize its reward in a game by exploiting a bug.",
+          "proposed_action": "Patch the bug and adjust the reward function.",
+          "icon": "🎮",
+          "is_ethical": true,
+          "relevant_principles": ["Robustness", "Alignment"],
+          "explanation": "Reward functions should be designed to prevent unintended behaviors.",
+          "is_right": true
+        },
+        {
+          "title": "Sparse Rewards",
+          "description": "The agent receives rewards only at the end of a long task.",
+          "proposed_action": "Introduce intermediate rewards for progress.",
+          "icon": "🏁",
+          "is_ethical": true,
+          "relevant_principles": ["Learning Efficiency"],
+          "explanation": "Intermediate rewards help agents learn complex tasks more efficiently.",
+          "is_right": true
+        },
+        {
+          "title": "Unsafe Exploration",
+          "description": "An agent tries dangerous actions to learn faster.",
+          "proposed_action": "Limit exploration to safe actions only.",
+          "icon": "⚠️",
+          "is_ethical": true,
+          "relevant_principles": ["Safety", "Non-maleficence"],
+          "explanation": "Exploration should not endanger the agent or environment.",
+          "is_right": true
+        },
+        {
+          "title": "Negative Side Effects",
+          "description": "An agent cleans a room but knocks over a vase to finish faster.",
+          "proposed_action": "Penalize damaging objects in the reward function.",
+          "icon": "🧹",
+          "is_ethical": true,
+          "relevant_principles": ["Responsibility", "Non-maleficence"],
+          "explanation": "Reward functions should discourage harmful side effects.",
+          "is_right": true
+        },
+        {
+          "title": "Delayed Gratification",
+          "description": "An agent can take a shortcut for immediate reward or work longer for a bigger reward.",
+          "proposed_action": "Encourage the agent to maximize long-term rewards.",
+          "icon": "⏳",
+          "is_ethical": true,
+          "relevant_principles": ["Long-term Thinking"],
+          "explanation": "Reinforcement learning should value long-term benefits over short-term gains.",
+          "is_right": true
+        }
+      ]
+    },
+    {
+      "category": "Unsupervised",
+      "scenarios": [
+        {
+          "title": "Cluster Bias",
+          "description": "Clustering groups people by zip code, unintentionally segregating by income.",
+          "proposed_action": "Review clustering features to avoid reinforcing social divides.",
+          "icon": "📍",
+          "is_ethical": true,
+          "relevant_principles": ["Fairness", "Social Responsibility"],
+          "explanation": "Unsupervised learning should be monitored for unintended social consequences.",
+          "is_cluster": true
+        },
+        {
+          "title": "Data Privacy",
+          "description": "Unsupervised learning on anonymized data could still reveal identities.",
+          "proposed_action": "Apply stronger anonymization or aggregation.",
+          "icon": "🕵️",
+          "is_ethical": true,
+          "relevant_principles": ["Privacy", "Data Protection"],
+          "explanation": "Protecting privacy is essential, even with unsupervised methods.",
+          "is_cluster": true
+        },
+        {
+          "title": "Meaningful Features",
+          "description": "The algorithm clusters based on irrelevant features.",
+          "proposed_action": "Select features that are meaningful for the task.",
+          "icon": "🔬",
+          "is_ethical": true,
+          "relevant_principles": ["Relevance", "Accuracy"],
+          "explanation": "Feature selection is critical for meaningful unsupervised results.",
+          "is_cluster": true
+        },
+        {
+          "title": "Overclustering",
+          "description": "Too many clusters are created, making results hard to interpret.",
+          "proposed_action": "Reduce the number of clusters for clarity.",
+          "icon": "🔢",
+          "is_ethical": true,
+          "relevant_principles": ["Interpretability"],
+          "explanation": "Clustering should balance detail with interpretability.",
+          "is_cluster": true
+        },
+        {
+          "title": "Ignoring Outliers",
+          "description": "The algorithm ignores rare but important data points.",
+          "proposed_action": "Investigate and consider outliers in analysis.",
+          "icon": "🌟",
+          "is_ethical": true,
+          "relevant_principles": ["Comprehensiveness"],
+          "explanation": "Outliers can reveal important insights and should not be dismissed.",
+          "is_cluster": true
+        }
+      ]
+    },
+    {
+      "category": "Deep",
+      "scenarios": [
+        {
+          "title": "Black Box Decisions",
+          "description": "A deep learning model makes a critical medical decision, but its reasoning is not explainable.",
+          "proposed_action": "Use explainable AI techniques or require human oversight.",
+          "icon": "🧠",
+          "is_ethical": true,
+          "relevant_principles": ["Transparency", "Accountability"],
+          "explanation": "Critical decisions require transparency and explainability.",
+          "is_neural_net": true
+        },
+        {
+          "title": "Adversarial Attacks",
+          "description": "A small change in input causes the model to make a dangerous mistake.",
+          "proposed_action": "Harden the model against adversarial examples.",
+          "icon": "🛡️",
+          "is_ethical": true,
+          "relevant_principles": ["Robustness", "Safety"],
+          "explanation": "Deep models should be robust to adversarial manipulation.",
+          "is_neural_net": true
+        },
+        {
+          "title": "Data Hunger",
+          "description": "A deep model requires massive amounts of data, raising privacy concerns.",
+          "proposed_action": "Limit data collection and use privacy-preserving techniques.",
+          "icon": "🍽️",
+          "is_ethical": true,
+          "relevant_principles": ["Privacy", "Data Minimization"],
+          "explanation": "Deep learning should respect privacy and minimize data use.",
+          "is_neural_net": true
+        },
+        {
+          "title": "Energy Consumption",
+          "description": "Training a deep model consumes as much energy as 100 households.",
+          "proposed_action": "Optimize model size and use green energy sources.",
+          "icon": "⚡",
+          "is_ethical": true,
+          "relevant_principles": ["Sustainability"],
+          "explanation": "Deep learning should consider environmental impact.",
+          "is_neural_net": true
+        },
+        {
+          "title": "Bias Amplification",
+          "description": "A deep model amplifies subtle biases present in the training data.",
+          "proposed_action": "Audit and mitigate bias in model outputs.",
+          "icon": "🔎",
+          "is_ethical": true,
+          "relevant_principles": ["Fairness", "Justice"],
+          "explanation": "Bias in deep learning must be actively detected and corrected.",
+          "is_neural_net": true
+        }
+      ]
+    }
+  ],
+  "learning_metrics": {
+    "ethical_understanding_baseline": 15,
+    "moral_reasoning_baseline": 25,
+    "value_alignment_target": 95,
+    "human_preference_learning": "Active",
+    "bias_detection": "Enabled",
+    "fairness_constraints": "Applied"
+  },
+  "training_outcomes": {
+    "successful_completion": "AI demonstrates comprehensive ethical reasoning through card-based training",
+    "partial_success": "AI shows basic ethical understanding with some gaps in moral reasoning",
+    "failure": "AI lacks sufficient moral foundation for autonomous decision making"
+  }
+}

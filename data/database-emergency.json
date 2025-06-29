@@ -1,0 +1,148 @@
+{
+  "incident_info": {
+    "type": "Critical Database Corruption",
+    "cause": "Hardware failure during peak transaction period",
+    "affected_systems": "Primary production database cluster",
+    "data_loss_risk": "Complete business data loss",
+    "recovery_window": "7 minutes before backup systems fail",
+    "business_impact": "All operations halted - $10K per minute revenue loss"
+  },
+  "available_backups": [
+    {
+      "id": "backup-1",
+      "filename": "prod_db_2024_01_15_02_00.sql",
+      "date": "2024-01-15 02:00 UTC",
+      "size": "2.3GB",
+      "integrity": 95,
+      "tables_affected": 8,
+      "description": "Scheduled nightly backup - High integrity"
+    },
+    {
+      "id": "backup-2", 
+      "filename": "prod_db_2024_01_14_18_30.sql",
+      "date": "2024-01-14 18:30 UTC",
+      "size": "2.1GB", 
+      "integrity": 78,
+      "tables_affected": 6,
+      "description": "Pre-deployment backup - Moderate integrity"
+    },
+    {
+      "id": "backup-3",
+      "filename": "prod_db_2024_01_14_08_15.sql", 
+      "date": "2024-01-14 08:15 UTC",
+      "size": "1.9GB",
+      "integrity": 62,
+      "tables_affected": 5,
+      "description": "Emergency backup - Lower integrity but stable"
+    },
+    {
+      "id": "backup-4",
+      "filename": "prod_db_2024_01_13_23_45.sql",
+      "date": "2024-01-13 23:45 UTC", 
+      "size": "1.8GB",
+      "integrity": 88,
+      "tables_affected": 7,
+      "description": "Transaction log backup - Good integrity"
+    }
+  ],
+  "verification_tests": [
+    {
+      "id": "data-consistency",
+      "name": "Data Consistency Check",
+      "description": "Verify referential integrity across all tables",
+      "icon": "🔗",
+      "expected_result": "All foreign keys valid",
+      "severity": "Critical"
+    },
+    {
+      "id": "transaction-integrity", 
+      "name": "Transaction Integrity",
+      "description": "Validate transaction logs and ACID compliance",
+      "icon": "📋",
+      "expected_result": "All transactions complete",
+      "severity": "High"
+    },
+    {
+      "id": "performance-benchmark",
+      "name": "Performance Benchmark", 
+      "description": "Test query response times and throughput",
+      "icon": "⚡",
+      "expected_result": "Response time < 100ms",
+      "severity": "Medium"
+    },
+    {
+      "id": "backup-verification",
+      "name": "Backup Verification",
+      "description": "Confirm backup systems are operational",
+      "icon": "💾",
+      "expected_result": "Backup process functional", 
+      "severity": "Critical"
+    },
+    {
+      "id": "security-audit",
+      "name": "Security Audit",
+      "description": "Verify user permissions and access controls",
+      "icon": "🔒",
+      "expected_result": "Access controls intact",
+      "severity": "High"
+    },
+    {
+      "id": "data-validation",
+      "name": "Data Validation",
+      "description": "Check data types and constraint compliance",
+      "icon": "✅",
+      "expected_result": "All data valid",
+      "severity": "Medium"
+    }
+  ],
+  "response_actions": [
+    {
+      "id": "isolate-threat",
+      "name": "Isolate Affected Systems", 
+      "description": "Disconnect corrupted database from network",
+      "icon": "🔌",
+      "priority": "IMMEDIATE",
+      "phase": "Containment"
+    },
+    {
+      "id": "analyze-payload",
+      "name": "Analyze Corruption Pattern",
+      "description": "Determine extent and cause of data corruption", 
+      "icon": "🔍",
+      "priority": "HIGH",
+      "phase": "Analysis"
+    },
+    {
+      "id": "patch-vulnerability", 
+      "name": "Apply Emergency Patches",
+      "description": "Fix underlying system vulnerabilities",
+      "icon": "🔧",
+      "priority": "HIGH", 
+      "phase": "Recovery"
+    },
+    {
+      "id": "restore-services",
+      "name": "Restore Database Services",
+      "description": "Bring systems back online safely",
+      "icon": "🔄",
+      "priority": "MEDIUM",
+      "phase": "Restoration"
+    },
+    {
+      "id": "monitor-integrity",
+      "name": "Monitor Data Integrity",
+      "description": "Continuously watch for further corruption",
+      "icon": "📊",
+      "priority": "MEDIUM", 
+      "phase": "Monitoring"
+    },
+    {
+      "id": "backup-current",
+      "name": "Create Emergency Backup",
+      "description": "Backup current state before changes",
+      "icon": "💽", 
+      "priority": "LOW",
+      "phase": "Preparation"
+    }
+  ]
+}

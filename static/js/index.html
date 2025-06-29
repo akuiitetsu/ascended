@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escape the Lab - Tech Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="static/css/main.css">
+    <link rel="stylesheet" href="static/css/character.css">
+</head>
+<body class="bg-gray-900 text-white font-mono">
+    <header class="bg-red-900 p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-red-100">
+                <i class="bi bi-cpu"></i> Escape the Lab - Tech Crisis
+            </h1>
+            <div class="flex items-center space-x-4">
+                <div class="room-indicator bg-black px-4 py-2 rounded">
+                    Room: <span id="current-room">1</span>/5
+                </div>
+                <button id="character-menu-btn" class="bg-purple-700 hover:bg-purple-600 px-3 py-2 rounded transition-colors" title="Character Customization">
+                    <i class="bi bi-person-gear"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Testing Wave Navigation -->
+        <div class="container mx-auto mt-3">
+            <div class="bg-yellow-800 border-2 border-yellow-500 p-3 rounded">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="bi bi-wrench text-yellow-300 mr-2"></i>
+                        <span class="text-yellow-100 font-bold">COMMAND CENTER:</span>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="wave-nav-btn bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm transition-colors" data-room="1">
+                            <i class="bi bi-shield"></i> Flowchart Management
+                        </button>
+                        <button class="wave-nav-btn bg-green-600 hover:bg-green-500 px-3 py-1 rounded text-sm transition-colors" data-room="2">
+                            <i class="bi bi-cloud"></i> Cloud Scale
+                        </button>
+                        <button class="wave-nav-btn bg-purple-600 hover:bg-purple-500 px-3 py-1 rounded text-sm transition-colors" data-room="3">
+                            <i class="bi bi-robot"></i> AI Systems
+                        </button>
+                        <button class="wave-nav-btn bg-red-600 hover:bg-red-500 px-3 py-1 rounded text-sm transition-colors" data-room="4">
+                            <i class="bi bi-database"></i> Database Crisis
+                        </button>
+                        <button class="wave-nav-btn bg-pink-600 hover:bg-pink-500 px-3 py-1 rounded text-sm transition-colors" data-room="5">
+                            <i class="bi bi-code"></i> Programming
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4">
+        <div id="game-container" class="min-h-screen">
+            <!-- Room content will be loaded here -->
+            <div id="room-content" class="bg-gray-800 rounded-lg p-6 shadow-xl">
+                <div class="loading text-center">
+                    <i class="bi bi-gear-fill animate-spin text-4xl text-yellow-400"></i>
+                    <p class="mt-4">Initializing Technology Systems...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Modal -->
+        <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-green-800 p-8 rounded-lg text-center max-w-md">
+                <i class="bi bi-check-circle-fill text-6xl text-green-400 mb-4"></i>
+                <h2 class="text-2xl font-bold mb-4">System Secured!</h2>
+                <p id="success-message" class="mb-6"></p>
+                <div class="flex gap-3 justify-center">
+                    <button id="next-room-btn" class="bg-green-600 hover:bg-green-700 px-6 py-2 rounded transition-colors">
+                        Next System <i class="bi bi-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div id="gameover-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-red-800 p-8 rounded-lg text-center max-w-md">
+                <i class="bi bi-x-circle-fill text-6xl text-red-400 mb-4"></i>
+                <h2 class="text-2xl font-bold mb-4">System Failure</h2>
+                <p id="failure-message" class="mb-6"></p>
+                <button id="restart-btn" class="bg-red-600 hover:bg-red-700 px-6 py-2 rounded transition-colors">
+                    Restart System <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Initialize character menu button functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const characterMenuBtn = document.getElementById('character-menu-btn');
+            characterMenuBtn.addEventListener('click', () => {
+                if (window.game && window.game.showCosmeticMenu) {
+                    window.game.showCosmeticMenu();
+                }
+            });
+            
+            // Wave navigation for testing
+            document.querySelectorAll('.wave-nav-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const roomNumber = parseInt(e.currentTarget.dataset.room);
+                    if (window.game && window.game.loadRoom) {
+                        console.log(`Testing: Jumping to Room ${roomNumber}`);
+                        window.game.loadRoom(roomNumber);
+                    }
+                });
+            });
+        });
+    </script>
+    <script type="module" src="static/js/main.js"></script>
+</body>
+</html>
+    <script type="module" src="static/js/main.js"></script>
+</body>
+</html>

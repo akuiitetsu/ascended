@@ -1,0 +1,8 @@
+{
+    "files.autoSave": "afterDelay",
+    "database-client.autoSync": true,
+    "php.validate.executablePath": "",
+    "settingsSync.ignoredSettings": [
+        "-php.validate.executablePath"
+    ]
+}
