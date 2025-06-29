@@ -402,6 +402,113 @@ def setup_admin():
     else:
         return jsonify({'status': 'error', 'message': result['error']}), 400
 
+@app.route('/api/admin/toggle-admin', methods=['POST'])
+@login_required
+@admin_required
+def toggle_admin():
+    """Toggle admin status for a user"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        is_admin = data.get('is_admin')
+        
+        if user_id is None or is_admin is None:
+            return jsonify({'status': 'error', 'message': 'Missing required fields'}), 400
+        
+        # Prevent removing admin status from yourself
+        if user_id == current_user.id and not is_admin:
+            return jsonify({'status': 'error', 'message': 'Cannot remove admin status from yourself'}), 400
+        
+        conn = db_manager.get_connection()
+        conn.execute(
+            'UPDATE users SET is_admin = ? WHERE id = ?',
+            (1 if is_admin else 0, user_id)
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'status': 'success', 'message': 'User admin status updated'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/admin/delete-user', methods=['POST'])
+@login_required
+@admin_required
+def delete_user():
+    """Delete a user"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return jsonify({'status': 'error', 'message': 'Missing user_id'}), 400
+        
+        # Prevent deleting yourself
+        if user_id == current_user.id:
+            return jsonify({'status': 'error', 'message': 'Cannot delete yourself'}), 400
+        
+        conn = db_manager.get_connection()
+        
+        # Delete user's game progress first (foreign key constraint)
+        conn.execute('DELETE FROM game_state WHERE session_id LIKE ?', (f'user_{user_id}_%',))
+        conn.execute('DELETE FROM user_progress WHERE username = (SELECT username FROM users WHERE id = ?)', (user_id,))
+        
+        # Delete the user
+        conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'status': 'success', 'message': 'User deleted successfully'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/admin/backup-db')
+@login_required
+@admin_required
+def backup_database():
+    """Create a database backup"""
+    try:
+        import shutil
+        from datetime import datetime
+        
+        # Create backup filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_filename = f'backup_ascended_{timestamp}.db'
+        backup_path = os.path.join(app.config.get('DATABASE_DIR', 'database'), backup_filename)
+        
+        # Copy the database file
+        shutil.copy2(app.config['DATABASE'], backup_path)
+        
+        # Send the backup file as download
+        from flask import send_file
+        return send_file(backup_path, as_attachment=True, download_name=backup_filename)
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/admin/clear-sessions', methods=['POST'])
+@login_required
+@admin_required
+def clear_old_sessions():
+    """Clear old game sessions"""
+    try:
+        conn = db_manager.get_connection()
+        
+        # Delete sessions older than 7 days
+        conn.execute(
+            "DELETE FROM game_state WHERE updated_at < datetime('now', '-7 days')"
+        )
+        
+        rows_deleted = conn.total_changes
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'status': 'success', 
+            'message': f'Cleared {rows_deleted} old sessions'
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 # Add a debug route to check users (remove this in production)
 @app.route('/debug/users')
 def debug_users():

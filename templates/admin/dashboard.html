@@ -216,6 +216,10 @@
 
         // Global functions for user actions
         async function toggleAdmin(userId, isAdmin) {
+            if (!confirm(`Are you sure you want to ${isAdmin ? 'remove admin access from' : 'grant admin access to'} this user?`)) {
+                return;
+            }
+            
             try {
                 const response = await fetch('/api/admin/toggle-admin', {
                     method: 'POST',
@@ -223,29 +227,41 @@
                     body: JSON.stringify({ user_id: userId, is_admin: !isAdmin })
                 });
                 
-                if (response.ok) {
+                const result = await response.json();
+                
+                if (result.status === 'success') {
                     window.location.reload();
+                } else {
+                    alert(result.message || 'Failed to update user');
                 }
             } catch (error) {
+                console.error('Toggle admin error:', error);
                 alert('Failed to update user');
             }
         }
 
         async function deleteUser(userId) {
-            if (confirm('Are you sure you want to delete this user?')) {
-                try {
-                    const response = await fetch('/api/admin/delete-user', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: userId })
-                    });
-                    
-                    if (response.ok) {
-                        window.location.reload();
-                    }
-                } catch (error) {
-                    alert('Failed to delete user');
+            if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/delete-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    window.location.reload();
+                } else {
+                    alert(result.message || 'Failed to delete user');
                 }
+            } catch (error) {
+                console.error('Delete user error:', error);
+                alert('Failed to delete user');
             }
         }
 
@@ -254,13 +270,24 @@
         }
 
         async function clearSessions() {
-            if (confirm('Clear all old game sessions?')) {
-                try {
-                    await fetch('/api/admin/clear-sessions', { method: 'POST' });
-                    alert('Sessions cleared');
-                } catch (error) {
-                    alert('Failed to clear sessions');
+            if (!confirm('Clear all old game sessions (older than 7 days)?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/clear-sessions', { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    alert(result.message);
+                    // Reload stats to reflect changes
+                    window.location.reload();
+                } else {
+                    alert(result.message || 'Failed to clear sessions');
                 }
+            } catch (error) {
+                console.error('Clear sessions error:', error);
+                alert('Failed to clear sessions');
             }
         }
 
