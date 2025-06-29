@@ -119,11 +119,13 @@ class Room2 {
                 }
             }
         };
-    }    async init() {
+    }
+
+    async init() {
         console.log('Room 2 (Network Nexus) initializing...');
         this.loadCurrentLevel();
         this.render();
-        // Don't auto-start challenge - wait for start button
+        this.setupEventListeners();
     }
 
     loadCurrentLevel() {
@@ -237,7 +239,8 @@ class Room2 {
                 <!-- Control Panel -->
                 <div class="controls-panel bg-gray-700 p-4 rounded-lg">
                     <div class="flex justify-between items-center">
-                        <div class="control-buttons flex gap-2">                            <button id="start-challenge" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-sm transition-colors">
+                        <div class="control-buttons flex gap-2">
+                            <button id="start-challenge" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-sm transition-colors">
                                 <i class="bi bi-play-fill"></i> ${this.isActive ? 'Challenge Active' : 'Start Network Build'}
                             </button>
                             <button id="reset-challenge" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded text-sm transition-colors">
@@ -257,59 +260,10 @@ class Room2 {
                         </div>
                     </div>
                 </div>
-            </div>        `;
+            </div>
+        `;
 
         this.setupEventListeners();
-    }    setupEventListeners() {
-        // Main control buttons
-        const startBtn = document.getElementById('start-challenge');
-        const resetBtn = document.getElementById('reset-challenge');
-        const testBtn = document.getElementById('test-connectivity');
-        const hintBtn = document.getElementById('get-hint');
-        const completeBtn = document.getElementById('complete-level');
-
-        if (startBtn) {
-            startBtn.addEventListener('click', () => this.startChallenge());
-        }
-        if (resetBtn) {
-            resetBtn.addEventListener('click', () => {
-                if (!this.isActive) {
-                    this.showMessage('Please start the challenge first!', 'error');
-                    return;
-                }
-                this.resetChallenge();
-            });
-        }
-        if (testBtn) {
-            testBtn.addEventListener('click', () => {
-                if (!this.isActive) {
-                    this.showMessage('Please start the challenge first to test connectivity!', 'error');
-                    return;
-                }
-                this.testConnectivity();
-            });
-        }
-        if (hintBtn) {
-            hintBtn.addEventListener('click', () => {
-                if (!this.isActive) {
-                    this.showMessage('Please start the challenge first to get hints!', 'error');
-                    return;
-                }
-                this.showHint();
-            });
-        }
-        if (completeBtn) {
-            completeBtn.addEventListener('click', () => {
-                if (!this.isActive) {
-                    this.showMessage('Please start the challenge first!', 'error');
-                    return;
-                }
-                this.completeLevel();
-            });
-        }
-
-        // Set up challenge-specific listeners
-        this.setupChallengeSpecificListeners();
     }
 
     renderChallengeContent() {
@@ -834,37 +788,25 @@ class Room2 {
                 this.setupCLITroubleshootingListeners();
                 break;
         }
-    }    setupTopologyListeners() {
+    }
+
+    setupTopologyListeners() {
         // Set up drag and drop for devices
         const deviceOptions = document.querySelectorAll('.device-option');
         const networkCanvas = document.getElementById('network-canvas');
 
         deviceOptions.forEach(option => {
             option.addEventListener('dragstart', (e) => {
-                if (!this.isActive) {
-                    e.preventDefault();
-                    this.showMessage('Please click "Start Network Build" to begin placing devices!', 'error');
-                    return;
-                }
                 e.dataTransfer.setData('text/plain', option.dataset.device);
             });
         });
 
         if (networkCanvas) {
             networkCanvas.addEventListener('dragover', (e) => {
-                if (!this.isActive) {
-                    e.preventDefault();
-                    return;
-                }
                 e.preventDefault();
             });
 
             networkCanvas.addEventListener('drop', (e) => {
-                if (!this.isActive) {
-                    e.preventDefault();
-                    this.showMessage('Please click "Start Network Build" to begin placing devices!', 'error');
-                    return;
-                }
                 e.preventDefault();
                 const deviceType = e.dataTransfer.getData('text/plain');
                 const rect = networkCanvas.getBoundingClientRect();
@@ -875,10 +817,6 @@ class Room2 {
 
             // Click to connect devices
             networkCanvas.addEventListener('click', (e) => {
-                if (!this.isActive) {
-                    this.showMessage('Please click "Start Network Build" to begin connecting devices!', 'error');
-                    return;
-                }
                 if (this.selectedCable) {
                     this.handleDeviceConnection(e);
                 }
@@ -889,21 +827,14 @@ class Room2 {
         const cableOption = document.querySelector('.cable-option');
         if (cableOption) {
             cableOption.addEventListener('click', () => {
-                if (!this.isActive) {
-                    this.showMessage('Please click "Start Network Build" to begin selecting cables!', 'error');
-                    return;
-                }
                 this.selectedCable = cableOption.dataset.cable;
                 cableOption.classList.add('ring-2', 'ring-yellow-400');
                 this.showMessage('Cable selected! Click two devices to connect them.', 'info');
             });
         }
-    }    placeDevice(deviceType, x, y) {
-        if (!this.isActive) {
-            this.showMessage('Please click "Start Network Build" to begin placing devices!', 'error');
-            return;
-        }
-        
+    }
+
+    placeDevice(deviceType, x, y) {
         const deviceId = `${deviceType}_${this.deviceIdCounter++}`;
         const device = {
             id: deviceId,
@@ -949,12 +880,9 @@ class Room2 {
 
         networkCanvas.appendChild(element);
         device.element = element;
-    }    handleDeviceConnection(e) {
-        if (!this.isActive) {
-            this.showMessage('Please click "Start Network Build" to begin connecting devices!', 'error');
-            return;
-        }
-        
+    }
+
+    handleDeviceConnection(e) {
         const target = e.target.closest('.network-device');
         if (!target) return;
 
@@ -1040,283 +968,21 @@ class Room2 {
         }
         
         this.updateProgress();
-    }    setupSwitchOptimizationListeners() {
-        // Add listeners for switch optimization challenge
-        // Similar to topology builder but with optimization metrics
-        this.setupTopologyListeners(); // Reuse topology listeners
     }
 
     setupIPAssignmentListeners() {
-        // Add listeners for apply config buttons
+        // Apply configuration buttons
         document.querySelectorAll('.apply-config').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (!this.isActive) {
-                    this.showMessage('Please click "Start Network Build" to begin configuring devices!', 'error');
-                    return;
-                }
-                const deviceId = btn.dataset.device;
+            btn.addEventListener('click', (e) => {
+                const deviceId = e.target.dataset.device;
                 this.applyDeviceConfig(deviceId);
             });
         });
 
-        // Add listener for ping button
+        // Ping test button
         document.getElementById('execute-ping')?.addEventListener('click', () => {
-            if (!this.isActive) {
-                this.showMessage('Please click "Start Network Build" to begin testing connectivity!', 'error');
-                return;
-            }
             this.executePing();
         });
-    }    setupStaticRoutingListeners() {
-        // Add route configuration buttons
-        document.getElementById('add-r1-route')?.addEventListener('click', () => {
-            if (!this.isActive) {
-                this.showMessage('Please click "Start Network Build" to begin configuring routes!', 'error');
-                return;
-            }
-            this.addStaticRoute('r1');
-        });
-
-        document.getElementById('add-r2-route')?.addEventListener('click', () => {
-            if (!this.isActive) {
-                this.showMessage('Please click "Start Network Build" to begin configuring routes!', 'error');
-                return;
-            }
-            this.addStaticRoute('r2');
-        });
-
-        // Test connectivity buttons
-        document.getElementById('test-east-to-west')?.addEventListener('click', () => {
-            if (!this.isActive) {
-                this.showMessage('Please click "Start Network Build" to begin testing connectivity!', 'error');
-                return;
-            }
-            this.testInterDistrictConnectivity('east-to-west');
-        });
-
-        document.getElementById('test-west-to-east')?.addEventListener('click', () => {
-            if (!this.isActive) {
-                this.showMessage('Please click "Start Network Build" to begin testing connectivity!', 'error');
-                return;
-            }
-            this.testInterDistrictConnectivity('west-to-east');
-        });
-    }
-
-    addStaticRoute(router) {
-        const destination = document.getElementById(`${router}-destination`).value;
-        const gateway = document.getElementById(`${router}-gateway`).value;
-
-        if (!destination || !gateway) {
-            this.showMessage('Please enter destination network and next hop gateway', 'error');
-            return;
-        }
-
-        // Store the route
-        if (!this.routingTables.has(router)) {
-            this.routingTables.set(router, []);
-        }
-        
-        this.routingTables.get(router).push({
-            destination: destination,
-            gateway: gateway
-        });
-
-        this.showMessage(`Route added to ${router.toUpperCase()}: ${destination} via ${gateway}`, 'success');
-        this.updateRoutingTableDisplay();
-        this.checkStaticRoutingCompletion();
-    }
-
-    updateRoutingTableDisplay() {
-        ['r1', 'r2'].forEach(router => {
-            const element = document.getElementById(`${router}-routes`);
-            if (element) {
-                const routes = this.routingTables.get(router) || [];
-                if (routes.length === 0) {
-                    element.textContent = 'No static routes configured';
-                } else {
-                    element.innerHTML = routes.map(route => 
-                        `${route.destination} via ${route.gateway}`
-                    ).join('<br>');
-                }
-            }
-        });
-    }
-
-    testInterDistrictConnectivity(direction) {
-        const resultsDiv = document.getElementById('routing-test-results');
-        const hasR1Route = this.routingTables.has('r1') && this.routingTables.get('r1').length > 0;
-        const hasR2Route = this.routingTables.has('r2') && this.routingTables.get('r2').length > 0;
-
-        if (hasR1Route && hasR2Route) {
-            resultsDiv.innerHTML = `
-                Testing ${direction} connectivity...<br>
-                <span class="text-green-400">SUCCESS: Cross-district communication established</span><br>
-                Routing working correctly between networks
-            `;
-            this.showMessage('Inter-district connectivity test passed!', 'success');
-        } else {
-            resultsDiv.innerHTML = `
-                Testing ${direction} connectivity...<br>
-                <span class="text-red-400">FAILED: No route to destination network</span><br>
-                Configure static routes on both routers
-            `;
-            this.showMessage('Connectivity test failed - check routing configuration', 'error');
-        }
-    }
-
-    checkStaticRoutingCompletion() {
-        const hasR1Route = this.routingTables.has('r1') && this.routingTables.get('r1').length > 0;
-        const hasR2Route = this.routingTables.has('r2') && this.routingTables.get('r2').length > 0;
-
-        if (hasR1Route && hasR2Route) {
-            this.completionScore = 100;
-            this.enableCompleteButton();
-            this.showFeedback('Excellent! Static routes configured correctly for inter-district communication!', 'success');
-        }
-        
-        this.updateProgress();
-    }    setupCLITroubleshootingListeners() {
-        // CLI input handling
-        const cliInput = document.getElementById('cli-input');
-        if (cliInput) {
-            cliInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    if (!this.isActive) {
-                        this.showMessage('Please click "Start Network Build" to begin using CLI commands!', 'error');
-                        return;
-                    }
-                    this.processCLICommand(cliInput.value);
-                    cliInput.value = '';
-                }
-            });
-        }
-
-        // Quick command buttons
-        document.querySelectorAll('.quick-cmd').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (!this.isActive) {
-                    this.showMessage('Please click "Start Network Build" to begin using CLI commands!', 'error');
-                    return;
-                }
-                const command = btn.dataset.cmd;
-                this.processCLICommand(command);
-            });
-        });
-
-        // Diagnostic tools
-        document.getElementById('run-connectivity-test')?.addEventListener('click', () => {
-            if (!this.isActive) {
-                this.showMessage('Please click "Start Network Build" to begin network diagnostics!', 'error');
-                return;
-            }
-            this.runConnectivityTest();
-        });
-
-        document.getElementById('check-routing-table')?.addEventListener('click', () => {
-            if (!this.isActive) {
-                this.showMessage('Please click "Start Network Build" to begin network diagnostics!', 'error');
-                return;
-            }
-            this.processCLICommand('show ip route');
-        });
-
-        document.getElementById('analyze-network')?.addEventListener('click', () => {
-            if (!this.isActive) {
-                this.showMessage('Please click "Start Network Build" to begin network diagnostics!', 'error');
-                return;
-            }
-            this.analyzeNetwork();
-        });
-    }
-
-    processCLICommand(command) {
-        const terminalOutput = document.getElementById('terminal-output');
-        if (!terminalOutput) return;
-
-        // Add command to terminal
-        terminalOutput.innerHTML += `R1> ${command}<br>`;
-
-        // Process different commands
-        switch(command.toLowerCase().trim()) {
-            case 'help':
-                terminalOutput.innerHTML += `Available commands:<br>
-                - show ip route: Display routing table<br>
-                - ping [ip]: Test connectivity<br>
-                - traceroute [ip]: Trace route path<br>
-                - ip route add [network] via [gateway]: Add static route<br><br>`;
-                break;
-                
-            case 'show ip route':
-                terminalOutput.innerHTML += `Routing Table:<br>
-                C    192.168.1.0/24 is directly connected<br>
-                C    192.168.100.0/30 is directly connected<br>
-                Missing route to 192.168.2.0/24<br><br>`;
-                this.updateFixProgress('diagnosis');
-                break;
-                
-            case 'ping 192.168.2.10':
-                terminalOutput.innerHTML += `<span class="text-red-400">Request timeout - no route to host</span><br><br>`;
-                break;
-                
-            case 'traceroute 192.168.2.10':
-                terminalOutput.innerHTML += `Tracing route to 192.168.2.10:<br>
-                1. 192.168.100.1 - timeout<br>
-                <span class="text-red-400">Route failed at hop 1</span><br><br>`;
-                break;
-                
-            case 'ip route add 192.168.2.0/24 via 192.168.100.2':
-                terminalOutput.innerHTML += `<span class="text-green-400">Route added successfully</span><br><br>`;
-                this.updateFixProgress('routes');
-                this.checkCLICompletion();
-                break;
-                
-            default:
-                terminalOutput.innerHTML += `<span class="text-red-400">Unknown command: ${command}</span><br><br>`;
-        }
-
-        // Auto-scroll to bottom
-        terminalOutput.scrollTop = terminalOutput.scrollHeight;
-    }
-
-    updateFixProgress(step) {
-        const progressElements = {
-            'diagnosis': 'fix-diagnosis',
-            'routes': 'fix-routes',
-            'connectivity': 'fix-connectivity'
-        };
-
-        const elementId = progressElements[step];
-        const element = document.getElementById(elementId);
-        if (element) {
-            element.innerHTML = element.innerHTML.replace('❌', '✅').replace('text-gray-400', 'text-green-400');
-        }
-    }
-
-    runConnectivityTest() {
-        this.processCLICommand('ping 192.168.2.10');
-    }
-
-    analyzeNetwork() {
-        this.processCLICommand('show ip route');
-        setTimeout(() => {
-            this.processCLICommand('traceroute 192.168.2.10');
-        }, 1000);
-    }
-
-    checkCLICompletion() {
-        // Check if all fix steps are completed
-        const diagnosisFixed = document.getElementById('fix-diagnosis').classList.contains('text-green-400');
-        const routesFixed = document.getElementById('fix-routes').classList.contains('text-green-400');
-
-        if (diagnosisFixed && routesFixed) {
-            this.updateFixProgress('connectivity');
-            this.completionScore = 100;
-            this.enableCompleteButton();
-            this.showFeedback('Outstanding! Network troubleshooting completed successfully!', 'success');
-        }
-        
-        this.updateProgress();
     }
 
     applyDeviceConfig(deviceId) {
@@ -1443,104 +1109,117 @@ class Room2 {
     }
 
     startChallenge() {
-        if (this.isActive) {
-            this.showMessage('Challenge is already active!', 'info');
-            return;
-        }
-        
         this.isActive = true;
-        this.setupChallengeSpecificListeners();
-        
-        // Update start button text
         const startBtn = document.getElementById('start-challenge');
         if (startBtn) {
-            startBtn.innerHTML = '<i class="bi bi-check-circle"></i> Challenge Active';
-            startBtn.disabled = true;
-            startBtn.classList.add('bg-green-700');
+            startBtn.textContent = '🌐 Network Building Active';
+            startBtn.classList.add('animate-pulse');
         }
-        
-        this.showMessage(`${this.currentLevelData.name} challenge started! Follow the instructions to complete the task.`, 'success');
-        console.log(`Challenge started: ${this.currentLevelData.name}`);
+        this.showMessage(`${this.currentLevelData.character} says: "Let's build this network!"`, 'info');
     }
 
     resetChallenge() {
-        if (!this.isActive) {
-            this.showMessage('Please start the challenge first!', 'error');
-            return;
-        }
-        
-        // Reset challenge state
         this.placedDevices = [];
         this.connections = [];
         this.completionScore = 0;
+        this.networkDevices.clear();
+        this.connectionStart = null;
+        this.selectedCable = null;
         
-        // Clear visual elements
-        const challengeContent = document.getElementById('challenge-content');
-        if (challengeContent) {
-            const canvas = challengeContent.querySelector('.network-canvas, #network-canvas');
-            if (canvas) {
-                canvas.innerHTML = '<div class="absolute top-2 left-2 text-gray-400 text-sm">Drop devices here and connect with cables</div>';
-            }
+        // Clear canvas
+        const canvas = document.getElementById('network-canvas');
+        if (canvas) {
+            canvas.querySelectorAll('.network-device').forEach(el => el.remove());
+            const svg = document.getElementById('connection-svg');
+            if (svg) svg.innerHTML = '';
         }
         
-        this.updateProgress();
-        this.showMessage('Challenge reset successfully!', 'success');
+        this.updateNetworkStatus();
+        this.showMessage('Network reset successfully', 'info');
     }
 
     testConnectivity() {
-        if (!this.isActive) {
-            this.showMessage('Please start the challenge first to test connectivity!', 'error');
-            return;
+        // Implement connectivity testing based on current level
+        switch(this.currentLevelData.taskType) {
+            case 'topology-builder':
+                this.checkTopologyCompletion();
+                break;
+            case 'ip-assignment':
+                if (this.networkDevices.size > 0) {
+                    this.checkIPAssignmentCompletion();
+                } else {
+                    this.showMessage('Configure device IPs first', 'info');
+                }
+                break;
+            default:
+                this.showMessage('Connectivity test completed', 'info');
         }
-        
-        this.showMessage('Testing network connectivity...', 'info');
-        // Add actual connectivity testing logic here
     }
 
     showHint() {
-        if (!this.isActive) {
-            this.showMessage('Please start the challenge first to get hints!', 'error');
-            return;
-        }
+        const hints = [
+            this.currentLevelData.hint,
+            `${this.currentLevelData.character} suggests: Follow the step-by-step instructions carefully`,
+            "Remember: Physical connections come first, then logical configuration",
+            "Check that all required devices are placed and connected properly",
+            "Use the toolkit on the left to add devices to your network"
+        ];
         
-        const hint = this.currentLevelData.hint;
-        this.showMessage(hint, 'info');
+        const randomHint = hints[Math.floor(Math.random() * hints.length)];
+        this.showMessage(randomHint, 'info');
+    }
+
+    updateProgress() {
+        const progressElement = document.getElementById('level-progress');
+        if (progressElement) {
+            progressElement.textContent = `${Math.round(this.completionScore)}%`;
+        }
+    }
+
+    enableCompleteButton() {
+        const completeBtn = document.getElementById('complete-level');
+        if (completeBtn) {
+            completeBtn.disabled = false;
+            completeBtn.classList.add('animate-pulse');
+        }
     }
 
     completeLevel() {
-        if (!this.isActive) {
-            this.showMessage('Please start the challenge first!', 'error');
+        if (this.completionScore < 100) {
+            this.showMessage('Complete all network tasks before advancing!', 'error');
             return;
         }
-        
-        // Check if level is actually complete
-        const isComplete = this.checkLevelCompletion();
-        if (isComplete) {
-            this.showLevelCompletionFeedback();
-        } else {
-            this.showMessage('Level not yet complete! Check the requirements.', 'error');
+
+        this.showLevelCompletionFeedback();
+
+        if (this.currentLevel >= this.maxLevels) {
+            setTimeout(() => {
+                this.game.roomCompleted(`Network Nexus mastered! All ${this.maxLevels} networking challenges completed with expertise in topology, IP addressing, switching, routing, and CLI operations.`);
+            }, 2000);
+            return;
         }
+
+        const nextLevel = this.currentLevel + 1;
+        this.showMessage(`Level ${this.currentLevel} completed! Advancing to Level ${nextLevel}...`, 'success');
+        
+        setTimeout(() => {
+            this.currentLevel = nextLevel;
+            this.loadCurrentLevel();
+            this.render();
+        }, 2000);
     }
 
-    checkLevelCompletion() {
-        // Add completion checking logic based on current level
-        const requiredDevices = this.currentLevelData.requiredDevices || [];
-        const requiredConnections = this.currentLevelData.requiredConnections || 0;
-        
-        // Check device requirements
-        for (const req of requiredDevices) {
-            const placedCount = this.placedDevices.filter(d => d.type === req.type).length;
-            if (placedCount < req.count) {
-                return false;
-            }
-        }
-        
-        // Check connection requirements
-        if (this.connections.length < requiredConnections) {
-            return false;
-        }
-        
-        return true;
+    showLevelCompletionFeedback() {
+        const completionMessages = {
+            1: `🎯 Topology Built! ${this.currentLevelData.character} says: "Great work! The physical network is properly connected."`,
+            2: `🌐 IPs Configured! ${this.currentLevelData.character} says: "Perfect! All devices can now communicate on the network."`,
+            3: `⚡ Switch Optimized! ${this.currentLevelData.character} says: "Excellent! Local traffic is now much more efficient."`,
+            4: `🔀 Routing Configured! ${this.currentLevelData.character} says: "Outstanding! Cross-network communication is working perfectly."`,
+            5: `💻 CLI Mastered! ${this.currentLevelData.character} says: "Brilliant! You've mastered network troubleshooting and configuration."`
+        };
+
+        const message = completionMessages[this.currentLevel] || `Level ${this.currentLevel} completed successfully!`;
+        this.showFeedback(message, 'success');
     }
 
     showMessage(message, type) {
@@ -1557,101 +1236,975 @@ class Room2 {
             case 'info':
                 messageDiv.classList.add('bg-blue-800', 'text-blue-200', 'border', 'border-blue-500');
                 break;
-            default:
-                messageDiv.classList.add('bg-gray-800', 'text-gray-200', 'border', 'border-gray-500');
         }
         
         messageDiv.textContent = message;
         document.body.appendChild(messageDiv);
         
-        setTimeout(() => {
-            if (messageDiv.parentNode) {
-                messageDiv.remove();
-            }
-        }, 3000);
-    }    showLevelCompletionFeedback() {
-        this.showMessage(`${this.currentLevelData.name} completed successfully!`, 'success');
-        
-        // Move to next level or complete room
-        if (this.currentLevel < this.maxLevels) {
-            setTimeout(() => {
-                this.currentLevel++;
-                this.loadCurrentLevel();
-                this.isActive = false; // Require start button for next level
-                
-                // Reset start button
-                const startBtn = document.getElementById('start-challenge');
-                if (startBtn) {
-                    startBtn.innerHTML = '<i class="bi bi-play-fill"></i> Start Network Build';
-                    startBtn.disabled = false;
-                    startBtn.classList.remove('bg-green-700');
-                    startBtn.classList.add('bg-blue-600');
-                }
-                
-                // Reset complete level button
-                const completeBtn = document.getElementById('complete-level');
-                if (completeBtn) {
-                    completeBtn.disabled = true;
-                    completeBtn.classList.remove('bg-green-600');
-                    completeBtn.classList.add('bg-gray-600');
-                }
-                
-                // Re-render the page with new level content
-                this.render();
-                
-                this.showMessage(`Level ${this.currentLevel} unlocked!`, 'info');
-            }, 2000);
-        } else {
-            // All levels completed
-            setTimeout(() => {
-                this.game.roomCompleted(`Network Nexus mastered! Completed all ${this.maxLevels} networking levels with ${Math.round(this.completionScore)}% efficiency.`);
-            }, 2000);
-        }
-    }
-
-    updateProgress() {
-        // Update UI elements to show current progress
-        const levelProgress = document.getElementById('level-progress');
-        if (levelProgress) {
-            const progress = Math.round((this.completionScore / 100) * 100);
-            levelProgress.textContent = `${progress}%`;
-        }
-        
-        const deviceCount = document.getElementById('device-count');
-        if (deviceCount) {
-            deviceCount.textContent = this.placedDevices.length;
-        }
-        
-        const connectionCount = document.getElementById('connection-count');
-        if (connectionCount) {
-            connectionCount.textContent = this.connections.length;
-        }
-    }
-
-    enableCompleteButton() {
-        const completeBtn = document.getElementById('complete-level');
-        if (completeBtn) {
-            completeBtn.disabled = false;
-            completeBtn.classList.remove('bg-gray-600');
-            completeBtn.classList.add('bg-green-600');
-        }
+        setTimeout(() => messageDiv.remove(), 3000);
     }
 
     showFeedback(message, type) {
-        const feedbackElements = [
-            'topology-feedback',
-            'ip-feedback', 
-            'switch-feedback',
-            'routing-feedback',
-            'cli-feedback'
-        ];
+        const feedbackSelectors = ['#topology-feedback', '#ip-feedback', '#switch-feedback', '#routing-feedback', '#cli-feedback'];
         
-        feedbackElements.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.innerHTML = `<div class="p-3 rounded ${type === 'success' ? 'bg-green-800 text-green-200' : type === 'error' ? 'bg-red-800 text-red-200' : 'bg-blue-800 text-blue-200'}">${message}</div>`;
+        feedbackSelectors.forEach(selector => {
+            const feedbackDiv = document.querySelector(selector);
+            if (feedbackDiv) {
+                feedbackDiv.innerHTML = `<div class="p-3 rounded ${type === 'success' ? 'bg-green-800 text-green-200' : 'bg-blue-800 text-blue-200'}">${message}</div>`;
             }
         });
+    }    cleanup() {
+        this.isActive = false;
+        this.placedDevices = [];
+        this.connections = [];
+        this.networkDevices.clear();
+        console.log('Room 2 (Network Nexus) cleaned up');
+    }
+
+    setupSwitchOptimizationListeners() {
+        // Set up drag and drop for switch optimization level
+        const deviceOptions = document.querySelectorAll('.device-option');
+        const networkCanvas = document.getElementById('switch-network-canvas');
+
+        if (!networkCanvas) {
+            console.error('Switch network canvas not found');
+            return;
+        }
+
+        // Initialize switch optimization specific state
+        this.switchDevices = [];
+        this.switchConnections = [];
+        this.deviceIdCounter = 1;
+
+        deviceOptions.forEach(option => {
+            option.addEventListener('dragstart', (e) => {
+                const deviceType = option.dataset.device;
+                e.dataTransfer.setData('text/plain', deviceType);
+                option.style.opacity = '0.5';
+                console.log(`Drag started: ${deviceType}`);
+            });
+
+            option.addEventListener('dragend', (e) => {
+                option.style.opacity = '1';
+            });
+        });
+
+        networkCanvas.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            networkCanvas.style.backgroundColor = 'rgba(75, 85, 99, 0.5)';
+        });
+
+        networkCanvas.addEventListener('dragleave', (e) => {
+            networkCanvas.style.backgroundColor = '';
+        });
+
+        networkCanvas.addEventListener('drop', (e) => {
+            e.preventDefault();
+            networkCanvas.style.backgroundColor = '';
+            
+            const deviceType = e.dataTransfer.getData('text/plain');
+            const rect = networkCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            console.log(`Dropping ${deviceType} at (${x}, ${y})`);
+            this.placeSwitchDevice(deviceType, x, y);
+        });
+
+        // Set up cable selection for switch level
+        const cableOption = document.querySelector('.cable-option');
+        if (cableOption) {
+            cableOption.addEventListener('click', () => {
+                this.selectedCable = cableOption.dataset.cable;
+                cableOption.classList.add('ring-2', 'ring-yellow-400');
+                this.showMessage('Cable selected! Click two devices to connect them.', 'info');
+            });
+        }
+
+        // Handle device connections
+        networkCanvas.addEventListener('click', (e) => {
+            if (this.selectedCable) {
+                this.handleSwitchDeviceConnection(e);
+            }
+        });
+    }
+
+    placeSwitchDevice(deviceType, x, y) {
+        const deviceId = `${deviceType}_${this.deviceIdCounter++}`;
+        const device = {
+            id: deviceId,
+            type: deviceType,
+            x: x,
+            y: y,
+            connections: [],
+            config: {}
+        };
+
+        this.switchDevices.push(device);
+        this.createSwitchDeviceElement(device);
+        this.updateSwitchMetrics();
+        this.checkSwitchOptimizationCompletion();
+        
+        this.showMessage(`${deviceType.toUpperCase()} placed successfully`, 'success');
+    }
+
+    createSwitchDeviceElement(device) {
+        const networkCanvas = document.getElementById('switch-network-canvas');
+        const element = document.createElement('div');
+        element.className = 'network-device absolute cursor-pointer transition-all duration-200 hover:scale-110';
+        element.style.left = `${device.x - 30}px`;
+        element.style.top = `${device.y - 30}px`;
+        element.style.width = '60px';
+        element.style.height = '60px';
+        element.style.zIndex = '10';
+        element.setAttribute('data-device-id', device.id);
+
+        const deviceIcons = {
+            'pc': { icon: '💻', color: '#3b82f6', name: 'PC' },
+            'router': { icon: '🔀', color: '#10b981', name: 'Router' },
+            'switch': { icon: '🔗', color: '#8b5cf6', name: 'Switch' },
+            'cctv': { icon: '📹', color: '#f59e0b', name: 'CCTV' }
+        };
+
+        const deviceInfo = deviceIcons[device.type] || deviceIcons['pc'];
+        
+        element.innerHTML = `
+            <div class="device-visual bg-gray-800 border-2 rounded-lg p-2 text-center hover:bg-gray-700" 
+                 style="border-color: ${deviceInfo.color}; background: linear-gradient(45deg, #1f2937, ${deviceInfo.color}20);">
+                <div style="font-size: 28px;">${deviceInfo.icon}</div>
+                <div style="font-size: 9px; color: white; margin-top: 2px; font-weight: bold;">${deviceInfo.name}</div>
+                <div style="font-size: 7px; color: #9ca3af;">${device.id}</div>
+            </div>
+        `;
+
+        networkCanvas.appendChild(element);
+        device.element = element;
+    }
+
+    handleSwitchDeviceConnection(e) {
+        const target = e.target.closest('.network-device');
+        if (!target) return;
+
+        const deviceId = target.getAttribute('data-device-id');
+        
+        if (!this.connectionStart) {
+            this.connectionStart = deviceId;
+            target.classList.add('ring-4', 'ring-yellow-400');
+            this.showMessage('First device selected. Click another device to connect.', 'info');
+        } else if (this.connectionStart !== deviceId) {
+            this.createSwitchConnection(this.connectionStart, deviceId);
+            document.querySelector(`[data-device-id="${this.connectionStart}"]`).classList.remove('ring-4', 'ring-yellow-400');
+            this.connectionStart = null;
+            this.selectedCable = null;
+            document.querySelector('.cable-option').classList.remove('ring-2', 'ring-yellow-400');
+        }
+    }
+
+    createSwitchConnection(fromId, toId) {
+        // Check if connection already exists
+        const existingConnection = this.switchConnections.find(conn => 
+            (conn.from === fromId && conn.to === toId) || 
+            (conn.from === toId && conn.to === fromId)
+        );
+
+        if (existingConnection) {
+            this.showMessage('Devices are already connected!', 'info');
+            return;
+        }
+
+        const connection = {
+            id: `conn_${this.switchConnections.length + 1}`,
+            from: fromId,
+            to: toId,
+            type: this.selectedCable || 'ethernet'
+        };
+
+        this.switchConnections.push(connection);
+        this.drawSwitchConnection(connection);
+        this.updateSwitchMetrics();
+        this.checkSwitchOptimizationCompletion();
+        
+        const fromDevice = this.switchDevices.find(d => d.id === fromId);
+        const toDevice = this.switchDevices.find(d => d.id === toId);
+        this.showMessage(`Connected ${fromDevice?.type || fromId} to ${toDevice?.type || toId}`, 'success');
+    }
+
+    drawSwitchConnection(connection) {
+        const svg = document.getElementById('switch-connection-svg');
+        const fromDevice = this.switchDevices.find(d => d.id === connection.from);
+        const toDevice = this.switchDevices.find(d => d.id === connection.to);
+
+        if (!fromDevice || !toDevice || !svg) return;
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', fromDevice.x);
+        line.setAttribute('y1', fromDevice.y);
+        line.setAttribute('x2', toDevice.x);
+        line.setAttribute('y2', toDevice.y);
+        line.setAttribute('stroke', '#60a5fa');
+        line.setAttribute('stroke-width', '3');
+        line.setAttribute('stroke-dasharray', '5,5');
+        line.classList.add('animate-pulse');
+
+        svg.appendChild(line);
+        connection.element = line;
+    }
+
+    updateSwitchMetrics() {
+        const deviceCount = this.switchDevices.length;
+        const connectionCount = this.switchConnections.length;
+        
+        // Calculate network latency (simulated)
+        const latency = this.calculateNetworkLatency();
+        document.getElementById('network-latency').textContent = `${latency}ms`;
+        
+        // Calculate switch efficiency
+        const efficiency = this.calculateSwitchEfficiency();
+        document.getElementById('switch-efficiency').textContent = `${efficiency}%`;
+        
+        // Calculate topology score
+        const topologyScore = this.calculateTopologyScore();
+        document.getElementById('topology-score').textContent = `${topologyScore}/100`;
+        
+        // Update progress
+        this.completionScore = topologyScore;
+        this.updateProgress();
+    }
+
+    calculateNetworkLatency() {
+        const switches = this.switchDevices.filter(d => d.type === 'switch');
+        const pcs = this.switchDevices.filter(d => d.type === 'pc' || d.type === 'cctv');
+        
+        if (switches.length > 0 && pcs.length > 1) {
+            // With switch: lower latency
+            return Math.round(1.2 + Math.random() * 0.8);
+        } else {
+            // Without switch: higher latency
+            return Math.round(8.5 + Math.random() * 3.5);
+        }
+    }
+
+    calculateSwitchEfficiency() {
+        const switches = this.switchDevices.filter(d => d.type === 'switch');
+        const pcs = this.switchDevices.filter(d => d.type === 'pc' || d.type === 'cctv');
+        
+        if (switches.length === 0) return 0;
+        
+        // Check if PCs are connected to switch
+        const pcToSwitchConnections = this.switchConnections.filter(conn => {
+            const fromDevice = this.switchDevices.find(d => d.id === conn.from);
+            const toDevice = this.switchDevices.find(d => d.id === conn.to);
+            
+            return (fromDevice?.type === 'switch' && (toDevice?.type === 'pc' || toDevice?.type === 'cctv')) ||
+                   ((fromDevice?.type === 'pc' || fromDevice?.type === 'cctv') && toDevice?.type === 'switch');
+        });
+        
+        const efficiency = Math.min(100, (pcToSwitchConnections.length / Math.max(pcs.length, 1)) * 100);
+        return Math.round(efficiency);
+    }
+
+    calculateTopologyScore() {
+        const required = this.currentLevelData.requiredDevices || [];
+        const switches = this.switchDevices.filter(d => d.type === 'switch');
+        const pcs = this.switchDevices.filter(d => d.type === 'pc');
+        const routers = this.switchDevices.filter(d => d.type === 'router');
+        
+        let score = 0;
+        
+        // Check required devices are placed
+        if (switches.length >= 1) score += 25;
+        if (pcs.length >= 2) score += 25;
+        if (routers.length >= 1) score += 25;
+        
+        // Check optimal connections (PCs to switch, switch to router)
+        const pcToSwitchConnections = this.switchConnections.filter(conn => {
+            const fromDevice = this.switchDevices.find(d => d.id === conn.from);
+            const toDevice = this.switchDevices.find(d => d.id === conn.to);
+            
+            return (fromDevice?.type === 'switch' && (toDevice?.type === 'pc' || toDevice?.type === 'cctv')) ||
+                   ((fromDevice?.type === 'pc' || fromDevice?.type === 'cctv') && toDevice?.type === 'switch');
+        });
+        
+        const switchToRouterConnections = this.switchConnections.filter(conn => {
+            const fromDevice = this.switchDevices.find(d => d.id === conn.from);
+            const toDevice = this.switchDevices.find(d => d.id === conn.to);
+            
+            return (fromDevice?.type === 'switch' && toDevice?.type === 'router') ||
+                   (fromDevice?.type === 'router' && toDevice?.type === 'switch');
+        });
+        
+        if (pcToSwitchConnections.length >= 2) score += 15;
+        if (switchToRouterConnections.length >= 1) score += 10;
+        
+        return Math.min(100, score);
+    }
+
+    checkSwitchOptimizationCompletion() {
+        const topologyScore = this.calculateTopologyScore();
+        
+        if (topologyScore >= 100) {
+            this.completionScore = 100;
+            this.enableCompleteButton();
+            this.showFeedback('Perfect! Switch optimization complete. Local traffic is now efficiently handled!', 'success');
+        } else if (topologyScore >= 75) {
+            this.showFeedback('Good progress! Add more connections to optimize the network further.', 'info');
+        } else {
+            this.showFeedback('Keep building! You need a switch connected between PCs and router.', 'info');
+        }
+        
+        this.updateProgress();
+    }
+
+    setupStaticRoutingListeners() {
+        // Initialize routing state if not already done
+        this.routingTables = this.routingTables || new Map();
+        this.routingTables.set('R1', []);
+        this.routingTables.set('R2', []);
+
+        // Add route to R1 button
+        const addR1RouteBtn = document.getElementById('add-r1-route');
+        if (addR1RouteBtn) {
+            addR1RouteBtn.addEventListener('click', () => {
+                this.addStaticRoute('R1');
+            });
+        }
+
+        // Add route to R2 button
+        const addR2RouteBtn = document.getElementById('add-r2-route');
+        if (addR2RouteBtn) {
+            addR2RouteBtn.addEventListener('click', () => {
+                this.addStaticRoute('R2');
+            });
+        }
+
+        // Test connectivity buttons
+        const testEastToWestBtn = document.getElementById('test-east-to-west');
+        const testWestToEastBtn = document.getElementById('test-west-to-east');
+
+        if (testEastToWestBtn) {
+            testEastToWestBtn.addEventListener('click', () => {
+                this.testInterDistrictConnectivity('east-to-west');
+            });
+        }
+
+        if (testWestToEastBtn) {
+            testWestToEastBtn.addEventListener('click', () => {
+                this.testInterDistrictConnectivity('west-to-east');
+            });
+        }
+
+        console.log('Static routing listeners set up successfully');
+    }
+
+    addStaticRoute(routerName) {
+        const destinationInput = document.getElementById(`${routerName.toLowerCase()}-destination`);
+        const gatewayInput = document.getElementById(`${routerName.toLowerCase()}-gateway`);
+
+        if (!destinationInput || !gatewayInput) {
+            this.showMessage('Input fields not found', 'error');
+            return;
+        }
+
+        const destination = destinationInput.value.trim();
+        const gateway = gatewayInput.value.trim();
+
+        if (!destination || !gateway) {
+            this.showMessage('Please enter both destination network and next hop gateway', 'error');
+            return;
+        }
+
+        // Validate the input format
+        if (!this.validateNetworkInput(destination, gateway, routerName)) {
+            return;
+        }
+
+        // Add route to routing table
+        const routes = this.routingTables.get(routerName) || [];
+        
+        // Check if route already exists
+        const existingRoute = routes.find(route => route.destination === destination);
+        if (existingRoute) {
+            this.showMessage(`Route to ${destination} already exists on ${routerName}`, 'info');
+            return;
+        }
+
+        const newRoute = {
+            destination: destination,
+            gateway: gateway,
+            metric: 1
+        };
+
+        routes.push(newRoute);
+        this.routingTables.set(routerName, routes);
+
+        // Clear input fields
+        destinationInput.value = '';
+        gatewayInput.value = '';
+
+        // Update routing table display
+        this.updateRoutingTableDisplay();
+        
+        // Check completion
+        this.checkStaticRoutingCompletion();
+
+        this.showMessage(`Route added to ${routerName}: ${destination} via ${gateway}`, 'success');
+    }
+
+    validateNetworkInput(destination, gateway, routerName) {
+        // Expected values for validation
+        const expectedRoutes = {
+            'R1': {
+                destination: '192.168.2.0/24',
+                gateway: '192.168.100.2'
+            },
+            'R2': {
+                destination: '192.168.1.0/24',
+                gateway: '192.168.100.1'
+            }
+        };
+
+        const expected = expectedRoutes[routerName];
+        
+        // Improved validation for destination network format
+        const networkPattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\/(\d{1,2})$/;
+        const networkMatch = destination.match(networkPattern);
+        
+        if (!networkMatch) {
+            this.showMessage('Invalid destination network format. Use format: 192.168.x.0/24', 'error');
+            return false;
+        }
+
+        // Validate each octet is within valid range (0-255)
+        const octets = [
+            parseInt(networkMatch[1]),
+            parseInt(networkMatch[2]),
+            parseInt(networkMatch[3]),
+            parseInt(networkMatch[4])
+        ];
+        const subnet = parseInt(networkMatch[5]);
+
+        // Check if octets are valid (0-255)
+        if (!octets.every(octet => octet >= 0 && octet <= 255)) {
+            this.showMessage('Invalid IP address in network. Each part must be 0-255.', 'error');
+            return false;
+        }
+
+        // Check if subnet mask is valid (0-32)
+        if (subnet < 0 || subnet > 32) {
+            this.showMessage('Invalid subnet mask. Must be between /0 and /32.', 'error');
+            return false;
+        }
+
+        // Validate gateway IP format (improved validation)
+        const ipPattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+        const gatewayMatch = gateway.match(ipPattern);
+        
+        if (!gatewayMatch) {
+            this.showMessage('Invalid gateway IP address format', 'error');
+            return false;
+        }
+
+        // Validate gateway IP octets
+        const gatewayOctets = [
+            parseInt(gatewayMatch[1]),
+            parseInt(gatewayMatch[2]),
+            parseInt(gatewayMatch[3]),
+            parseInt(gatewayMatch[4])
+        ];
+
+        if (!gatewayOctets.every(octet => octet >= 0 && octet <= 255)) {
+            this.showMessage('Invalid gateway IP address. Each part must be 0-255.', 'error');
+            return false;
+        }
+
+        // Provide helpful feedback if not the expected route (but still allow it)
+        if (destination !== expected.destination) {
+            this.showMessage(`Hint: ${routerName} needs a route to ${expected.destination}`, 'info');
+        }
+
+        if (gateway !== expected.gateway) {
+            this.showMessage(`Hint: Next hop for ${routerName} should be ${expected.gateway}`, 'info');
+        }
+
+        return true;
+    }
+
+    updateRoutingTableDisplay() {
+        // Update R1 routing table display
+        const r1Routes = this.routingTables.get('R1') || [];
+        const r1Display = document.getElementById('r1-routes');
+        if (r1Display) {
+            if (r1Routes.length === 0) {
+                r1Display.textContent = 'No static routes configured';
+                r1Display.className = 'text-sm text-gray-300';
+            } else {
+                r1Display.innerHTML = r1Routes.map(route => 
+                    `<div class="text-green-400 text-sm">→ ${route.destination} via ${route.gateway}</div>`
+                ).join('');
+            }
+        }
+
+        // Update R2 routing table display
+        const r2Routes = this.routingTables.get('R2') || [];
+        const r2Display = document.getElementById('r2-routes');
+        if (r2Display) {
+            if (r2Routes.length === 0) {
+                r2Display.textContent = 'No static routes configured';
+                r2Display.className = 'text-sm text-gray-300';
+            } else {
+                r2Display.innerHTML = r2Routes.map(route => 
+                    `<div class="text-green-400 text-sm">→ ${route.destination} via ${route.gateway}</div>`
+                ).join('');
+            }
+        }
+    }
+
+    testInterDistrictConnectivity(direction) {
+        const resultsDiv = document.getElementById('routing-test-results');
+        if (!resultsDiv) return;
+
+        const r1Routes = this.routingTables.get('R1') || [];
+        const r2Routes = this.routingTables.get('R2') || [];
+
+        let testSuccess = false;
+        let testMessage = '';
+
+        if (direction === 'east-to-west') {
+            // Test Police HQ (192.168.1.10) to Fire Station (192.168.2.10)
+            const r1HasRoute = r1Routes.some(route => 
+                route.destination === '192.168.2.0/24' && route.gateway === '192.168.100.2'
+            );
+            
+            if (r1HasRoute) {
+                testSuccess = true;
+                testMessage = `
+                    PING 192.168.2.10 from 192.168.1.10<br>
+                    <span class="text-green-400">64 bytes from 192.168.2.10: icmp_seq=1 ttl=62 time=2.1 ms<br>
+                    64 bytes from 192.168.2.10: icmp_seq=2 ttl=62 time=2.3 ms<br>
+                    64 bytes from 192.168.2.10: icmp_seq=3 ttl=62 time=2.0 ms<br>
+                    --- Police HQ to Fire Station connectivity: SUCCESS ---</span>
+                `;
+            } else {
+                testMessage = `
+                    PING 192.168.2.10 from 192.168.1.10<br>
+                    <span class="text-red-400">Request timeout for icmp_seq 1<br>
+                    Request timeout for icmp_seq 2<br>
+                    Request timeout for icmp_seq 3<br>
+                    --- Police HQ to Fire Station connectivity: FAILED ---<br>
+                    Router R1 missing route to 192.168.2.0/24</span>
+                `;
+            }
+        } else {
+            // Test School (192.168.2.11) to Hospital (192.168.1.11)
+            const r2HasRoute = r2Routes.some(route => 
+                route.destination === '192.168.1.0/24' && route.gateway === '192.168.100.1'
+            );
+            
+            if (r2HasRoute) {
+                testSuccess = true;
+                testMessage = `
+                    PING 192.168.1.11 from 192.168.2.11<br>
+                    <span class="text-green-400">64 bytes from 192.168.1.11: icmp_seq=1 ttl=62 time=2.4 ms<br>
+                    64 bytes from 192.168.1.11: icmp_seq=2 ttl=62 time=2.1 ms<br>
+                    64 bytes from 192.168.1.11: icmp_seq=3 ttl=62 time=2.3 ms<br>
+                    --- School to Hospital connectivity: SUCCESS ---</span>
+                `;
+            } else {
+                testMessage = `
+                    PING 192.168.1.11 from 192.168.2.11<br>
+                    <span class="text-red-400">Request timeout for icmp_seq 1<br>
+                    Request timeout for icmp_seq 2<br>
+                    Request timeout for icmp_seq 3<br>
+                    --- School to Hospital connectivity: FAILED ---<br>
+                    Router R2 missing route to 192.168.1.0/24</span>
+                `;
+            }
+        }
+
+        resultsDiv.innerHTML = testMessage;
+        
+        if (testSuccess) {
+            this.showMessage('Inter-district communication test successful!', 'success');
+        } else {
+            this.showMessage('Communication test failed - check routing configuration', 'error');
+        }
+
+        this.checkStaticRoutingCompletion();
+    }
+
+    checkStaticRoutingCompletion() {
+        const r1Routes = this.routingTables.get('R1') || [];
+        const r2Routes = this.routingTables.get('R2') || [];
+
+        // Check if both required routes are configured
+        const r1HasCorrectRoute = r1Routes.some(route => 
+            route.destination === '192.168.2.0/24' && route.gateway === '192.168.100.2'
+        );
+        
+        const r2HasCorrectRoute = r2Routes.some(route => 
+            route.destination === '192.168.1.0/24' && route.gateway === '192.168.100.1'
+        );
+
+        if (r1HasCorrectRoute && r2HasCorrectRoute) {
+            this.completionScore = 100;
+            this.enableCompleteButton();
+            this.showFeedback('Perfect! Static routes configured on both routers. Inter-district communication is now possible!', 'success');
+        } else {
+            let progress = 0;
+            if (r1HasCorrectRoute) progress += 50;
+            if (r2HasCorrectRoute) progress += 50;
+            
+            this.completionScore = progress;
+            
+            if (progress > 0) {
+                this.showFeedback(`Good progress! ${progress}% complete. Configure routes on both routers.`, 'info');
+            } else {
+                this.showFeedback('Configure static routes on both R1 and R2 routers to enable cross-district communication.', 'info');
+            }
+        }
+
+        this.updateProgress();
+    }
+
+    setupCLITroubleshootingListeners() {
+        // Initialize CLI state
+        this.cliHistory = [];
+        this.issuesFixed = {
+            diagnosis: false,
+            routes: false,
+            connectivity: false
+        };
+        
+        this.cliCommands = {
+            'help': () => this.showCLIHelp(),
+            'show ip route': () => this.showIPRoute(),
+            'ping 192.168.2.10': () => this.pingCommand('192.168.2.10'),
+            'traceroute 192.168.2.10': () => this.tracerouteCommand('192.168.2.10'),
+            'ip route add 192.168.2.0/24 via 192.168.100.2': () => this.addCLIRoute(),
+            'clear': () => this.clearTerminal(),
+            'exit': () => this.exitCLI(),
+            'show interfaces': () => this.showInterfaces(),
+            'show version': () => this.showVersion()
+        };
+
+        // CLI input handling
+        const cliInput = document.getElementById('cli-input');
+        if (cliInput) {
+            cliInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const command = cliInput.value.trim();
+                    if (command) {
+                        this.executeCLICommand(command);
+                        this.cliHistory.push(command);
+                    }
+                    cliInput.value = '';
+                }
+            });
+
+            // Command history navigation
+            let historyIndex = -1;
+            cliInput.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (historyIndex < this.cliHistory.length - 1) {
+                        historyIndex++;
+                        cliInput.value = this.cliHistory[this.cliHistory.length - 1 - historyIndex];
+                    }
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (historyIndex > 0) {
+                        historyIndex--;
+                        cliInput.value = this.cliHistory[this.cliHistory.length - 1 - historyIndex];
+                    } else if (historyIndex === 0) {
+                        historyIndex = -1;
+                        cliInput.value = '';
+                    }
+                }
+            });
+        }
+
+        // Quick command buttons
+        document.querySelectorAll('.quick-cmd').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const command = btn.dataset.cmd;
+                this.executeCLICommand(command);
+                if (cliInput) cliInput.focus();
+            });
+        });
+
+        // Diagnostic tool buttons
+        document.getElementById('run-connectivity-test')?.addEventListener('click', () => {
+            this.executeCLICommand('ping 192.168.2.10');
+        });
+
+        document.getElementById('check-routing-table')?.addEventListener('click', () => {
+            this.executeCLICommand('show ip route');
+        });
+
+        document.getElementById('analyze-network')?.addEventListener('click', () => {
+            this.executeCLICommand('show interfaces');
+            setTimeout(() => this.executeCLICommand('show ip route'), 1000);
+        });
+
+        console.log('CLI troubleshooting listeners set up successfully');
+    }
+
+    executeCLICommand(command) {
+        const output = document.getElementById('terminal-output');
+        if (!output) return;
+        
+        // Add command to output with timestamp
+        const timestamp = new Date().toLocaleTimeString();
+        output.innerHTML += `<span class="text-blue-300">R1> ${command}</span><br>`;
+        
+        // Execute command
+        let result = '';
+        if (this.cliCommands[command]) {
+            result = this.cliCommands[command]();
+        } else if (command.startsWith('ping ')) {
+            const ip = command.split(' ')[1];
+            result = this.pingCommand(ip);
+        } else if (command.startsWith('traceroute ')) {
+            const ip = command.split(' ')[1];
+            result = this.tracerouteCommand(ip);
+        } else if (command.startsWith('ip route add ')) {
+            result = this.handleRouteAdd(command);
+        } else {
+            result = `<span class="text-red-400">% Unknown command: ${command}</span><br>Type 'help' for available commands`;
+        }
+        
+        output.innerHTML += result + '<br>';
+        
+        // Scroll to bottom
+        output.scrollTop = output.scrollHeight;
+        
+        // Update progress
+        this.updateCLIProgress();
+        this.checkCLICompletion();
+    }
+
+    showCLIHelp() {
+        return `<span class="text-yellow-400">Available commands:</span>
+  show ip route       - Display routing table
+  ping [IP]          - Test connectivity to IP address  
+  traceroute [IP]    - Trace route to destination
+  ip route add [route] - Add static route
+  show interfaces    - Display interface status
+  show version       - Show router information
+  clear             - Clear terminal screen
+  help              - Show this help message
+  exit              - Exit CLI session
+
+<span class="text-cyan-400">Example:</span>
+  ip route add 192.168.2.0/24 via 192.168.100.2`;
+    }
+
+    showIPRoute() {
+        this.issuesFixed.diagnosis = true;
+        this.updateFixProgress();
+        
+        return `<span class="text-green-400">Kernel IP routing table</span>
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.1.1     0.0.0.0         UG    0      0        0 eth0
+192.168.1.0     0.0.0.0         255.255.255.0   U     0      0        0 eth0
+192.168.100.0   0.0.0.0         255.255.255.252 U     0      0        0 eth1
+
+<span class="text-yellow-400">⚠️  Analysis: Missing route to 192.168.2.0/24 network!</span>
+<span class="text-cyan-400">💡 Hint: Use 'ip route add 192.168.2.0/24 via 192.168.100.2'</span>`;
+    }
+
+    pingCommand(ip) {
+        if (!ip || !this.validateIP(ip)) {
+            return `<span class="text-red-400">% Invalid IP address format</span>`;
+        }
+
+        if (!this.issuesFixed.routes) {
+            return `<span class="text-yellow-400">PING ${ip}:</span>
+<span class="text-red-400">From 192.168.1.1 icmp_seq=1 Destination Net Unreachable
+From 192.168.1.1 icmp_seq=2 Destination Net Unreachable  
+From 192.168.1.1 icmp_seq=3 Destination Net Unreachable
+
+--- ${ip} ping statistics ---
+3 packets transmitted, 0 received, +3 errors, 100% packet loss
+
+❌ Network unreachable - missing static route to 192.168.2.0/24</span>`;
+        } else {
+            this.issuesFixed.connectivity = true;
+            this.updateFixProgress();
+            return `<span class="text-yellow-400">PING ${ip}:</span>
+<span class="text-green-400">64 bytes from ${ip}: icmp_seq=1 ttl=62 time=4.2 ms
+64 bytes from ${ip}: icmp_seq=2 ttl=62 time=4.1 ms  
+64 bytes from ${ip}: icmp_seq=3 ttl=62 time=4.3 ms
+
+--- ${ip} ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss
+round-trip min/avg/max = 4.1/4.2/4.3 ms
+
+✅ Connectivity restored! Emergency services can now communicate.</span>`;
+        }
+    }
+
+    tracerouteCommand(ip) {
+        if (!ip || !this.validateIP(ip)) {
+            return `<span class="text-red-400">% Invalid IP address format</span>`;
+        }
+
+        if (!this.issuesFixed.routes) {
+            return `<span class="text-yellow-400">traceroute to ${ip}, 30 hops max, 60 byte packets</span>
+ 1  192.168.1.1 (192.168.1.1)  0.124 ms  0.089 ms  0.082 ms
+ 2  * * *
+ 3  * * *
+<span class="text-red-400">❌ Route to ${ip} not found - packets dropped at router</span>
+<span class="text-cyan-400">💡 Configure static route to reach destination network</span>`;
+        } else {
+            return `<span class="text-yellow-400">traceroute to ${ip}, 30 hops max, 60 byte packets</span>
+<span class="text-green-400"> 1  192.168.1.1 (192.168.1.1)      0.124 ms  0.089 ms  0.082 ms
+ 2  192.168.100.2 (192.168.100.2)  2.341 ms  2.298 ms  2.287 ms  
+ 3  ${ip} (${ip})  4.123 ms  4.098 ms  4.156 ms
+
+✅ Route is working correctly - 3 hops to destination</span>`;
+        }
+    }
+
+    addCLIRoute() {
+        this.issuesFixed.routes = true;
+        this.updateFixProgress();
+        
+        return `<span class="text-green-400">✅ Static route added successfully:</span>
+<span class="text-cyan-400">Destination: 192.168.2.0/24
+Gateway: 192.168.100.2  
+Interface: eth1
+Metric: 1</span>
+
+<span class="text-yellow-400">Route table updated. Testing connectivity...</span>
+<span class="text-green-400">Emergency services communication link established!</span>`;
+    }
+
+    handleRouteAdd(command) {
+        // Parse the route add command
+        const parts = command.split(' ');
+        if (parts.length < 6) {
+            return `<span class="text-red-400">% Incomplete command. Usage:</span>
+ip route add &lt;network&gt;/&lt;prefix&gt; via &lt;gateway&gt;
+<span class="text-cyan-400">Example: ip route add 192.168.2.0/24 via 192.168.100.2</span>`;
+        }
+
+        const network = parts[3];
+        const gateway = parts[5];
+
+        if (network === '192.168.2.0/24' && gateway === '192.168.100.2') {
+            return this.addCLIRoute();
+        } else {
+            return `<span class="text-yellow-400">Route added: ${network} via ${gateway}</span>
+<span class="text-orange-400">⚠️  Note: For this scenario, you need route to 192.168.2.0/24 via 192.168.100.2</span>`;
+        }
+    }
+
+    showInterfaces() {
+        return `<span class="text-green-400">Interface Status:</span>
+
+eth0    Link encap:Ethernet  HWaddr 00:0c:29:3f:47:a1
+        inet addr:192.168.1.1  Bcast:192.168.1.255  Mask:255.255.255.0
+        UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+        RX packets:2847 errors:0 dropped:0 overruns:0 frame:0
+        TX packets:1923 errors:0 dropped:0 overruns:0 carrier:0
+
+eth1    Link encap:Ethernet  HWaddr 00:0c:29:3f:47:b2  
+        inet addr:192.168.100.1  Bcast:192.168.100.3  Mask:255.255.255.252
+        UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+        RX packets:1245 errors:0 dropped:0 overruns:0 frame:0
+        TX packets:987 errors:0 dropped:0 overruns:0 carrier:0
+
+<span class="text-green-400">✅ All interfaces operational</span>`;
+    }
+
+    showVersion() {
+        return `<span class="text-cyan-400">Router R1 - Emergency Services Network</span>
+Cisco IOS Software, Version 15.4(3)M2
+Hardware: Cisco 2901 Integrated Services Router
+Uptime: 2 days, 14 hours, 23 minutes
+System image file: "c2900-universalk9-mz.SPA.154-3.M2.bin"
+
+<span class="text-green-400">Router Status: OPERATIONAL</span>
+<span class="text-yellow-400">Mission: Restore emergency communications</span>`;
+    }
+
+    clearTerminal() {
+        const output = document.getElementById('terminal-output');
+        if (output) {
+            output.innerHTML = `Welcome to Network Command Center<br>
+Type 'help' for available commands<br>
+<br>`;
+        }
+        return '';
+    }
+
+    exitCLI() {
+        return `<span class="text-yellow-400">CLI session terminated.</span>
+<span class="text-cyan-400">Use 'help' to see available commands</span>`;
+    }
+
+    updateCLIProgress() {
+        this.updateFixProgress();
+        
+        // Calculate completion percentage
+        const completedTasks = Object.values(this.issuesFixed).filter(fixed => fixed).length;
+        const totalTasks = Object.keys(this.issuesFixed).length;
+        const progress = (completedTasks / totalTasks) * 100;
+        
+        this.completionScore = progress;
+        this.updateProgress();
+    }
+
+    updateFixProgress() {
+        const fixes = {
+            'fix-diagnosis': this.issuesFixed.diagnosis,
+            'fix-routes': this.issuesFixed.routes,
+            'fix-connectivity': this.issuesFixed.connectivity
+        };
+
+        Object.entries(fixes).forEach(([id, fixed]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                if (fixed) {
+                    element.className = 'text-green-400';
+                    element.textContent = element.textContent.replace('❌', '✅');
+                } else {
+                    element.className = 'text-gray-400';
+                }
+            }
+        });
+    }
+
+    checkCLICompletion() {
+        const allFixed = Object.values(this.issuesFixed).every(fixed => fixed);
+        
+        if (allFixed) {
+            this.completionScore = 100;
+            this.enableCompleteButton();
+            this.showFeedback('Outstanding! All network issues diagnosed and resolved. Command central is back online!', 'success');
+            
+            // Show completion message in terminal
+            setTimeout(() => {
+                const output = document.getElementById('terminal-output');
+                if (output) {
+                    output.innerHTML += `<br><span class="text-green-400 animate-pulse">🎉 MISSION ACCOMPLISHED! 🎉</span><br>
+<span class="text-cyan-400">Emergency services communication restored</span><br>
+<span class="text-yellow-400">All city districts can now communicate</span><br>
+<span class="text-green-400">Network troubleshooting complete!</span><br><br>`;
+                    output.scrollTop = output.scrollHeight;
+                }
+            }, 1000);
+        } else {
+            const remaining = Object.entries(this.issuesFixed)
+                .filter(([key, fixed]) => !fixed)
+                .map(([key, fixed]) => key);
+            
+            this.showFeedback(`Continue troubleshooting. Remaining: ${remaining.join(', ')}`, 'info');
+        }
+        
+        this.updateProgress();
     }
 }
 
