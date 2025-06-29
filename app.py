@@ -57,63 +57,6 @@ def serve_static_files(filename):
         # Return 404 for missing files
         from flask import abort
         abort(404)
-
-@app.route('/index')
-def index():
-    """Main entry point replacing index.php"""
-    # Check database connection
-    db_status = "Connected"
-    try:
-        conn = get_db_connection()
-        conn.execute("SELECT 1")
-        conn.close()
-    except:
-        db_status = "Error"
-    
-    template = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Ascended Prototype - System Status</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: #fff; }
-            .container { max-width: 600px; margin: 0 auto; }
-            .btn { display: inline-block; padding: 12px 24px; margin: 10px; background: #007acc; color: white; text-decoration: none; border-radius: 5px; }
-            .btn:hover { background: #005a99; }
-            .status { background: #333; padding: 15px; border-radius: 5px; margin: 15px 0; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>🚀 Ascended Prototype</h1>
-            <h2>Escape the Lab - Tech Edition</h2>
-            
-            <div class="status">
-                <h3>System Status: <span style="color: #00ff00;">ONLINE</span></h3>
-                <p>Flask backend is running successfully!</p>
-                <p>Database: <span style="color: {{ 'green' if db_status == 'Connected' else 'red' }};">{{ db_status }}</span></p>
-            </div>
-            
-            <div>
-                <a href="index.html" class="btn">🎮 Play Game</a>
-                <a href="/verify" class="btn">🔧 System Check</a>
-                <a href="/setup" class="btn">🗄️ Database Setup</a>
-            </div>
-            
-            <div class="status">
-                <h3>Quick Start:</h3>
-                <ol>
-                    <li>Ensure Flask server is running</li>
-                    <li>Run database setup if needed</li>
-                    <li>Click "Play Game" to start</li>
-                </ol>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-    return render_template_string(template, db_status=db_status)
-
 @app.route('/api/test')
 def api_test():
     """Test API endpoint"""
