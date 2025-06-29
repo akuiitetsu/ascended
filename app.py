@@ -230,20 +230,26 @@ def login():
         password = data.get('password')
         remember = data.get('remember', False)
 
+        print(f"Login attempt for: {identifier}")  # Debug logging
+        
         user = db_manager.verify_password(identifier, password)
         
         if user:
+            print(f"User authenticated: {user.username}, is_admin: {user.is_admin}")  # Debug logging
             login_user(user, remember=remember)
             return jsonify({
                 'status': 'success',
                 'user': {
                     'username': user.username,
-                    'email': user.email
+                    'email': user.email,
+                    'is_admin': user.is_admin
                 }
             })
         else:
+            print(f"Authentication failed for: {identifier}")  # Debug logging
             return jsonify({'status': 'error', 'message': 'Invalid credentials'}), 401
     except Exception as e:
+        print(f"Login error: {str(e)}")  # Debug logging
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/api/auth/logout')
@@ -252,6 +258,119 @@ def logout():
     logout_user()
     return jsonify({'status': 'success'})
 
+def admin_required(f):
+    """Decorator to require admin access"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return jsonify({'status': 'error', 'message': 'Authentication required'}), 401
+        
+        # Use the is_admin property from the User model
+        if not current_user.is_admin:
+            return jsonify({'status': 'error', 'message': 'Admin access required'}), 403
+            
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/admin')
+@login_required
+@admin_required
+def admin_dashboard():
+    """Admin dashboard"""
+    return render_template('admin/dashboard.html')
+
+@app.route('/api/admin/stats')
+@login_required
+@admin_required
+def admin_stats():
+    """Get admin statistics"""
+    try:
+        conn = db_manager.get_connection()
+        
+        # Get total users
+        total_users = conn.execute('SELECT COUNT(*) FROM users').fetchone()[0]
+        
+        # Get active sessions (sessions updated in last 24 hours)
+        active_sessions = conn.execute(
+            "SELECT COUNT(*) FROM game_state WHERE updated_at > datetime('now', '-1 day')"
+        ).fetchone()[0]
+        
+        conn.close()
+        
+        return jsonify({
+            'status': 'success',
+            'stats': {
+                'total_users': total_users,
+                'active_sessions': active_sessions,
+                'db_size': 'Unknown'  # Could implement actual DB size calculation
+            }
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/admin/users')
+@login_required
+@admin_required
+def admin_users():
+    """Get all users for admin"""
+    try:
+        conn = db_manager.get_connection()
+        users = conn.execute(
+            'SELECT id, username, email, is_admin, created_at FROM users ORDER BY created_at DESC'
+        ).fetchall()
+        conn.close()
+        
+        users_list = []
+        for user in users:
+            users_list.append({
+                'id': user['id'],
+                'username': user['username'],
+                'email': user['email'],
+                'is_admin': bool(user['is_admin']),
+                'created_at': user['created_at']
+            })
+        
+        return jsonify({'status': 'success', 'users': users_list})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/admin/game-stats')
+@login_required
+@admin_required
+def admin_game_stats():
+    """Get game statistics"""
+    try:
+        conn = db_manager.get_connection()
+        
+        # Level completion stats
+        level_stats = conn.execute('''
+            SELECT current_level as level, COUNT(*) as completions 
+            FROM game_state 
+            GROUP BY current_level 
+            ORDER BY current_level
+        ''').fetchall()
+        
+        # Recent activity
+        recent_activity = conn.execute('''
+            SELECT u.username, gs.current_level as level, gs.updated_at as timestamp
+            FROM game_state gs
+            JOIN users u ON gs.session_id LIKE 'user_' || u.id || '_%'
+            ORDER BY gs.updated_at DESC
+            LIMIT 10
+        ''').fetchall()
+        
+        conn.close()
+        
+        return jsonify({
+            'status': 'success',
+            'stats': {
+                'level_completion': [{'level': row['level'], 'completions': row['completions']} for row in level_stats],
+                'recent_activity': [{'username': row['username'], 'level': row['level'], 'timestamp': row['timestamp']} for row in recent_activity]
+            }
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @app.route('/api/auth/user')
 def get_current_user():
     if current_user.is_authenticated:
@@ -259,7 +378,8 @@ def get_current_user():
             'status': 'success',
             'user': {
                 'username': current_user.username,
-                'email': current_user.email
+                'email': current_user.email,
+                'is_admin': current_user.is_admin
             }
         })
     else:
@@ -281,6 +401,31 @@ def setup_admin():
         return jsonify({'status': 'success', 'message': 'Admin account created'})
     else:
         return jsonify({'status': 'error', 'message': result['error']}), 400
+
+# Add a debug route to check users (remove this in production)
+@app.route('/debug/users')
+def debug_users():
+    """Debug route to check users in database"""
+    if not app.config.get('DEBUG'):
+        return jsonify({'error': 'Not available in production'}), 404
+    
+    try:
+        conn = db_manager.get_connection()
+        users = conn.execute('SELECT id, username, email, is_admin FROM users').fetchall()
+        conn.close()
+        
+        users_list = []
+        for user in users:
+            users_list.append({
+                'id': user['id'],
+                'username': user['username'],
+                'email': user['email'],
+                'is_admin': bool(user['is_admin'])
+            })
+        
+        return jsonify({'users': users_list})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     config_obj = config[config_name]

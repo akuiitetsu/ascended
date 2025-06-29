@@ -2,7 +2,7 @@
 class Auth {
     constructor() {
         this.bindEvents();
-        this.checkAuthState();
+        // Don't check auth state on page load since server handles this
     }
 
     bindEvents() {
@@ -36,12 +36,13 @@ class Auth {
     }
 
     async login(form) {
-        // The 'email' field can now be email or username
         const data = {
-            email: form.email.value, // can be email or username
+            email: form.email.value,
             password: form.password.value,
-            remember: form.remember.checked // Add remember me checkbox value
+            remember: form.remember.checked
         };
+
+        console.log('Attempting login with:', { email: data.email, remember: data.remember }); // Debug logging
 
         try {
             const response = await fetch('/api/auth/login', {
@@ -49,22 +50,27 @@ class Auth {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
+            
+            console.log('Response status:', response.status); // Debug logging
+            
             const result = await response.json();
+            console.log('Response data:', result); // Debug logging
 
             if (result.status === 'success') {
-                this.onLoginSuccess(result.user);
+                // Reload page to let server render the authenticated state
+                window.location.reload();
             } else {
                 this.showMessage(result.message || 'Login failed', 'error');
             }
         } catch (error) {
             console.error('Login error:', error);
-            this.showMessage('Login failed', 'error');
+            this.showMessage('Login failed - network error', 'error');
         }
     }
 
     async register(form) {
         if (form.password.value !== form.confirm_password.value) {
-            alert('Passwords do not match');
+            this.showMessage('Passwords do not match', 'error');
             return;
         }
 
@@ -85,13 +91,13 @@ class Auth {
             if (result.status === 'success') {
                 // Switch to login form after successful registration
                 document.getElementById('show-login').click();
-                alert('Registration successful! Please login.');
+                this.showMessage('Registration successful! Please login.', 'success');
             } else {
-                alert(result.message || 'Registration failed');
+                this.showMessage(result.message || 'Registration failed', 'error');
             }
         } catch (error) {
             console.error('Registration error:', error);
-            alert('Registration failed');
+            this.showMessage('Registration failed', 'error');
         }
     }
 
@@ -101,19 +107,6 @@ class Auth {
             window.location.reload();
         } catch (error) {
             console.error('Logout error:', error);
-        }
-    }
-
-    async checkAuthState() {
-        try {
-            const response = await fetch('/api/auth/user');
-            const result = await response.json();
-
-            if (result.status === 'success') {
-                this.onLoginSuccess(result.user);
-            }
-        } catch (error) {
-            console.error('Auth check error:', error);
         }
     }
 
@@ -146,6 +139,17 @@ class Auth {
         // Show user info in header
         document.getElementById('user-display').textContent = user.username;
         document.getElementById('logout-btn').classList.remove('hidden');
+        
+        // Show admin button if user is admin
+        if (user.is_admin) {
+            const adminBtn = document.getElementById('admin-panel-btn');
+            if (adminBtn) {
+                adminBtn.classList.remove('hidden');
+                adminBtn.addEventListener('click', () => {
+                    window.location.href = '/admin';
+                });
+            }
+        }
         
         this.showMessage(`Welcome back, ${user.username}!`, 'success');
     }

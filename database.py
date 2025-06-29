@@ -8,10 +8,11 @@ from flask_login import UserMixin
 class User(UserMixin):
     """User model for Flask-Login"""
     
-    def __init__(self, id, username, email):
+    def __init__(self, id, username, email, is_admin=False):
         self.id = id
         self.username = username
         self.email = email
+        self.is_admin = is_admin
     
     def get_id(self):
         return str(self.id)
@@ -27,7 +28,14 @@ class User(UserMixin):
             conn.close()
             
             if user_data:
-                return User(user_data['id'], user_data['username'], user_data['email'])
+                # Fix: Access is_admin column directly, with fallback
+                is_admin = user_data['is_admin'] if 'is_admin' in user_data.keys() else 0
+                return User(
+                    user_data['id'], 
+                    user_data['username'], 
+                    user_data['email'],
+                    bool(is_admin)
+                )
             return None
         except Exception:
             return None
@@ -264,12 +272,31 @@ class DatabaseManager:
                 'SELECT * FROM users WHERE email = ? OR username = ?', 
                 (identifier, identifier)
             ).fetchone()
-            conn.close()
             
-            if user_data and check_password_hash(user_data['password_hash'], password):
-                return User(user_data['id'], user_data['username'], user_data['email'])
+            print(f"Looking for user: {identifier}")  # Debug logging
+            
+            if user_data:
+                print(f"Found user: {user_data['username']}, checking password...")  # Debug logging
+                if check_password_hash(user_data['password_hash'], password):
+                    print(f"Password verified for user: {user_data['username']}")  # Debug logging
+                    # Fix: Access is_admin column directly, with fallback
+                    is_admin = user_data['is_admin'] if 'is_admin' in user_data.keys() else 0
+                    conn.close()
+                    return User(
+                        user_data['id'], 
+                        user_data['username'], 
+                        user_data['email'],
+                        bool(is_admin)
+                    )
+                else:
+                    print(f"Password verification failed for user: {user_data['username']}")  # Debug logging
+            else:
+                print(f"No user found with identifier: {identifier}")  # Debug logging
+            
+            conn.close()
             return None
-        except Exception:
+        except Exception as e:
+            print(f"Database error in verify_password: {str(e)}")  # Debug logging
             return None
     
     def create_admin(self, username, email, password):
