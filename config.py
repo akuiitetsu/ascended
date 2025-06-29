@@ -6,6 +6,11 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or secrets.token_hex(16)
     DATABASE = os.environ.get('DATABASE_URL') or 'database/ascended_prototype.db'
     
+    # Flask-Login configuration
+    LOGIN_VIEW = 'login'
+    LOGIN_MESSAGE = 'Please log in to access this page.'
+    REMEMBER_COOKIE_DURATION = 86400  # 24 hours
+    
     # Database configuration
     DATABASE_DIR = 'database'
     

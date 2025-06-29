@@ -3,6 +3,34 @@ import json
 import os
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import UserMixin
+
+class User(UserMixin):
+    """User model for Flask-Login"""
+    
+    def __init__(self, id, username, email):
+        self.id = id
+        self.username = username
+        self.email = email
+    
+    def get_id(self):
+        return str(self.id)
+    
+    @staticmethod
+    def get(user_id, db_manager):
+        """Get user by ID"""
+        try:
+            conn = db_manager.get_connection()
+            user_data = conn.execute(
+                'SELECT * FROM users WHERE id = ?', (user_id,)
+            ).fetchone()
+            conn.close()
+            
+            if user_data:
+                return User(user_data['id'], user_data['username'], user_data['email'])
+            return None
+        except Exception:
+            return None
 
 class DatabaseManager:
     """Database manager for the Ascended game"""
@@ -162,3 +190,39 @@ class DatabaseManager:
             return {'success': False, 'error': 'Invalid credentials'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
+    
+    def get_user_by_id(self, user_id):
+        """Get user by ID for Flask-Login"""
+        return User.get(user_id, self)
+    
+    def get_user_by_email_or_username(self, identifier):
+        """Get user by email or username"""
+        try:
+            conn = self.get_connection()
+            user_data = conn.execute(
+                'SELECT * FROM users WHERE email = ? OR username = ?', 
+                (identifier, identifier)
+            ).fetchone()
+            conn.close()
+            
+            if user_data:
+                return User(user_data['id'], user_data['username'], user_data['email'])
+            return None
+        except Exception:
+            return None
+    
+    def verify_password(self, identifier, password):
+        """Verify user password"""
+        try:
+            conn = self.get_connection()
+            user_data = conn.execute(
+                'SELECT * FROM users WHERE email = ? OR username = ?', 
+                (identifier, identifier)
+            ).fetchone()
+            conn.close()
+            
+            if user_data and check_password_hash(user_data['password_hash'], password):
+                return User(user_data['id'], user_data['username'], user_data['email'])
+            return None
+        except Exception:
+            return None

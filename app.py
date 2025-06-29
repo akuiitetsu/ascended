@@ -1,4 +1,5 @@
 from flask import Flask, render_template_string, render_template, jsonify, request, session
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 import os
 from datetime import datetime
 from functools import wraps
@@ -11,11 +12,22 @@ app = Flask(__name__)
 config_name = os.environ.get('FLASK_CONFIG', 'default')
 app.config.from_object(config[config_name])
 
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page.'
+
 # Initialize database manager
 db_manager = DatabaseManager(
     database_path=app.config['DATABASE'],
     database_dir=app.config.get('DATABASE_DIR', 'database')
 )
+
+@login_manager.user_loader
+def load_user(user_id):
+    """Load user for Flask-Login"""
+    return db_manager.get_user_by_id(user_id)
 
 def check_file_exists(filepath):
     """Check if a file exists"""
@@ -80,15 +92,6 @@ def setup():
     
     return render_template('setup.html', setup_result=setup_result, config=app.config)
 
-# Add authentication middleware for protected routes
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'status': 'error', 'message': 'Authentication required'}), 401
-        return f(*args, **kwargs)
-    return decorated_function
-
 # API endpoints for game functionality
 @app.route('/api/save_progress', methods=['POST'])
 @login_required
@@ -96,7 +99,7 @@ def save_progress():
     """Save game progress"""
     try:
         data = request.get_json()
-        session_id = data.get('session_id')
+        session_id = f"user_{current_user.id}_{data.get('session_id', 'default')}"
         level = data.get('level', 1)
         progress = data.get('progress', {})
         
@@ -110,7 +113,9 @@ def save_progress():
 def load_progress(session_id):
     """Load game progress"""
     try:
-        result = db_manager.load_progress(session_id)
+        # Prefix session_id with user ID for security
+        user_session_id = f"user_{current_user.id}_{session_id}"
+        result = db_manager.load_progress(user_session_id)
         
         if result['found']:
             return jsonify({
@@ -151,37 +156,38 @@ def login():
         data = request.get_json()
         identifier = data.get('email')  # This can be email or username from frontend
         password = data.get('password')
+        remember = data.get('remember', False)
 
-        result = db_manager.authenticate_user(identifier, password)
+        user = db_manager.verify_password(identifier, password)
         
-        if result['success']:
-            user = result['user']
-            session['user_id'] = user['id']
-            session['username'] = user['username']
+        if user:
+            login_user(user, remember=remember)
             return jsonify({
                 'status': 'success',
                 'user': {
-                    'username': user['username'],
-                    'email': user['email']
+                    'username': user.username,
+                    'email': user.email
                 }
             })
         else:
-            return jsonify({'status': 'error', 'message': result['error']}), 401
+            return jsonify({'status': 'error', 'message': 'Invalid credentials'}), 401
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/api/auth/logout')
+@login_required
 def logout():
-    session.clear()
+    logout_user()
     return jsonify({'status': 'success'})
 
 @app.route('/api/auth/user')
 def get_current_user():
-    if 'user_id' in session:
+    if current_user.is_authenticated:
         return jsonify({
             'status': 'success',
             'user': {
-                'username': session.get('username')
+                'username': current_user.username,
+                'email': current_user.email
             }
         })
     else:
