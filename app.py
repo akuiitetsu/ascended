@@ -1,11 +1,9 @@
 from flask import Flask, render_template_string, jsonify, request, session
-from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3
-import json
 import os
 from datetime import datetime
 from functools import wraps
 from config import config
+from database import DatabaseManager
 
 app = Flask(__name__)
 
@@ -13,64 +11,15 @@ app = Flask(__name__)
 config_name = os.environ.get('FLASK_CONFIG', 'default')
 app.config.from_object(config[config_name])
 
-def get_db_connection():
-    """Get database connection"""
-    try:
-        conn = sqlite3.connect(app.config['DATABASE'])
-        conn.row_factory = sqlite3.Row
-        return conn
-    except Exception as e:
-        raise Exception(f"Database connection failed: {str(e)}")
+# Initialize database manager
+db_manager = DatabaseManager(
+    database_path=app.config['DATABASE'],
+    database_dir=app.config.get('DATABASE_DIR', 'database')
+)
 
 def check_file_exists(filepath):
     """Check if a file exists"""
     return os.path.exists(filepath)
-
-def init_database():
-    """Initialize the database with required tables"""
-    try:
-        # Ensure database directory exists
-        os.makedirs(app.config.get('DATABASE_DIR', 'database'), exist_ok=True)
-        
-        conn = get_db_connection()
-        
-        # Create tables (adjust schema as needed for your game)
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS game_state (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT UNIQUE,
-                current_level INTEGER DEFAULT 1,
-                progress TEXT DEFAULT '{}',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS user_progress (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT,
-                level_completed INTEGER,
-                completion_time REAL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE,
-                email TEXT UNIQUE,
-                password_hash TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        conn.commit()
-        conn.close()
-        return True
-    except Exception as e:
-        return False, str(e)
 
 @app.route('/')
 def root():
@@ -179,22 +128,7 @@ def api_test():
 def verify():
     """System verification page replacing verify.php"""
     # Check database connection
-    db_info = {}
-    try:
-        conn = get_db_connection()
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        tables = [row[0] for row in cursor.fetchall()]
-        db_info = {
-            'connected': True,
-            'tables': tables,
-            'count': len(tables)
-        }
-        conn.close()
-    except Exception as e:
-        db_info = {
-            'connected': False,
-            'error': str(e)
-        }
+    db_info = db_manager.test_connection()
     
     # Check required files
     required_files = app.config.get('REQUIRED_FILES', [
@@ -272,7 +206,7 @@ def setup():
     """Database setup page"""
     setup_result = None
     if request.args.get('action') == 'init':
-        result = init_database()
+        result = db_manager.init_database()
         if result is True:
             setup_result = {'success': True, 'message': 'Database initialized successfully!'}
         else:
@@ -347,16 +281,9 @@ def save_progress():
         data = request.get_json()
         session_id = data.get('session_id')
         level = data.get('level', 1)
-        progress = json.dumps(data.get('progress', {}))
+        progress = data.get('progress', {})
         
-        conn = get_db_connection()
-        conn.execute('''
-            INSERT OR REPLACE INTO game_state (session_id, current_level, progress, updated_at)
-            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-        ''', (session_id, level, progress))
-        conn.commit()
-        conn.close()
-        
+        db_manager.save_progress(session_id, level, progress)
         return jsonify({'status': 'success', 'message': 'Progress saved'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
@@ -366,19 +293,13 @@ def save_progress():
 def load_progress(session_id):
     """Load game progress"""
     try:
-        conn = get_db_connection()
-        cursor = conn.execute(
-            'SELECT current_level, progress FROM game_state WHERE session_id = ?',
-            (session_id,)
-        )
-        row = cursor.fetchone()
-        conn.close()
+        result = db_manager.load_progress(session_id)
         
-        if row:
+        if result['found']:
             return jsonify({
                 'status': 'success',
-                'level': row[0],
-                'progress': json.loads(row[1])
+                'level': result['level'],
+                'progress': result['progress']
             })
         else:
             return jsonify({'status': 'not_found', 'message': 'No saved progress'})
@@ -397,21 +318,13 @@ def register():
         if not all([username, email, password]):
             return jsonify({'status': 'error', 'message': 'Missing required fields'}), 400
         
-        # Hash password
-        password_hash = generate_password_hash(password)
+        result = db_manager.register_user(username, email, password)
         
-        conn = get_db_connection()
-        try:
-            conn.execute(
-                'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
-                (username, email, password_hash)
-            )
-            conn.commit()
+        if result['success']:
             return jsonify({'status': 'success', 'message': 'Registration successful'})
-        except sqlite3.IntegrityError:
-            return jsonify({'status': 'error', 'message': 'Username or email already exists'}), 409
-        finally:
-            conn.close()
+        else:
+            status_code = 409 if 'already exists' in result['error'] else 500
+            return jsonify({'status': 'error', 'message': result['error']}), status_code
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
@@ -422,12 +335,10 @@ def login():
         identifier = data.get('email')  # This can be email or username from frontend
         password = data.get('password')
 
-        conn = get_db_connection()
-        # Try to find user by email or username
-        user = conn.execute('SELECT * FROM users WHERE email = ? OR username = ?', (identifier, identifier)).fetchone()
-        conn.close()
-
-        if user and check_password_hash(user['password_hash'], password):
+        result = db_manager.authenticate_user(identifier, password)
+        
+        if result['success']:
+            user = result['user']
             session['user_id'] = user['id']
             session['username'] = user['username']
             return jsonify({
@@ -437,7 +348,8 @@ def login():
                     'email': user['email']
                 }
             })
-        return jsonify({'status': 'error', 'message': 'Invalid credentials'}), 401
+        else:
+            return jsonify({'status': 'error', 'message': result['error']}), 401
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 

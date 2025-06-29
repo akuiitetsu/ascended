@@ -35,7 +35,7 @@ class ProductionConfig(Config):
     DEBUG = False
     HOST = '0.0.0.0'
     PORT = int(os.environ.get('PORT', 5000))
-    SECRET_KEY = os.environ.get('SECRET_KEY')
+    SECRET_KEY = os.urandom(24)
     if not SECRET_KEY:
         raise ValueError("No SECRET_KEY set for production environment")
 
