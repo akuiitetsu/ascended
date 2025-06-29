@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>System Verification - Ascended Prototype</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: #fff; }
+        .check { color: #00ff00; }
+        .error { color: #ff0000; }
+        .warning { color: #ffaa00; }
+        .section { margin: 20px 0; padding: 15px; background: #333; border-radius: 5px; }
+        .code { background: #222; padding: 10px; margin: 10px 0; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Ascended Prototype - System Verification</h1>
+    
+    <div class="section">
+        <h2>Python Environment</h2>
+        <p>Flask Application: Running</p>
+        <p>Database: SQLite</p>
+    </div>
+
+    <div class="section">
+        <h2>Database Connection</h2>
+        {% if db_info.connected %}
+            <p class="check">✓ Database connection successful</p>
+            <p>Tables found: {{ db_info.count }}</p>
+            {% for table in db_info.tables %}
+                <p>→ {{ table }}</p>
+            {% endfor %}
+        {% else %}
+            <p class="error">✗ Database connection failed: {{ db_info.error }}</p>
+            <p>Run database setup: <a href="/setup">setup</a></p>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <h2>File Structure</h2>
+        {% for file, exists in file_status.items() %}
+            {% if exists %}
+                <p class="check">✓ {{ file }}</p>
+            {% else %}
+                <p class="error">✗ {{ file }} (missing)</p>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <div class="section">
+        <h2>Quick Links</h2>
+        <p><a href="index.html" style="color: #00ff00;">🎮 Start Game</a></p>
+        <p><a href="/api/test" style="color: #00aaff;">🔗 Test API</a></p>
+        <p><a href="/setup" style="color: #ffaa00;">🗄️ Database Setup</a></p>
+    </div>
+</body>
+</html>
