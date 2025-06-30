@@ -22,10 +22,6 @@ class Room1 {
         this.shieldStrength = 100;
         this.connectionStart = null; // For arrow tool connections
 
-        // Drag and drop state
-        this.isDragging = false;
-        this.dragData = null;
-
         // Initialize managers
         this.shieldManager = new ShieldManager(this);
         this.flowchartManager = new FlowchartManager(this);
@@ -44,7 +40,7 @@ class Room1 {
         }
         await this.audioManager.loadSounds();
         this.render();
-        // Don't auto-setup the learning game - wait for start button
+        this.setupLearningGame();
     }
 
     createDefaultLevelData() {
@@ -68,19 +64,6 @@ class Room1 {
     setupLearningGame() {
         this.ui.setupDefenseGame();
         this.loadCurrentLevel();
-        
-        // Setup drag and drop for canvas
-        this.setupDragAndDrop();
-    }
-    
-    setupDragAndDrop() {
-        const canvas = document.getElementById('flowchart-canvas');
-        if (canvas) {
-            canvas.addEventListener('dragover', (e) => this.handleDragOver(e));
-            canvas.addEventListener('drop', (e) => this.handleDrop(e));
-            canvas.addEventListener('dragenter', (e) => e.preventDefault());
-            canvas.addEventListener('dragleave', (e) => e.preventDefault());
-        }
     }
 
     startLearning() {
@@ -88,9 +71,6 @@ class Room1 {
         
         this.isLearning = true;
         this.audioManager.playSound('defense_start');
-        
-        // Now setup the learning game when start button is pressed
-        this.setupLearningGame();
         
         this.updateDisplay();
         this.showMessage('Flowchart learning started! Follow the instructions to create proper flowcharts.', 'info');
@@ -112,10 +92,7 @@ class Room1 {
     }
 
     placeFlowchartNode(toolType, x, y) {
-        if (!this.isLearning) {
-            this.showMessage('Please click "Start Learning" to begin placing flowchart elements!', 'error');
-            return;
-        }
+        if (!this.isLearning) return;
         
         const nodeId = `node_${Date.now()}`;
         const node = {
@@ -144,10 +121,7 @@ class Room1 {
     }
 
     checkSolution() {
-        if (!this.isLearning || !this.currentLevelData) {
-            this.showMessage('Please click "Start Learning" first!', 'error');
-            return;
-        }
+        if (!this.isLearning || !this.currentLevelData) return;
         
         const validation = this.levelManager.validateSolution(this.placedNodes, this.currentLevelData);
         
@@ -166,10 +140,7 @@ class Room1 {
     }
 
     showHint() {
-        if (!this.isLearning || !this.currentLevelData) {
-            this.showMessage('Please click "Start Learning" to begin using hints!', 'error');
-            return;
-        }
+        if (!this.currentLevelData) return;
         
         this.hintsUsed++;
         const hint = this.levelManager.getHint(this.currentLevelData, this.hintsUsed);
@@ -289,100 +260,6 @@ class Room1 {
             // Connection deletion is handled in the flowchart manager
             console.log('Connection deletion triggered');
         }
-    }
-
-    // Drag and drop event handlers
-    handleDragStart(event, node) {
-        if (!this.isLearning) {
-            event.preventDefault();
-            this.showMessage('Please click "Start Learning" to begin moving nodes!', 'error');
-            return;
-        }
-        
-        this.isDragging = true;
-        this.dragData = {
-            id: node.id,
-            type: node.type,
-            offsetX: event.offsetX,
-            offsetY: event.offsetY
-        };
-        
-        // Visual feedback for dragging
-        event.dataTransfer.effectAllowed = 'move';
-        event.dataTransfer.setData('text/plain', node.id);
-        
-        console.log(`Drag started for node ${node.id}`);
-    }
-
-    handleDragOver(event) {
-        event.preventDefault();
-        event.dataTransfer.dropEffect = 'move';
-        
-        // Visual feedback for valid drop target
-        if (this.flowchartManager && this.flowchartManager.highlightDropTarget) {
-            this.flowchartManager.highlightDropTarget(event.offsetX, event.offsetY);
-        }
-    }
-
-    handleDrop(event) {
-        event.preventDefault();
-        
-        if (!this.isLearning) {
-            this.showMessage('Please click "Start Learning" to interact with flowchart elements!', 'error');
-            return;
-        }
-        
-        if (!this.isDragging || !this.dragData) return;
-        
-        const dropX = event.offsetX;
-        const dropY = event.offsetY;
-        
-        // Logic to snap to grid or closest position
-        const snappedPosition = this.snapToGrid(dropX, dropY);
-        
-        // Update node position
-        const nodeId = this.dragData.id;
-        const node = this.placedNodes.find(n => n.id === nodeId);
-        if (node) {
-            node.x = snappedPosition.x;
-            node.y = snappedPosition.y;
-            
-            if (this.flowchartManager && this.flowchartManager.updateNodeElement) {
-                this.flowchartManager.updateNodeElement(node);
-            }
-            this.audioManager.playSound('alien_spawn'); // Reuse as "move" sound
-            
-            console.log(`Node ${nodeId} dropped at ${snappedPosition.x}, ${snappedPosition.y}`);
-        }
-        
-        this.isDragging = false;
-        this.dragData = null;
-    }
-
-    snapToGrid(x, y) {
-        const gridSize = 20; // Grid size for snapping
-        return {
-            x: Math.round(x / gridSize) * gridSize,
-            y: Math.round(y / gridSize) * gridSize
-        };
-    }
-
-    // Handle when elements are dragged onto the canvas from toolbar
-    handleToolDrop(event, toolType) {
-        if (!this.isLearning) {
-            this.showMessage('Please click "Start Learning" to begin placing flowchart elements!', 'error');
-            return;
-        }
-        
-        const rect = event.target.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-        
-        // Snap to grid
-        const snappedPosition = this.snapToGrid(x, y);
-        
-        // Place the node
-        this.placeFlowchartNode(toolType, snappedPosition.x, snappedPosition.y);
     }
 }
 
