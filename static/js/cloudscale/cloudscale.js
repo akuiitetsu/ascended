@@ -296,7 +296,7 @@ class Room2 {
                             <div class="device-option bg-blue-600 p-3 rounded cursor-pointer hover:bg-blue-500" 
                                  data-device="pc" draggable="true">
                                 <div class="text-center">
-                                    <div class="text-2xl mb-1">💻</div>
+                                    <div class="text-2xl mb-1"><img src="static/img/pc.png" id="pc-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;"></div>
                                     <div class="text-sm font-bold">PC</div>
                                     <div class="text-xs">End Device</div>
                                 </div>
@@ -304,7 +304,7 @@ class Room2 {
                             <div class="device-option bg-green-600 p-3 rounded cursor-pointer hover:bg-green-500" 
                                  data-device="router" draggable="true">
                                 <div class="text-center">
-                                    <div class="text-2xl mb-1">🔀</div>
+                                    <div class="text-2xl mb-1"><img src="static/img/router.png" id="router-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;"></div>
                                     <div class="text-sm font-bold">Router</div>
                                     <div class="text-xs">Layer 3</div>
                                 </div>
@@ -312,7 +312,7 @@ class Room2 {
                             <div class="device-option bg-purple-600 p-3 rounded cursor-pointer hover:bg-purple-500" 
                                  data-device="switch" draggable="true">
                                 <div class="text-center">
-                                    <div class="text-2xl mb-1">🔗</div>
+                                    <div class="text-2xl mb-1"><img src="static/img/switch.png" id="switch-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;"></div>
                                     <div class="text-sm font-bold">Switch</div>
                                     <div class="text-xs">Layer 2</div>
                                 </div>
@@ -343,7 +343,7 @@ class Room2 {
 
                 <!-- Connection Status -->
                 <div class="connection-status mt-4 p-4 bg-gray-900 rounded">
-                    <h5 class="text-white font-bold mb-2">🔗 Network Status</h5>
+                    <h5 class="text-white font-bold mb-2">🌐 Network Status</h5>
                     <div id="network-status" class="text-sm text-gray-300">
                         <div>Devices Placed: <span id="device-count">0</span>/3</div>
                         <div>Connections: <span id="connection-count">0</span>/2</div>
@@ -368,7 +368,7 @@ class Room2 {
                         
                         <div class="device-configs space-y-4">
                             <div class="device-config bg-blue-900 p-3 rounded">
-                                <h6 class="text-blue-200 font-bold mb-2">💻 PC1 Configuration</h6>
+                                <h6 class="text-blue-200 font-bold mb-2"><img src="static/img/pc.png" id="pc-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;"> PC1 Configuration</h6>
                                 <div class="space-y-2">
                                     <input type="text" id="pc1-ip" placeholder="IP Address (e.g., 192.168.1.10)" 
                                            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-600">
@@ -382,7 +382,7 @@ class Room2 {
                             </div>
 
                             <div class="device-config bg-blue-900 p-3 rounded">
-                                <h6 class="text-blue-200 font-bold mb-2">💻 PC2 Configuration</h6>
+                                <h6 class="text-blue-200 font-bold mb-2"><img src="static/img/pc.png" id="pc-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;"> PC2 Configuration</h6>
                                 <div class="space-y-2">
                                     <input type="text" id="pc2-ip" placeholder="IP Address (e.g., 192.168.1.11)" 
                                            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-600">
@@ -396,7 +396,7 @@ class Room2 {
                             </div>
 
                             <div class="device-config bg-green-900 p-3 rounded">
-                                <h6 class="text-green-200 font-bold mb-2">🔀 Router Configuration</h6>
+                                <h6 class="text-green-200 font-bold mb-2"><img src="static/img/router.png" id="router-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;"> Router Configuration</h6>
                                 <div class="space-y-2">
                                     <input type="text" id="router-ip" placeholder="IP Address (e.g., 192.168.1.1)" 
                                            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-600">
@@ -434,11 +434,11 @@ class Room2 {
                             <div class="text-center text-gray-400 text-sm">
                                 <div class="mb-2">Required Subnet: 192.168.1.0/24</div>
                                 <div class="flex justify-center items-center space-x-4">
-                                    <div class="device-icon bg-blue-600 p-2 rounded">💻 PC1</div>
+                                    <div class="device-icon bg-blue-600 p-2 rounded"><img src="static/img/pc.png" id="pc-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;"> PC1</div>
                                     <div>━━━</div>
-                                    <div class="device-icon bg-green-600 p-2 rounded">🔀 Router</div>
+                                    <div class="device-icon bg-green-600 p-2 rounded"><img src="static/img/router.png" id="router-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;"> Router</div>
                                     <div>━━━</div>
-                                    <div class="device-icon bg-blue-600 p-2 rounded">💻 PC2</div>
+                                    <div class="device-icon bg-blue-600 p-2 rounded"><img src="static/img/pc.png" id="pc-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;"> PC2</div>
                                 </div>
                             </div>
                         </div>
@@ -463,7 +463,7 @@ class Room2 {
                             <div class="device-option bg-blue-600 p-3 rounded cursor-pointer hover:bg-blue-500" 
                                  data-device="pc" draggable="true">
                                 <div class="text-center">
-                                    <div class="text-2xl mb-1">💻</div>
+                                    <div class="text-2xl mb-1"><img src="static/img/pc.png" id="pc-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;"></div>
                                     <div class="text-sm font-bold">PC</div>
                                     <div class="text-xs">Police Terminal</div>
                                 </div>
@@ -471,7 +471,7 @@ class Room2 {
                             <div class="device-option bg-purple-600 p-3 rounded cursor-pointer hover:bg-purple-500" 
                                  data-device="switch" draggable="true">
                                 <div class="text-center">
-                                    <div class="text-2xl mb-1">🔗</div>
+                                    <div class="text-2xl mb-1"><img src="static/img/switch.png" id="switch-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;"></div>
                                     <div class="text-sm font-bold">Switch</div>
                                     <div class="text-xs">Layer 2 Device</div>
                                 </div>
@@ -479,7 +479,7 @@ class Room2 {
                             <div class="device-option bg-green-600 p-3 rounded cursor-pointer hover:bg-green-500" 
                                  data-device="router" draggable="true">
                                 <div class="text-center">
-                                    <div class="text-2xl mb-1">🔀</div>
+                                    <div class="text-2xl mb-1"><img src="static/img/router.png" id="router-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;"></div>
                                     <div class="text-sm font-bold">Router</div>
                                     <div class="text-xs">Gateway</div>
                                 </div>
@@ -487,7 +487,7 @@ class Room2 {
                             <div class="device-option bg-orange-600 p-3 rounded cursor-pointer hover:bg-orange-500" 
                                  data-device="cctv" draggable="true">
                                 <div class="text-center">
-                                    <div class="text-2xl mb-1">📹</div>
+                                    <div class="text-2xl mb-1"><img src="static/img/cctv.png" id="cctv-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;"></div>
                                     <div class="text-sm font-bold">CCTV</div>
                                     <div class="text-xs">Security Camera</div>
                                 </div>
@@ -561,7 +561,7 @@ class Room2 {
                                         <div class="bg-blue-600 p-2 rounded text-xs">💻 Police HQ</div>
                                         <div class="bg-blue-600 p-2 rounded text-xs">🏥 Hospital</div>
                                     </div>
-                                    <div class="bg-green-600 p-2 rounded mt-2 text-xs">🔀 Router R1</div>
+                                    <div class="bg-green-600 p-2 rounded mt-2 text-xs"><img src="static/img/router.png" id="router-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;"> Router R1</div>
                                 </div>
                                 
                                 <!-- Connection -->
@@ -581,7 +581,7 @@ class Room2 {
                                         <div class="bg-purple-600 p-2 rounded text-xs">🚒 Fire Station</div>
                                         <div class="bg-purple-600 p-2 rounded text-xs">🏫 School</div>
                                     </div>
-                                    <div class="bg-green-600 p-2 rounded mt-2 text-xs">🔀 Router R2</div>
+                                    <div class="bg-green-600 p-2 rounded mt-2 text-xs"><img src="static/img/router.png" id="router-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;"> Router R2</div>
                                 </div>
                             </div>
                         </div>
@@ -863,9 +863,9 @@ class Room2 {
         element.setAttribute('data-device-id', device.id);
 
         const deviceIcons = {
-            'pc': { icon: '💻', color: '#3b82f6' },
-            'router': { icon: '🔀', color: '#10b981' },
-            'switch': { icon: '🔗', color: '#8b5cf6' }
+            'pc': { icon: '<img src="static/img/pc.png" id="pc-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;">', color: '#3b82f6' },
+            'router': { icon: '<img src="static/img/router.png" id="router-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;">', color: '#10b981' },
+            'switch': { icon: '<img src="static/img/switch.png" id="switch-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;">', color: '#8b5cf6' }
         };
 
         const deviceInfo = deviceIcons[device.type] || deviceIcons['pc'];
@@ -1361,10 +1361,10 @@ class Room2 {
         element.setAttribute('data-device-id', device.id);
 
         const deviceIcons = {
-            'pc': { icon: '💻', color: '#3b82f6', name: 'PC' },
-            'router': { icon: '🔀', color: '#10b981', name: 'Router' },
-            'switch': { icon: '🔗', color: '#8b5cf6', name: 'Switch' },
-            'cctv': { icon: '📹', color: '#f59e0b', name: 'CCTV' }
+            'pc': { icon: '<img src="static/img/pc.png" id="pc-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;">', color: '#3b82f6', name: 'PC' },
+            'router': { icon: '<img src="static/img/router.png" id="router-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;">', color: '#10b981', name: 'Router' },
+            'switch': { icon: '<img src="static/img/switch.png" id="switch-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;">', color: '#8b5cf6', name: 'Switch' },
+            'cctv': { icon: '<img src="static/img/cctv.png" id="cctv-icon" style="width: 40px; height: 40px; margin-right: auto; margin-left: auto;">', color: '#f59e0b', name: 'CCTV' }
         };
 
         const deviceInfo = deviceIcons[device.type] || deviceIcons['pc'];
