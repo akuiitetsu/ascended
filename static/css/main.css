@@ -73,73 +73,89 @@ body {
 
 /* Tutorial Modal Styles */
 #tutorial-modal {
-    backdrop-filter: blur(4px);
+    animation: tutorialFadeIn 0.3s ease-out;
 }
 
-#tutorial-modal .bg-gray-800 {
-    animation: modalSlideIn 0.3s ease-out;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-}
-
-@keyframes modalSlideIn {
+@keyframes tutorialFadeIn {
     from {
-        transform: scale(0.9) translateY(-20px);
         opacity: 0;
+        transform: scale(0.9);
     }
     to {
-        transform: scale(1) translateY(0);
         opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.tutorial-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.tutorial-section {
+    background: rgba(31, 41, 55, 0.8);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    border: 1px solid rgba(75, 85, 99, 0.5);
+}
+
+.tutorial-section h3 {
+    margin-bottom: 0.75rem;
+    font-weight: bold;
+}
+
+.tutorial-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.tutorial-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+.tutorial-list li:last-child {
+    border-bottom: none;
+}
+
+/* Tutorial button highlight */
+#show-tutorial-btn {
+    animation: tutorialPulse 2s infinite;
+}
+
+@keyframes tutorialPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(147, 51, 234, 0);
     }
 }
 
 /* Tutorial content styling */
-#tutorial-content code {
-    background-color: rgba(59, 130, 246, 0.2);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-family: 'Courier New', monospace;
-    font-size: 0.9em;
+.tutorial-objectives, .tutorial-controls, .tutorial-tips {
+    max-height: 300px;
+    overflow-y: auto;
 }
 
-#tutorial-content h3 {
-    margin-bottom: 0.5rem;
+.tutorial-objectives::-webkit-scrollbar,
+.tutorial-controls::-webkit-scrollbar,
+.tutorial-tips::-webkit-scrollbar {
+    width: 4px;
 }
 
-#tutorial-content h4 {
-    margin-bottom: 0.25rem;
+.tutorial-objectives::-webkit-scrollbar-track,
+.tutorial-controls::-webkit-scrollbar-track,
+.tutorial-tips::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 2px;
 }
 
-/* Help button pulse animation */
-#help-btn:hover {
-    animation: helpPulse 1s infinite;
-}
-
-@keyframes helpPulse {
-    0%, 100% {
-        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-    }
-    50% {
-        box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
-    }
-}
-
-/* Room-specific tutorial styling */
-.tutorial-flowchart {
-    border-left: 4px solid #3b82f6;
-}
-
-.tutorial-network {
-    border-left: 4px solid #10b981;
-}
-
-.tutorial-ai {
-    border-left: 4px solid #8b5cf6;
-}
-
-.tutorial-database {
-    border-left: 4px solid #ef4444;
-}
-
-.tutorial-programming {
-    border-left: 4px solid #f59e0b;
+.tutorial-objectives::-webkit-scrollbar-thumb,
+.tutorial-controls::-webkit-scrollbar-thumb,
+.tutorial-tips::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
 }

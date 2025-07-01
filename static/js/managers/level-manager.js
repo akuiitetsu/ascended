@@ -1,6 +1,9 @@
+import { TutorialManager } from './tutorial-manager.js';
+
 export class LevelManager {
     constructor(game) {
         this.game = game;
+        this.tutorialManager = new TutorialManager();
         this.loadedScripts = new Set();
         this.currentRoomInstance = null;
         this.rooms = [
@@ -74,6 +77,9 @@ export class LevelManager {
         const roomName = this.rooms[roomNumber - 1];
         
         try {
+            // Show tutorial first
+            this.tutorialManager.showTutorial(roomNumber);
+            
             // Show loading state
             document.getElementById('room-content').innerHTML = `
                 <div class="loading text-center">
