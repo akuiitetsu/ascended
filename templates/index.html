@@ -98,6 +98,10 @@
                 <div class="room-indicator bg-gray-800 border border-gray-600 px-4 py-2 rounded">
                     Room: <span id="current-room">1</span>/5
                 </div>
+                <!-- Add Help Button -->
+                <button id="help-btn" class="bg-green-700 hover:bg-green-600 px-3 py-2 rounded transition-colors" title="Show Room Tutorial">
+                    <i class="bi bi-question-circle"></i> Help
+                </button>
                 <button id="character-menu-btn" class="bg-purple-700 hover:bg-purple-600 px-3 py-2 rounded transition-colors" title="Character Customization">
                     <i class="bi bi-person-gear"></i>
                 </button>
@@ -200,6 +204,16 @@
                     window.game.showCosmeticMenu();
                 }
             });
+            
+            // Help button functionality
+            const helpBtn = document.getElementById('help-btn');
+            if (helpBtn) {
+                helpBtn.addEventListener('click', () => {
+                    if (window.game && window.game.showHelp) {
+                        window.game.showHelp();
+                    }
+                });
+            }
             
             // Wave navigation for testing
             document.querySelectorAll('.wave-nav-btn').forEach(btn => {

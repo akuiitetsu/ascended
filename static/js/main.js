@@ -4,12 +4,13 @@ import { CosmeticManager } from './managers/cosmetic-manager.js';
 import { ModalManager } from './managers/modal-manager.js';
 import { GameManager } from './managers/game-manager.js';
 
-class EscapeTheLabGame {
+export class EscapeTheLabGame {
     constructor() {
         this.currentRoom = 1;
-        this.totalRooms = 5; // Updated to reflect actual number of rooms (was 6)
-        this.gameActive = false;
-        this.gameStarted = false;
+        this.roomInstances = new Map();
+        this.gameHistory = [];
+        this.isGameActive = false;
+        this.completedRooms = new Set();
         
         // Initialize managers
         this.levelManager = new LevelManager(this);
@@ -17,22 +18,12 @@ class EscapeTheLabGame {
         this.modalManager = new ModalManager(this);
         this.gameManager = new GameManager(this);
         
-        // Player character system
-        this.player = {
-            name: "Agent",
-            level: 1,
-            roomsCompleted: 0,
-            cosmetics: {
-                suit: 'basic',
-                helmet: 'none',
-                gloves: 'basic',
-                badge: 'none',
-                weapon: 'none'
-            },
-            unlockedCosmetics: ['basic-suit', 'basic-gloves']
-        };
-        
-        this.init();
+        // Initialize tutorial modal
+        import('./tutorial-modal.js').then(module => {
+            this.tutorialModal = new module.TutorialModal();
+        }).catch(error => {
+            console.warn('Could not load tutorial modal:', error);
+        });
     }
 
     init() {
@@ -45,11 +36,11 @@ class EscapeTheLabGame {
     }
 
     setupEventListeners() {
-        document.getElementById('next-room-btn').addEventListener('click', () => {
+        document.getElementById('next-room-btn')?.addEventListener('click', () => {
             this.gameManager.nextRoom();
         });
         
-        document.getElementById('restart-btn').addEventListener('click', () => {
+        document.getElementById('restart-btn')?.addEventListener('click', () => {
             this.gameManager.restartGame();
         });
         
@@ -84,6 +75,111 @@ class EscapeTheLabGame {
         console.log('Wave navigation buttons configured');
     }
 
+    async loadRoom(roomNumber, showTutorial = true) {
+        console.log(`Loading Room ${roomNumber}...`);
+        
+        // Show tutorial if requested and not seen before
+        if (showTutorial && this.tutorialModal) {
+            this.tutorialModal.showTutorial(roomNumber);
+        }
+        
+        // Update current room tracking
+        this.currentRoom = roomNumber;
+        const currentRoomElement = document.getElementById('current-room');
+        if (currentRoomElement) {
+            currentRoomElement.textContent = roomNumber;
+        }
+        
+        // Cleanup previous room
+        if (this.currentRoomInstance && this.currentRoomInstance.cleanup) {
+            this.currentRoomInstance.cleanup();
+        }
+        
+        // Create or get room instance
+        let roomInstance = this.roomInstances.get(roomNumber);
+        if (!roomInstance) {
+            roomInstance = await this.createRoomInstance(roomNumber);
+            if (roomInstance) {
+                this.roomInstances.set(roomNumber, roomInstance);
+            }
+        }
+        
+        if (roomInstance) {
+            this.currentRoomInstance = roomInstance;
+            
+            // Initialize or re-render the room
+            if (roomInstance.init) {
+                await roomInstance.init();
+            } else if (roomInstance.render) {
+                roomInstance.render();
+            }
+            
+            this.updateRoomIndicators(roomNumber);
+            console.log(`Room ${roomNumber} loaded successfully`);
+        } else {
+            console.error(`Failed to load Room ${roomNumber}`);
+            this.showMessage(`Failed to load Room ${roomNumber}`, 'error');
+        }
+    }
+
+    async createRoomInstance(roomNumber) {
+        try {
+            let roomModule;
+            let RoomClass;
+            
+            switch(roomNumber) {
+                case 1:
+                    roomModule = await import('./networking/networking.js');
+                    RoomClass = roomModule.Room1;
+                    break;
+                case 2:
+                    roomModule = await import('./cloudscale/cloudscale.js');
+                    RoomClass = roomModule.Room2;
+                    break;
+                case 3:
+                    roomModule = await import('./ai-systems/ai-systems.js');
+                    RoomClass = roomModule.Room3;
+                    break;
+                case 4:
+                    roomModule = await import('./database-crisis/database-crisis.js');
+                    RoomClass = roomModule.Room4;
+                    break;
+                case 5:
+                    roomModule = await import('./programming-crisis/programming-crisis.js');
+                    RoomClass = roomModule.Room5;
+                    break;
+                default:
+                    console.error(`Invalid room number: ${roomNumber}`);
+                    return null;
+            }
+            
+            if (RoomClass) {
+                const instance = new RoomClass(this);
+                console.log(`Created Room ${roomNumber} instance:`, instance);
+                return instance;
+            } else {
+                console.error(`Room class not found for Room ${roomNumber}`);
+                return null;
+            }
+        } catch (error) {
+            console.error(`Failed to load Room ${roomNumber}:`, error);
+            return null;
+        }
+    }
+
+    updateRoomIndicators(roomNumber) {
+        // Update room indicators if they exist
+        const currentRoomElement = document.getElementById('current-room');
+        if (currentRoomElement) {
+            currentRoomElement.textContent = roomNumber;
+        }
+    }
+
+    showMessage(message, type) {
+        // Simple message display
+        console.log(`${type.toUpperCase()}: ${message}`);
+    }
+
     // Delegate game methods to GameManager
     roomCompleted(message) {
         this.gameManager.roomCompleted(message);
@@ -108,6 +204,15 @@ class EscapeTheLabGame {
     showNavigationWarning() {
         this.modalManager.showNavigationWarning();
     }
+
+    showHelp() {
+        // Show tutorial for current room when help is requested
+        if (this.tutorialModal) {
+            this.tutorialModal.forceShowTutorial(this.currentRoom);
+        } else {
+            this.showMessage('Tutorial system not available', 'info');
+        }
+    }
 }
 
 // Make game instance globally available for victory screen and navigation
@@ -120,18 +225,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Make game globally available immediately
     window.game = game;
+    
+    // Initialize the game
+    game.init();
 });
 
 // Global function for manual testing
 window.jumpToRoom = function(roomNumber) {
     console.log(`Manual jump to room ${roomNumber}`);
-    if (window.game && window.game.levelManager.loadRoom) {
-        window.game.levelManager.stopCurrentRoom();
-        window.game.levelManager.loadRoom(roomNumber);
+    if (window.game && window.game.loadRoom) {
+        if (window.game.currentRoomInstance && window.game.currentRoomInstance.cleanup) {
+            window.game.currentRoomInstance.cleanup();
+        }
+        window.game.loadRoom(roomNumber);
     } else {
         console.error('Game not available for manual jump');
     }
 };
-
-// Export the game class for potential use in other modules
-export { EscapeTheLabGame };

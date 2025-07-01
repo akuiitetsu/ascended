@@ -70,3 +70,76 @@ body {
     0%, 100% { background-color: transparent; }
     50% { background-color: rgba(239, 68, 68, 0.2); }
 }
+
+/* Tutorial Modal Styles */
+#tutorial-modal {
+    backdrop-filter: blur(4px);
+}
+
+#tutorial-modal .bg-gray-800 {
+    animation: modalSlideIn 0.3s ease-out;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: scale(0.9) translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Tutorial content styling */
+#tutorial-content code {
+    background-color: rgba(59, 130, 246, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+#tutorial-content h3 {
+    margin-bottom: 0.5rem;
+}
+
+#tutorial-content h4 {
+    margin-bottom: 0.25rem;
+}
+
+/* Help button pulse animation */
+#help-btn:hover {
+    animation: helpPulse 1s infinite;
+}
+
+@keyframes helpPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+    }
+}
+
+/* Room-specific tutorial styling */
+.tutorial-flowchart {
+    border-left: 4px solid #3b82f6;
+}
+
+.tutorial-network {
+    border-left: 4px solid #10b981;
+}
+
+.tutorial-ai {
+    border-left: 4px solid #8b5cf6;
+}
+
+.tutorial-database {
+    border-left: 4px solid #ef4444;
+}
+
+.tutorial-programming {
+    border-left: 4px solid #f59e0b;
+}
