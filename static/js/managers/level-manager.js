@@ -4,15 +4,8 @@ export class LevelManager {
     constructor(game) {
         this.game = game;
         this.tutorialManager = new TutorialManager();
-        this.loadedScripts = new Set();
+        this.rooms = ['Flowchart Lab', 'Network Nexus', 'AI Systems', 'Database Crisis', 'Programming Crisis'];
         this.currentRoomInstance = null;
-        this.rooms = [
-            'networking',           // Room1
-            'cloudscale',          // Room2 - Now Network Nexus
-            'ai-systems',          // Room3
-            'database-emergency',   // Room4
-            'programming-crisis'    // Room5 (was Room6)
-        ];
     }
 
     stopCurrentRoom() {
@@ -72,14 +65,13 @@ export class LevelManager {
         this.stopCurrentRoom();
         
         this.game.currentRoom = roomNumber;
+        this.game.gameActive = true; // Set game as active when loading a room
+        this.game.inRoom = true; // Set inRoom flag
         document.getElementById('current-room').textContent = roomNumber;
         
         const roomName = this.rooms[roomNumber - 1];
         
         try {
-            // Show tutorial first
-            this.tutorialManager.showTutorial(roomNumber);
-            
             // Show loading state
             document.getElementById('room-content').innerHTML = `
                 <div class="loading text-center">
@@ -88,81 +80,46 @@ export class LevelManager {
                 </div>
             `;
 
-            // Handle modular rooms with ES6 imports
-            if (roomNumber === 1 || roomNumber === 2 || roomNumber === 4 || roomNumber === 5) {
-                console.log(`Loading modular room: ${roomName}`);
-                
-                // Dynamic import for modular rooms
-                const moduleMap = {
-                    1: '../networking/networking.js',
-                    2: '../cloudscale/cloudscale.js',  // Network Nexus implementation
-                    4: '../database-emergency/database-emergency.js',
-                    5: '../programming-crisis/programming-crisis.js'
-                };
-                
-                const modulePath = moduleMap[roomNumber];
-                
-                try {
-                    console.log(`Importing module from: ${modulePath}`);
-                    const module = await import(modulePath);
-                    
-                    // The main class should be exported as default or named export
-                    const RoomClass = module[`Room${roomNumber}`] || module.default;
-                    
-                    if (RoomClass) {
-                        console.log(`Successfully imported Room${roomNumber}`);
-                        this.currentRoomInstance = new RoomClass(this.game);
-                        await this.currentRoomInstance.init();
-                    } else {
-                        throw new Error(`Room${roomNumber} class not found in module`);
-                    }
-                } catch (importError) {
-                    console.error(`Failed to import modular room ${roomNumber}:`, importError);
-                    throw importError;
-                }
+            // Show tutorial automatically when entering a room
+            if (this.tutorialManager && typeof this.tutorialManager.showTutorial === 'function') {
+                this.tutorialManager.showTutorial(roomNumber);
             } else {
-                // Handle non-modular rooms with traditional script loading
-                console.log(`Loading traditional room: ${roomName}`);
-                
-                const scriptMap = {
-                    3: 'static/js/ai-systems/ai-systems.js'
-                };
-                
-                const scriptPath = scriptMap[roomNumber];
-                
-                if (!this.loadedScripts.has(scriptPath)) {
-                    console.log(`Loading script: ${scriptPath}`);
-                    await this.loadScript(scriptPath);
-                    this.loadedScripts.add(scriptPath);
-                    console.log(`Script loaded: ${scriptPath}`);
-                }
-                
-                // Small delay to ensure script is fully executed
-                await this.sleep(100);
-                
-                // Initialize room
-                const roomClassName = `Room${roomNumber}`;
-                console.log(`Looking for class: ${roomClassName}`, window[roomClassName]);
-                
-                if (window[roomClassName]) {
-                    console.log(`Initializing ${roomClassName}...`);
-                    this.currentRoomInstance = new window[roomClassName](this.game);
-                    await this.currentRoomInstance.init();
-                    console.log(`${roomClassName} initialized successfully`);
-                } else {
-                    throw new Error(`Room class ${roomClassName} not found after script load`);
-                }
+                console.warn('Tutorial manager not properly initialized');
             }
+
+            // Handle all rooms as modular with ES6 imports
+            console.log(`Loading modular room: ${roomName}`);
+            
+            // Dynamic import for all rooms
+            const moduleMap = {
+                1: '../networking/networking.js',
+                2: '../cloudscale/cloudscale.js',
+                3: '../ai-systems/ai-systems.js',
+                4: '../database-emergency/database-emergency.js',
+                5: '../programming-crisis/programming-crisis.js'
+            };
+
+            const module = await import(moduleMap[roomNumber]);
+            const RoomClass = module[`Room${roomNumber}`] || module.default;
+            
+            if (RoomClass) {
+                this.currentRoomInstance = new RoomClass(this.game);
+                await this.currentRoomInstance.init();
+                console.log(`Room ${roomNumber} loaded successfully`);
+            } else {
+                throw new Error(`Room class not found in module for room ${roomNumber}`);
+            }
+            
         } catch (error) {
-            console.error('Failed to load room:', error);
+            console.error(`Failed to load room ${roomNumber}:`, error);
+            this.game.inRoom = false; // Reset inRoom flag on error
             document.getElementById('room-content').innerHTML = `
                 <div class="error text-center text-red-400">
-                    <i class="bi bi-exclamation-triangle text-6xl mb-4"></i>
-                    <h3 class="text-xl font-bold mb-2">Room Loading Error</h3>
-                    <p class="mb-4">Failed to load Room ${roomNumber}</p>
-                    <p class="text-sm text-gray-400">Error: ${error.message}</p>
-                    <button onclick="location.reload()" class="mt-4 bg-red-600 hover:bg-red-700 px-4 py-2 rounded">
-                        Restart Game
+                    <i class="bi bi-exclamation-triangle text-4xl mb-4"></i>
+                    <h3 class="text-xl mb-2">Error Loading Room ${roomNumber}</h3>
+                    <p class="mb-4">${error.message}</p>
+                    <button onclick="game.loadRoom(1)" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded">
+                        Return to Room 1
                     </button>
                 </div>
             `;
@@ -191,5 +148,12 @@ export class LevelManager {
 
     getCurrentRoomInstance() {
         return this.currentRoomInstance;
+    }
+
+    showRoomTutorial(roomNumber = this.game.currentRoom) {
+        // Method to explicitly show tutorial for current or specified room
+        if (this.tutorialManager) {
+            this.tutorialManager.showTutorial(roomNumber);
+        }
     }
 }

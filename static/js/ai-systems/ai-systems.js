@@ -25,9 +25,121 @@ class Room3 {
     }
 
     async init() {
-        const response = await fetch('data/ai-systems.json');
-        this.data = await response.json();
+        try {
+            const response = await fetch('data/ai-systems.json');
+            this.data = await response.json();
+        } catch (error) {
+            console.warn('Could not load AI systems data, using fallback:', error);
+            this.data = this.createFallbackData();
+        }
         this.render();
+    }
+
+    createFallbackData() {
+        return {
+            scenarios_by_category: [
+                {
+                    category: "Ethics",
+                    scenarios: [
+                        {
+                            title: "Privacy Protection",
+                            description: "An AI system wants to analyze personal photos to improve recommendations.",
+                            proposed_action: "Access and analyze users' private photo collections without explicit consent",
+                            icon: "🔒",
+                            is_ethical: false,
+                            explanation: "Accessing private data without consent violates user privacy and trust."
+                        },
+                        {
+                            title: "Helping Accessibility",
+                            description: "An AI can help visually impaired users navigate websites.",
+                            proposed_action: "Provide audio descriptions and navigation assistance",
+                            icon: "♿",
+                            is_ethical: true,
+                            explanation: "Using AI to improve accessibility helps people and promotes inclusion."
+                        },
+                        {
+                            title: "Fair Hiring",
+                            description: "An AI recruitment system shows bias against certain groups.",
+                            proposed_action: "Continue using the biased system because it's faster",
+                            icon: "⚖️",
+                            is_ethical: false,
+                            explanation: "Biased AI systems perpetuate discrimination and must be fixed."
+                        },
+                        {
+                            title: "Medical Assistance",
+                            description: "AI can help doctors diagnose diseases more accurately.",
+                            proposed_action: "Assist doctors with diagnosis while keeping human oversight",
+                            icon: "🏥",
+                            is_ethical: true,
+                            explanation: "AI medical assistance with human oversight can save lives ethically."
+                        },
+                        {
+                            title: "Data Transparency",
+                            description: "Users want to know how AI makes decisions about them.",
+                            proposed_action: "Provide clear explanations of AI decision-making processes",
+                            icon: "📊",
+                            is_ethical: true,
+                            explanation: "Transparency in AI decision-making builds trust and accountability."
+                        }
+                    ]
+                },
+                // Add other categories with similar structure...
+                {
+                    category: "Supervised",
+                    scenarios: [
+                        {
+                            title: "Email Classification",
+                            description: "Training an AI to classify emails as spam or not spam.",
+                            proposed_action: "Use labeled examples of spam and legitimate emails",
+                            icon: "📧",
+                            is_correct: true,
+                            explanation: "Supervised learning uses labeled training data to learn classifications."
+                        },
+                        // ...more scenarios
+                    ]
+                },
+                // Additional categories...
+                {
+                    category: "Reinforcement",
+                    scenarios: [
+                        {
+                            title: "Game Playing",
+                            description: "AI learning to play chess through trial and error.",
+                            proposed_action: "Let AI play many games and learn from wins/losses",
+                            icon: "♟️",
+                            is_right: true,
+                            explanation: "Reinforcement learning uses rewards and penalties to improve performance."
+                        }
+                    ]
+                },
+                {
+                    category: "Unsupervised",
+                    scenarios: [
+                        {
+                            title: "Customer Grouping",
+                            description: "Finding hidden patterns in customer data without labels.",
+                            proposed_action: "Group customers by similar purchasing behaviors",
+                            icon: "👥",
+                            is_cluster: true,
+                            explanation: "Unsupervised learning finds hidden patterns and clusters in data."
+                        }
+                    ]
+                },
+                {
+                    category: "Deep",
+                    scenarios: [
+                        {
+                            title: "Image Recognition",
+                            description: "Recognizing objects in photos using multiple layers.",
+                            proposed_action: "Use a multi-layer neural network for image analysis",
+                            icon: "🖼️",
+                            is_neural_net: true,
+                            explanation: "Deep learning uses multi-layer neural networks for complex pattern recognition."
+                        }
+                    ]
+                }
+            ]
+        };
     }
 
     render() {
@@ -432,4 +544,8 @@ class Room3 {
         }
     }
 
+// Export the class for module use
+export { Room3 };
+
+// Also register globally for backward compatibility
 window.Room3 = Room3;

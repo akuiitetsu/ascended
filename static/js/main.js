@@ -3,21 +3,23 @@ import { LevelManager } from './managers/level-manager.js';
 import { CosmeticManager } from './managers/cosmetic-manager.js';
 import { ModalManager } from './managers/modal-manager.js';
 import { GameManager } from './managers/game-manager.js';
-import { TutorialManager } from './managers/tutorial-manager.js';
 
 class EscapeTheLabGame {
     constructor() {
         this.currentRoom = 1;
-        this.totalRooms = 5; // Updated to reflect actual number of rooms (was 6)
+        this.totalRooms = 5;
         this.gameActive = false;
         this.gameStarted = false;
+        this.inRoom = false; // Track if we're currently in a room
         
         // Initialize managers
         this.levelManager = new LevelManager(this);
         this.cosmeticManager = new CosmeticManager(this);
         this.modalManager = new ModalManager(this);
         this.gameManager = new GameManager(this);
-        this.tutorialManager = new TutorialManager();
+        
+        // Initialize tutorial manager from level manager
+        this.tutorialManager = this.levelManager.tutorialManager;
         
         // Player character system
         this.player = {
@@ -38,12 +40,102 @@ class EscapeTheLabGame {
     }
 
     init() {
-        this.cosmeticManager.loadPlayerData(); // Load player data before starting
-        this.setupEventListeners();
-        this.gameManager.startGame();
+        // Load saved cosmetics
+        this.cosmeticManager.loadPlayerData();
         
-        // Set up wave navigation after game initialization
-        this.setupWaveNavigation();
+        // Initialize game state
+        this.gameActive = false;
+        this.inRoom = false;
+        
+        console.log('AscendEd: Tech Lab Breakout initialized');
+    }
+
+    async loadRoom(roomNumber) {
+        try {
+            this.inRoom = true;
+            this.gameActive = true;
+            this.currentRoom = roomNumber;
+            
+            await this.levelManager.loadRoom(roomNumber);
+            console.log(`Successfully loaded room ${roomNumber}`);
+        } catch (error) {
+            console.error('Failed to load room:', error);
+            this.inRoom = false;
+            this.gameActive = false;
+            
+            // Show error message to user
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'fixed top-4 right-4 bg-red-800 text-red-200 p-3 rounded z-50';
+            errorMessage.textContent = `Failed to load room ${roomNumber}. Please try again.`;
+            document.body.appendChild(errorMessage);
+            setTimeout(() => errorMessage.remove(), 5000);
+        }
+    }
+
+    // Add method to show tutorial for current room
+    showRoomTutorial() {
+        if (this.inRoom && this.currentRoom && this.tutorialManager) {
+            try {
+                this.tutorialManager.showTutorial(this.currentRoom);
+            } catch (error) {
+                console.error('Failed to show tutorial:', error);
+                
+                // Show fallback message
+                const message = document.createElement('div');
+                message.className = 'fixed top-4 right-4 bg-yellow-800 text-yellow-200 p-3 rounded z-50';
+                message.textContent = 'Tutorial system temporarily unavailable. Please try again.';
+                document.body.appendChild(message);
+                setTimeout(() => message.remove(), 3000);
+            }
+        } else {
+            console.warn('Cannot show tutorial: not currently in a room or tutorial manager not available');
+        }
+    }
+
+    showCosmeticMenu() {
+        this.cosmeticManager.showCosmeticMenu();
+    }
+
+    roomCompleted(message) {
+        this.player.roomsCompleted++;
+        this.cosmeticManager.unlockCosmetics();
+        this.cosmeticManager.savePlayerData();
+        
+        if (this.player.roomsCompleted >= this.totalRooms) {
+            this.gameWon();
+        } else {
+            this.modalManager.showSuccessModal(message);
+        }
+    }
+
+    gameWon() {
+        this.inRoom = false;
+        this.gameActive = false;
+        const victoryContent = this.modalManager.showVictoryContent();
+        
+        document.getElementById('room-content').innerHTML = victoryContent;
+    }
+
+    gameOver(message) {
+        this.inRoom = false;
+        this.gameActive = false;
+        this.modalManager.showGameOverModal(message);
+    }
+
+    nextRoom() {
+        if (this.currentRoom < this.totalRooms) {
+            this.loadRoom(this.currentRoom + 1);
+        } else {
+            this.gameWon();
+        }
+    }
+
+    restart() {
+        this.player.roomsCompleted = 0;
+        this.currentRoom = 1;
+        this.inRoom = false;
+        this.gameActive = false;
+        this.loadRoom(1);
     }
 
     setupEventListeners() {
@@ -85,60 +177,29 @@ class EscapeTheLabGame {
         
         console.log('Wave navigation buttons configured');
     }
-
-    // Delegate game methods to GameManager
-    roomCompleted(message) {
-        this.gameManager.roomCompleted(message);
-    }
-
-    pauseGame(reason) {
-        this.gameManager.pauseGame(reason);
-    }
-
-    resumeGame() {
-        this.gameManager.resumeGame();
-    }
-
-    gameWon() {
-        this.gameManager.gameWon();
-    }
-
-    gameOver(message) {
-        this.gameManager.gameOver(message);
-    }
-
-    showNavigationWarning() {
-        this.modalManager.showNavigationWarning();
-    }
-
-    // Add method to show tutorial for current room
-    showRoomTutorial() {
-        this.tutorialManager.showTutorial(this.currentRoom);
-    }
 }
 
-// Make game instance globally available for victory screen and navigation
-let game;
+// Initialize the game
+const game = new EscapeTheLabGame();
+window.game = game;
 
-// Initialize game when page loads
+// Set up event listeners for modals
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, initializing game...');
-    game = new EscapeTheLabGame();
+    const nextRoomBtn = document.getElementById('next-room-btn');
+    const restartBtn = document.getElementById('restart-btn');
     
-    // Make game globally available immediately
-    window.game = game;
+    if (nextRoomBtn) {
+        nextRoomBtn.addEventListener('click', () => {
+            game.modalManager.hideSuccessModal();
+            game.nextRoom();
+        });
+    }
+    
+    if (restartBtn) {
+        restartBtn.addEventListener('click', () => {
+            game.restart();
+        });
+    }
 });
 
-// Global function for manual testing
-window.jumpToRoom = function(roomNumber) {
-    console.log(`Manual jump to room ${roomNumber}`);
-    if (window.game && window.game.levelManager.loadRoom) {
-        window.game.levelManager.stopCurrentRoom();
-        window.game.levelManager.loadRoom(roomNumber);
-    } else {
-        console.error('Game not available for manual jump');
-    }
-};
-
-// Export the game class for potential use in other modules
 export { EscapeTheLabGame };

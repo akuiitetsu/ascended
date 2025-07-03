@@ -215,16 +215,35 @@
                 });
             });
             
-            // Tutorial button functionality
+            // Tutorial button functionality - works when in any room
             const tutorialBtn = document.getElementById('show-tutorial-btn');
+            
             tutorialBtn.addEventListener('click', () => {
-                if (window.game && window.game.showRoomTutorial) {
+                if (window.game && window.game.inRoom && window.game.showRoomTutorial) {
                     window.game.showRoomTutorial();
+                } else if (window.game && !window.game.inRoom) {
+                    // Show message that tutorial is only available in rooms
+                    const message = document.createElement('div');
+                    message.className = 'fixed top-4 right-4 bg-yellow-800 text-yellow-200 p-3 rounded z-50';
+                    message.textContent = 'Tutorial is only available when you\'re in a room! Click "Start Escape Sequence" or use the room navigation buttons.';
+                    document.body.appendChild(message);
+                    setTimeout(() => message.remove(), 4000);
+                } else {
+                    // Fallback error message
+                    const message = document.createElement('div');
+                    message.className = 'fixed top-4 right-4 bg-red-800 text-red-200 p-3 rounded z-50';
+                    message.textContent = 'Tutorial system not available. Please refresh the page.';
+                    document.body.appendChild(message);
+                    setTimeout(() => message.remove(), 3000);
                 }
             });
         });
     </script>
     <script type="module" src="static/js/main.js"></script>
+    <script type="module" src="static/js/auth.js"></script>
+</body>
+</html>
+</html>
 </body>
     <script type="module" src="static/js/auth.js"></script>
     <script type="module" src="static/js/main.js"></script>

@@ -151,148 +151,213 @@ export class TutorialManager {
                 scenario: "System debugging through code navigation"
             }
         };
+        
+        // Ensure all required methods are bound
+        this.showTutorial = this.showTutorial.bind(this);
+        this.closeTutorial = this.closeTutorial.bind(this);
+        this.handleEscKey = this.handleEscKey.bind(this);
+        
+        console.log('TutorialManager initialized with data for rooms:', Object.keys(this.tutorialData));
     }
 
     showTutorial(roomNumber) {
-        const tutorial = this.tutorialData[roomNumber];
-        if (!tutorial) return;
+        try {
+            const tutorial = this.tutorialData[roomNumber];
+            if (!tutorial) {
+                console.warn(`No tutorial data found for room ${roomNumber}`);
+                this.showFallbackTutorial(roomNumber);
+                return;
+            }
 
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4';
-        modal.id = 'tutorial-modal';
-        
-        modal.innerHTML = `
-            <div class="bg-gray-800 border-2 border-${tutorial.color}-500 rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
-                <div class="p-6">
-                    <!-- Header -->
-                    <div class="flex justify-between items-start mb-6">
-                        <div class="flex items-center">
-                            <i class="bi ${tutorial.icon} text-6xl text-${tutorial.color}-400 mr-4"></i>
-                            <div>
-                                <h2 class="text-3xl font-bold text-${tutorial.color}-400">${tutorial.title}</h2>
-                                <p class="text-xl text-gray-300 mt-1">${tutorial.subtitle}</p>
+            // Close any existing tutorial modal
+            const existingModal = document.getElementById('tutorial-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4';
+            modal.id = 'tutorial-modal';
+            
+            modal.innerHTML = `
+                <div class="bg-gray-800 border-2 border-${tutorial.color}-500 rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+                    <div class="p-6">
+                        <!-- Header -->
+                        <div class="flex justify-between items-start mb-6">
+                            <div class="flex items-center">
+                                <i class="bi ${tutorial.icon} text-6xl text-${tutorial.color}-400 mr-4"></i>
+                                <div>
+                                    <h2 class="text-3xl font-bold text-${tutorial.color}-400">${tutorial.title}</h2>
+                                    <p class="text-xl text-gray-300 mt-1">${tutorial.subtitle}</p>
+                                    <p class="text-sm text-gray-400 mt-2">Room ${roomNumber} - Welcome Guide</p>
+                                </div>
+                            </div>
+                            <button id="close-tutorial" class="text-gray-400 hover:text-white text-2xl">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </div>
+
+                        <!-- Character & Scenario -->
+                        <div class="bg-gray-700 rounded-lg p-4 mb-6">
+                            <div class="flex items-center gap-4 mb-3">
+                                <div class="text-3xl">${tutorial.character.split(' ')[0]}</div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-${tutorial.color}-300">Character: ${tutorial.character}</h3>
+                                    <p class="text-gray-300">Scenario: ${tutorial.scenario}</p>
+                                </div>
+                            </div>
+                            <p class="text-gray-300 leading-relaxed">${tutorial.description}</p>
+                        </div>
+
+                        <!-- Main Content Grid -->
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <!-- Learning Objectives -->
+                            <div class="bg-green-900 border border-green-600 rounded-lg p-4">
+                                <h3 class="text-lg font-bold text-green-400 mb-3 flex items-center">
+                                    <i class="bi bi-target mr-2"></i>Learning Objectives
+                                </h3>
+                                <ul class="space-y-2">
+                                    ${tutorial.objectives.map(obj => `
+                                        <li class="text-green-200 text-sm flex items-start">
+                                            <i class="bi bi-check-circle text-green-400 mr-2 mt-1 flex-shrink-0"></i>
+                                            <span>${obj}</span>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+
+                            <!-- Controls & Interaction -->
+                            <div class="bg-blue-900 border border-blue-600 rounded-lg p-4">
+                                <h3 class="text-lg font-bold text-blue-400 mb-3 flex items-center">
+                                    <i class="bi bi-controller mr-2"></i>How to Play
+                                </h3>
+                                <ul class="space-y-2">
+                                    ${tutorial.controls.map(control => `
+                                        <li class="text-blue-200 text-sm flex items-start">
+                                            <i class="bi bi-gear text-blue-400 mr-2 mt-1 flex-shrink-0"></i>
+                                            <span>${control}</span>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+
+                            <!-- Tips & Strategy -->
+                            <div class="bg-yellow-900 border border-yellow-600 rounded-lg p-4">
+                                <h3 class="text-lg font-bold text-yellow-400 mb-3 flex items-center">
+                                    <i class="bi bi-lightbulb mr-2"></i>Pro Tips
+                                </h3>
+                                <ul class="space-y-2">
+                                    ${tutorial.tips.map(tip => `
+                                        <li class="text-yellow-200 text-sm flex items-start">
+                                            <i class="bi bi-star text-yellow-400 mr-2 mt-1 flex-shrink-0"></i>
+                                            <span>${tip}</span>
+                                        </li>
+                                    `).join('')}
+                                </ul>
                             </div>
                         </div>
-                        <button id="close-tutorial" class="text-gray-400 hover:text-white text-2xl">
-                            <i class="bi bi-x-circle"></i>
-                        </button>
-                    </div>
 
-                    <!-- Character & Scenario -->
-                    <div class="bg-gray-700 rounded-lg p-4 mb-6">
-                        <div class="flex items-center gap-4 mb-3">
-                            <div class="text-3xl">${tutorial.character.split(' ')[0]}</div>
-                            <div>
-                                <h3 class="text-lg font-bold text-${tutorial.color}-300">Character: ${tutorial.character}</h3>
-                                <p class="text-gray-300">Scenario: ${tutorial.scenario}</p>
-                            </div>
-                        </div>
-                        <p class="text-gray-300 leading-relaxed">${tutorial.description}</p>
-                    </div>
-
-                    <!-- Main Content Grid -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <!-- Learning Objectives -->
-                        <div class="bg-green-900 border border-green-600 rounded-lg p-4">
-                            <h3 class="text-lg font-bold text-green-400 mb-3 flex items-center">
-                                <i class="bi bi-target mr-2"></i>Learning Objectives
-                            </h3>
-                            <ul class="space-y-2">
-                                ${tutorial.objectives.map(obj => `
-                                    <li class="text-green-200 text-sm flex items-start">
-                                        <i class="bi bi-check-circle text-green-400 mr-2 mt-1 flex-shrink-0"></i>
-                                        <span>${obj}</span>
-                                    </li>
-                                `).join('')}
-                            </ul>
+                        <!-- Action Buttons -->
+                        <div class="flex justify-center gap-4 mt-8">
+                            <button id="start-room" class="bg-${tutorial.color}-600 hover:bg-${tutorial.color}-500 px-8 py-3 rounded-lg font-bold text-lg transition-colors">
+                                <i class="bi bi-play-fill mr-2"></i>Start Challenge
+                            </button>
+                            <button id="skip-tutorial" class="bg-gray-600 hover:bg-gray-500 px-6 py-3 rounded-lg font-bold transition-colors">
+                                <i class="bi bi-skip-forward mr-2"></i>Close Tutorial
+                            </button>
                         </div>
 
-                        <!-- Controls & Interaction -->
-                        <div class="bg-blue-900 border border-blue-600 rounded-lg p-4">
-                            <h3 class="text-lg font-bold text-blue-400 mb-3 flex items-center">
-                                <i class="bi bi-controller mr-2"></i>How to Play
-                            </h3>
-                            <ul class="space-y-2">
-                                ${tutorial.controls.map(control => `
-                                    <li class="text-blue-200 text-sm flex items-start">
-                                        <i class="bi bi-gear text-blue-400 mr-2 mt-1 flex-shrink-0"></i>
-                                        <span>${control}</span>
-                                    </li>
-                                `).join('')}
-                            </ul>
-                        </div>
-
-                        <!-- Tips & Strategy -->
-                        <div class="bg-yellow-900 border border-yellow-600 rounded-lg p-4">
-                            <h3 class="text-lg font-bold text-yellow-400 mb-3 flex items-center">
-                                <i class="bi bi-lightbulb mr-2"></i>Pro Tips
-                            </h3>
-                            <ul class="space-y-2">
-                                ${tutorial.tips.map(tip => `
-                                    <li class="text-yellow-200 text-sm flex items-start">
-                                        <i class="bi bi-star text-yellow-400 mr-2 mt-1 flex-shrink-0"></i>
-                                        <span>${tip}</span>
-                                    </li>
-                                `).join('')}
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="flex justify-center gap-4 mt-8">
-                        <button id="start-room" class="bg-${tutorial.color}-600 hover:bg-${tutorial.color}-500 px-8 py-3 rounded-lg font-bold text-lg transition-colors">
-                            <i class="bi bi-play-fill mr-2"></i>Start Challenge
-                        </button>
-                        <button id="skip-tutorial" class="bg-gray-600 hover:bg-gray-500 px-6 py-3 rounded-lg font-bold transition-colors">
-                            <i class="bi bi-skip-forward mr-2"></i>Skip Tutorial
-                        </button>
-                    </div>
-
-                    <!-- Quick Reference -->
-                    <div class="bg-gray-700 rounded-lg p-4 mt-6">
-                        <h4 class="text-lg font-bold text-gray-300 mb-2 flex items-center">
-                            <i class="bi bi-info-circle mr-2"></i>Quick Reference
-                        </h4>
-                        <div class="text-sm text-gray-400 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <strong class="text-gray-300">Room Type:</strong> ${this.getRoomType(roomNumber)}<br>
-                                <strong class="text-gray-300">Difficulty:</strong> ${this.getDifficulty(roomNumber)}<br>
-                                <strong class="text-gray-300">Estimated Time:</strong> ${this.getEstimatedTime(roomNumber)}
-                            </div>
-                            <div>
-                                <strong class="text-gray-300">Skills:</strong> ${this.getSkills(roomNumber)}<br>
-                                <strong class="text-gray-300">Prerequisites:</strong> ${this.getPrerequisites(roomNumber)}
+                        <!-- Quick Reference -->
+                        <div class="bg-gray-700 rounded-lg p-4 mt-6">
+                            <h4 class="text-lg font-bold text-gray-300 mb-2 flex items-center">
+                                <i class="bi bi-info-circle mr-2"></i>Quick Reference
+                            </h4>
+                            <div class="text-sm text-gray-400 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <strong class="text-gray-300">Room Type:</strong> ${this.getRoomType(roomNumber)}<br>
+                                    <strong class="text-gray-300">Difficulty:</strong> ${this.getDifficulty(roomNumber)}<br>
+                                    <strong class="text-gray-300">Estimated Time:</strong> ${this.getEstimatedTime(roomNumber)}
+                                </div>
+                                <div>
+                                    <strong class="text-gray-300">Skills:</strong> ${this.getSkills(roomNumber)}<br>
+                                    <strong class="text-gray-300">Prerequisites:</strong> ${this.getPrerequisites(roomNumber)}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Set up event listeners with error handling
+            this.setupTutorialEventListeners();
+
+            console.log(`Tutorial shown for room ${roomNumber}: ${tutorial.title}`);
+        } catch (error) {
+            console.error('Error showing tutorial:', error);
+            this.showFallbackTutorial(roomNumber);
+        }
+    }
+
+    setupTutorialEventListeners() {
+        try {
+            // Event listeners
+            const closeBtn = document.getElementById('close-tutorial');
+            const startBtn = document.getElementById('start-room');
+            const skipBtn = document.getElementById('skip-tutorial');
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => this.closeTutorial());
+            }
+
+            if (startBtn) {
+                startBtn.addEventListener('click', () => this.closeTutorial());
+            }
+
+            if (skipBtn) {
+                skipBtn.addEventListener('click', () => this.closeTutorial());
+            }
+
+            // Close on ESC key
+            document.addEventListener('keydown', this.handleEscKey);
+
+            // Close on backdrop click
+            const modal = document.getElementById('tutorial-modal');
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        this.closeTutorial();
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error setting up tutorial event listeners:', error);
+        }
+    }
+
+    showFallbackTutorial(roomNumber) {
+        const fallbackModal = document.createElement('div');
+        fallbackModal.className = 'fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4';
+        fallbackModal.id = 'tutorial-modal';
+        
+        fallbackModal.innerHTML = `
+            <div class="bg-gray-800 border-2 border-blue-500 rounded-lg max-w-2xl w-full p-6">
+                <div class="text-center">
+                    <i class="bi bi-info-circle text-6xl text-blue-400 mb-4"></i>
+                    <h2 class="text-2xl font-bold text-blue-400 mb-4">Room ${roomNumber} Tutorial</h2>
+                    <p class="text-gray-300 mb-6">Welcome to Room ${roomNumber}! Tutorial data is loading...</p>
+                    <button id="close-fallback-tutorial" class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-lg font-bold">
+                        Continue to Room
+                    </button>
+                </div>
             </div>
         `;
-
-        document.body.appendChild(modal);
-
-        // Event listeners
-        document.getElementById('close-tutorial').addEventListener('click', () => {
-            this.closeTutorial();
-        });
-
-        document.getElementById('start-room').addEventListener('click', () => {
-            this.closeTutorial();
-            // Room will start automatically after tutorial closes
-        });
-
-        document.getElementById('skip-tutorial').addEventListener('click', () => {
-            this.closeTutorial();
-        });
-
-        // Close on ESC key
-        document.addEventListener('keydown', this.handleEscKey.bind(this));
-
-        // Close on backdrop click
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                this.closeTutorial();
-            }
+        
+        document.body.appendChild(fallbackModal);
+        
+        document.getElementById('close-fallback-tutorial')?.addEventListener('click', () => {
+            fallbackModal.remove();
         });
     }
 
@@ -301,7 +366,7 @@ export class TutorialManager {
         if (modal) {
             modal.remove();
         }
-        document.removeEventListener('keydown', this.handleEscKey.bind(this));
+        document.removeEventListener('keydown', this.handleEscKey);
     }
 
     handleEscKey(e) {
