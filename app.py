@@ -168,8 +168,8 @@ def setup():
 # API endpoints for game functionality
 @app.route('/api/save_progress', methods=['POST'])
 @login_required
-def save_progress():
-    """Save game progress"""
+def save_game_progress():
+    """Save basic game progress (legacy endpoint)"""
     try:
         data = request.get_json()
         session_id = f"user_{current_user.id}_{data.get('session_id', 'default')}"
@@ -183,8 +183,8 @@ def save_progress():
 
 @app.route('/api/load_progress/<session_id>')
 @login_required
-def load_progress(session_id):
-    """Load game progress"""
+def load_game_progress(session_id):
+    """Load basic game progress (legacy endpoint)"""
     try:
         # Prefix session_id with user ID for security
         user_session_id = f"user_{current_user.id}_{session_id}"
@@ -763,6 +763,311 @@ def import_levels():
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/session/start', methods=['POST'])
+@login_required
+def start_session():
+    """Start a new user session"""
+    try:
+        data = request.get_json() or {}
+        ip_address = request.environ.get('HTTP_X_FORWARDED_FOR', request.environ.get('REMOTE_ADDR'))
+        user_agent = request.headers.get('User-Agent', '')
+        
+        result = db_manager.start_user_session(current_user.id, ip_address, user_agent)
+        
+        if result['success']:
+            return jsonify({
+                'status': 'success',
+                'session_id': result['session_id']
+            })
+        else:
+            return jsonify({'status': 'error', 'message': result['error']}), 500
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/session/<int:session_id>/end', methods=['POST'])
+@login_required
+def end_session(session_id):
+    """End a user session"""
+    try:
+        result = db_manager.end_user_session(session_id)
+        
+        if result['success']:
+            return jsonify({'status': 'success', 'message': 'Session ended'})
+        else:
+            return jsonify({'status': 'error', 'message': result['error']}), 500
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/session/<int:session_id>/update', methods=['POST'])
+@login_required
+def update_session(session_id):
+    """Update user session with activity data"""
+    try:
+        data = request.get_json()
+        rooms_visited = data.get('rooms_visited', [])
+        actions_count = data.get('actions_count', 0)
+        
+        result = db_manager.update_user_session(session_id, rooms_visited, actions_count)
+        
+        if result['success']:
+            return jsonify({'status': 'success', 'message': 'Session updated'})
+        else:
+            return jsonify({'status': 'error', 'message': result['error']}), 500
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/progress/save', methods=['POST'])
+@login_required
+def save_user_progress():
+    """Save comprehensive user progress"""
+    try:
+        data = request.get_json()
+        room_number = data.get('room_number')
+        progress_data = data.get('progress_data', {})
+        
+        if not room_number:
+            return jsonify({'status': 'error', 'message': 'Room number required'}), 400
+        
+        # Add server-side metadata
+        progress_data.update({
+            'user_id': current_user.id,
+            'server_timestamp': datetime.now().isoformat(),
+            'browser_session': data.get('browser_session', ''),
+            'platform': data.get('platform', 'web'),
+            'user_agent': request.headers.get('User-Agent', ''),
+            'ip_address': request.environ.get('HTTP_X_FORWARDED_FOR', request.environ.get('REMOTE_ADDR'))
+        })
+        
+        result = db_manager.save_user_room_progress(current_user.id, room_number, progress_data)
+        
+        if result['success']:
+            # Check for achievements
+            check_and_award_achievements(current_user.id, room_number, progress_data)
+            
+            return jsonify({
+                'status': 'success', 
+                'message': 'Progress saved successfully',
+                'room_number': room_number,
+                'completion_percentage': progress_data.get('completion_percentage', 0),
+                'user_id': current_user.id,
+                'timestamp': progress_data['server_timestamp']
+            })
+        else:
+            return jsonify({'status': 'error', 'message': result['error']}), 500
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/progress/load')
+@app.route('/api/progress/load/<int:room_number>')
+@login_required
+def load_user_progress(room_number=None):
+    """Load user progress for specific room or all rooms"""
+    try:
+        result = db_manager.get_user_room_progress(current_user.id, room_number)
+        
+        if result['success']:
+            return jsonify({
+                'status': 'success',
+                'progress': result['progress'],
+                'user_id': current_user.id
+            })
+        else:
+            return jsonify({'status': 'error', 'message': result['error']}), 500
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/progress/sync', methods=['POST'])
+@login_required
+def sync_progress():
+    """Sync progress across multiple sessions/browsers"""
+    try:
+        data = request.get_json()
+        local_progress = data.get('local_progress', {})
+        user_id = data.get('user_id', '')
+        last_sync = data.get('last_sync', 0)
+        
+        # Verify user_id matches current user
+        if user_id != current_user.username:
+            return jsonify({'status': 'error', 'message': 'User mismatch in sync request'}), 403
+        
+        # Get server progress
+        server_result = db_manager.get_user_room_progress(current_user.id)
+        
+        if not server_result['success']:
+            return jsonify({'status': 'error', 'message': 'Failed to get server progress'}), 500
+        
+        server_progress = {str(p['room_number']): p for p in server_result['progress']}
+        
+        # Enhanced sync logic with timestamp comparison
+        synced_progress = {}
+        conflicts = []
+        changes_made = 0
+        
+        # Check each room
+        all_rooms = set(list(local_progress.keys()) + list(server_progress.keys()))
+        
+        for room_num in all_rooms:
+            local = local_progress.get(room_num, {})
+            server = server_progress.get(room_num, {})
+            
+            if not server:
+                # Local only - push to server
+                if local:
+                    save_result = db_manager.save_user_room_progress(
+                        current_user.id, int(room_num), local
+                    )
+                    synced_progress[room_num] = local
+                    changes_made += 1
+            elif not local:
+                # Server only - pull to local
+                synced_progress[room_num] = server
+            else:
+                # Both exist - resolve conflicts with enhanced logic
+                resolved = resolve_progress_conflict_enhanced(local, server)
+                
+                if resolved.get('conflict_detected'):
+                    conflicts.append({
+                        'room': room_num,
+                        'local': local,
+                        'server': server,
+                        'resolution': resolved['resolution'],
+                        'reason': resolved['reason']
+                    })
+                    changes_made += 1
+                
+                # Save resolved version to server
+                save_result = db_manager.save_user_room_progress(
+                    current_user.id, int(room_num), resolved
+                )
+                synced_progress[room_num] = resolved
+        
+        return jsonify({
+            'status': 'success',
+            'synced_progress': synced_progress,
+            'conflicts_resolved': len(conflicts),
+            'conflicts': conflicts,
+            'changes_made': changes_made,
+            'sync_timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+def resolve_progress_conflict_enhanced(local, server):
+    """Enhanced conflict resolution with detailed reasoning"""
+    resolved = {}
+    conflict_detected = False
+    resolution_reason = ""
+    
+    # Compare timestamps
+    local_time = local.get('timestamp', local.get('server_timestamp', '1970-01-01T00:00:00'))
+    server_time = server.get('updated_at', server.get('timestamp', '1970-01-01T00:00:00'))
+    
+    try:
+        from datetime import datetime
+        local_dt = datetime.fromisoformat(local_time.replace('Z', '+00:00'))
+        server_dt = datetime.fromisoformat(server_time.replace('Z', '+00:00'))
+    except:
+        local_dt = None
+        server_dt = None
+    
+    # Priority-based resolution
+    local_completion = local.get('completion_percentage', 0)
+    server_completion = server.get('completion_percentage', 0)
+    
+    if local_completion > server_completion:
+        # Local has higher completion
+        resolved = local.copy()
+        resolution_reason = "local_higher_completion"
+        conflict_detected = True
+    elif server_completion > local_completion:
+        # Server has higher completion
+        resolved = {
+            'completion_status': server.get('completion_status', 'in_progress'),
+            'completion_percentage': server_completion,
+            'time_spent': max(local.get('time_spent', 0), server.get('time_spent', 0)),
+            'score': max(local.get('score', 0), server.get('best_score', 0)),
+            'room_data': server.get('room_data', local.get('room_data', {})),
+            'best_score': max(local.get('score', 0), server.get('best_score', 0)),
+            'attempts': max(local.get('attempts', 1), server.get('attempts', 1))
+        }
+        resolution_reason = "server_higher_completion"
+        conflict_detected = True
+    elif local_dt and server_dt:
+        # Same completion, use timestamp
+        if local_dt > server_dt:
+            resolved = local.copy()
+            resolution_reason = "local_newer_timestamp"
+        else:
+            resolved = server.copy()
+            resolution_reason = "server_newer_timestamp"
+    else:
+        # Merge best values
+        resolved = {
+            'completion_status': server.get('completion_status', local.get('completion_status', 'in_progress')),
+            'completion_percentage': max(local_completion, server_completion),
+            'time_spent': max(local.get('time_spent', 0), server.get('time_spent', 0)),
+            'score': max(local.get('score', 0), server.get('best_score', 0)),
+            'room_data': {**local.get('room_data', {}), **server.get('room_data', {})},
+            'best_score': max(local.get('score', 0), server.get('best_score', 0)),
+            'attempts': max(local.get('attempts', 1), server.get('attempts', 1))
+        }
+        resolution_reason = "merged_best_values"
+    
+    resolved.update({
+        'conflict_detected': conflict_detected,
+        'resolution': resolution_reason,
+        'reason': resolution_reason,
+        'sync_timestamp': datetime.now().isoformat()
+    })
+    
+    return resolved
+
+def check_and_award_achievements(user_id, room_number, progress_data):
+    """Check and award achievements based on progress"""
+    achievements_to_award = []
+    
+    # Room completion achievement
+    if progress_data.get('completion_percentage', 0) >= 100:
+        achievements_to_award.append({
+            'type': 'room_completion',
+            'name': f'Room {room_number} Master',
+            'description': f'Successfully completed Room {room_number}',
+            'room_number': room_number
+        })
+    
+    # Score milestones
+    score = progress_data.get('score', 0)
+    if score >= 90:
+        achievements_to_award.append({
+            'type': 'score_milestone',
+            'name': 'Excellence Achievement',
+            'description': f'Scored {score}% in Room {room_number}',
+            'room_number': room_number,
+            'metadata': {'score': score}
+        })
+    
+    # Time efficiency
+    time_spent = progress_data.get('time_spent', 0)
+    if time_spent > 0 and time_spent < 300:  # Less than 5 minutes
+        achievements_to_award.append({
+            'type': 'speed_completion',
+            'name': 'Speed Learner',
+            'description': f'Completed Room {room_number} in under 5 minutes',
+            'room_number': room_number,
+            'metadata': {'time_spent': time_spent}
+        })
+    
+    # Award achievements
+    for achievement in achievements_to_award:
+        db_manager.save_user_achievement(
+            user_id,
+            achievement['type'],
+            achievement['name'],
+            achievement['description'],
+            achievement.get('room_number'),
+            achievement.get('metadata')
+        )
 
 # ...existing code...
 if __name__ == '__main__':

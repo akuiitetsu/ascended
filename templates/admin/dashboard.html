@@ -6,18 +6,35 @@
     <title>Admin Dashboard - AscendEd</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <style>
+        .admin-card {
+            transition: transform 0.2s;
+        }
+        .admin-card:hover {
+            transform: translateY(-2px);
+        }
+        .stat-number {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body class="bg-gray-900 text-white font-mono">
-    <header class="bg-gradient-to-r from-gray-900 via-red-900 to-purple-900 p-4 shadow-lg">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 p-4 shadow-lg">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-3xl font-bold text-red-100">
-                <i class="bi bi-shield-check"></i> Admin Dashboard
+            <h1 class="text-3xl font-bold text-blue-100">
+                <i class="bi bi-shield-check"></i> AscendEd Admin Dashboard
             </h1>
             <div class="flex items-center space-x-4">
-                <a href="/" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded transition-colors">
+                <span class="text-blue-300">Administrator</span>
+                <a href="/" class="bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded transition-colors">
                     <i class="bi bi-house"></i> Back to Game
                 </a>
-                <button id="logout-btn" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded transition-colors">
+                <button id="logout-btn" class="bg-red-600 hover:bg-red-500 px-3 py-2 rounded transition-colors">
                     <i class="bi bi-box-arrow-right"></i> Logout
                 </button>
             </div>
@@ -25,121 +42,165 @@
     </header>
 
     <main class="container mx-auto p-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <!-- System Stats -->
-            <div class="bg-gray-800 border border-gray-600 rounded-lg p-6">
-                <h3 class="text-xl font-bold mb-4 text-green-400">
-                    <i class="bi bi-graph-up"></i> System Stats
-                </h3>
-                <div class="space-y-2">
-                    <p>Total Users: <span id="total-users" class="text-green-300">Loading...</span></p>
-                    <p>Active Sessions: <span id="active-sessions" class="text-blue-300">Loading...</span></p>
-                    <p>Database Size: <span id="db-size" class="text-yellow-300">Loading...</span></p>
-                </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="bg-gray-800 border border-gray-600 rounded-lg p-6">
-                <h3 class="text-xl font-bold mb-4 text-blue-400">
-                    <i class="bi bi-lightning"></i> Quick Actions
-                </h3>
-                <div class="space-y-2">
-                    <button class="w-full bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded transition-colors" onclick="backupDatabase()">
-                        <i class="bi bi-download"></i> Backup Database
-                    </button>
-                    <button class="w-full bg-yellow-600 hover:bg-yellow-500 px-4 py-2 rounded transition-colors" onclick="clearSessions()">
-                        <i class="bi bi-trash"></i> Clear Old Sessions
-                    </button>
-                </div>
-            </div>
-
-            <!-- System Health -->
-            <div class="bg-gray-800 border border-gray-600 rounded-lg p-6">
-                <h3 class="text-xl font-bold mb-4 text-purple-400">
-                    <i class="bi bi-heart-pulse"></i> System Health
-                </h3>
-                <div class="space-y-2">
-                    <p>Database: <span id="db-status" class="text-green-300">Connected</span></p>
-                    <p>Memory Usage: <span id="memory-usage" class="text-yellow-300">Normal</span></p>
-                    <p>Uptime: <span id="uptime" class="text-blue-300">{{ uptime or 'Unknown' }}</span></p>
-                </div>
-            </div>
-        </div>
-
-        <!-- User Management -->
-        <div class="bg-gray-800 border border-gray-600 rounded-lg p-6 mb-6">
-            <h3 class="text-2xl font-bold mb-4 text-red-400">
-                <i class="bi bi-people"></i> User Management
-            </h3>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-gray-600">
-                            <th class="text-left p-3">ID</th>
-                            <th class="text-left p-3">Username</th>
-                            <th class="text-left p-3">Email</th>
-                            <th class="text-left p-3">Admin</th>
-                            <th class="text-left p-3">Created</th>
-                            <th class="text-left p-3">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="users-table">
-                        <tr>
-                            <td colspan="6" class="text-center p-4">Loading users...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Game Progress Overview -->
-        <div class="bg-gray-800 border border-gray-600 rounded-lg p-6">
-            <h3 class="text-2xl font-bold mb-4 text-green-400">
-                <i class="bi bi-trophy"></i> Game Progress Overview
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <h4 class="text-lg font-semibold mb-2">Level Completion Stats</h4>
-                    <div id="level-stats" class="space-y-2">
-                        <p>Loading statistics...</p>
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="admin-card bg-blue-900 border border-blue-600 rounded-lg p-6">
+                <div class="flex items-center">
+                    <i class="bi bi-people text-4xl text-blue-400 mr-4"></i>
+                    <div>
+                        <h3 class="text-lg font-bold text-blue-200">Total Users</h3>
+                        <p id="total-users" class="text-3xl font-bold text-blue-100 stat-number">-</p>
+                        <p class="text-sm text-blue-300">Registered players</p>
                     </div>
                 </div>
-                <div>
-                    <h4 class="text-lg font-semibold mb-2">Recent Activity</h4>
-                    <div id="recent-activity" class="space-y-2 max-h-40 overflow-y-auto">
-                        <p>Loading activity...</p>
+            </div>
+            
+            <div class="admin-card bg-green-900 border border-green-600 rounded-lg p-6">
+                <div class="flex items-center">
+                    <i class="bi bi-activity text-4xl text-green-400 mr-4"></i>
+                    <div>
+                        <h3 class="text-lg font-bold text-green-200">Active Sessions</h3>
+                        <p id="active-sessions" class="text-3xl font-bold text-green-100 stat-number">-</p>
+                        <p class="text-sm text-green-300">Last 24 hours</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="admin-card bg-purple-900 border border-purple-600 rounded-lg p-6">
+                <div class="flex items-center">
+                    <i class="bi bi-database text-4xl text-purple-400 mr-4"></i>
+                    <div>
+                        <h3 class="text-lg font-bold text-purple-200">Database Size</h3>
+                        <p id="db-size" class="text-3xl font-bold text-purple-100 stat-number">-</p>
+                        <p class="text-sm text-purple-300">Storage used</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Level Editor -->
-        <div class="bg-gray-800 border border-gray-600 rounded-lg p-6">
-            <h3 class="text-2xl font-bold mb-4 text-purple-400">
-                <i class="bi bi-tools"></i> Level Editor
-            </h3>
-            <p class="text-purple-100 mb-4">Create and edit game levels for all rooms</p>
-            <a href="/admin/level-editor" class="bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded transition-colors inline-block">
-                <i class="bi bi-pencil-square"></i> Open Editor
-            </a>
+        <!-- Management Sections -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- User Management -->
+            <div class="bg-gray-800 border border-gray-600 rounded-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-white flex items-center">
+                        <i class="bi bi-person-gear mr-2"></i>User Management
+                    </h2>
+                    <button id="refresh-users" class="bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded text-sm transition-colors">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-600">
+                                <th class="text-left py-2 text-gray-300">Username</th>
+                                <th class="text-left py-2 text-gray-300">Email</th>
+                                <th class="text-left py-2 text-gray-300">Role</th>
+                                <th class="text-left py-2 text-gray-300">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table">
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-gray-400">Loading users...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Game Statistics -->
+            <div class="bg-gray-800 border border-gray-600 rounded-lg p-6">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center">
+                    <i class="bi bi-graph-up mr-2"></i>Game Statistics
+                </h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-300 mb-2">Level Completion</h3>
+                        <div id="level-stats" class="space-y-2">
+                            <div class="text-gray-400">Loading level data...</div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-300 mb-2">Recent Activity</h3>
+                        <div id="recent-activity" class="space-y-2 max-h-48 overflow-y-auto">
+                            <div class="text-gray-400">Loading activity...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Management -->
+        <div class="mt-8 bg-gray-800 border border-gray-600 rounded-lg p-6">
+            <h2 class="text-xl font-bold text-white mb-4 flex items-center">
+                <i class="bi bi-database-gear mr-2"></i>Database Management
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button id="backup-db" class="bg-green-600 hover:bg-green-500 p-4 rounded-lg transition-colors">
+                    <i class="bi bi-download text-2xl block mb-2"></i>
+                    <span class="font-bold">Backup Database</span>
+                    <div class="text-sm opacity-75">Download .db file</div>
+                </button>
+                
+                <button id="clear-sessions" class="bg-orange-600 hover:bg-orange-500 p-4 rounded-lg transition-colors">
+                    <i class="bi bi-trash text-2xl block mb-2"></i>
+                    <span class="font-bold">Clear Old Sessions</span>
+                    <div class="text-sm opacity-75">Remove 7+ day old data</div>
+                </button>
+                
+                <a href="/admin/level-editor" class="bg-purple-600 hover:bg-purple-500 p-4 rounded-lg transition-colors text-center block">
+                    <i class="bi bi-pencil-square text-2xl block mb-2"></i>
+                    <span class="font-bold">Level Editor</span>
+                    <div class="text-sm opacity-75">Manage game levels</div>
+                </a>
+            </div>
         </div>
     </main>
 
+    <!-- User Action Modal -->
+    <div id="user-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 border border-gray-600 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 id="modal-title" class="text-xl font-bold text-white mb-4"></h3>
+            <p id="modal-message" class="text-gray-300 mb-6"></p>
+            <div class="flex justify-end space-x-4">
+                <button id="modal-cancel" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded transition-colors">
+                    Cancel
+                </button>
+                <button id="modal-confirm" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded transition-colors">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div id="message-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
     <script>
-        // Admin dashboard functionality
         class AdminDashboard {
             constructor() {
-                this.loadStats();
-                this.loadUsers();
-                this.loadGameStats();
-                this.bindEvents();
+                this.currentUser = null;
+                this.users = [];
+                this.stats = {};
+                this.init();
             }
 
-            bindEvents() {
-                document.getElementById('logout-btn').addEventListener('click', async () => {
-                    await fetch('/api/auth/logout');
-                    window.location.href = '/';
-                });
+            async init() {
+                await this.loadStats();
+                await this.loadUsers();
+                await this.loadGameStats();
+                this.setupEventListeners();
+                
+                // Auto-refresh every 30 seconds
+                setInterval(() => {
+                    this.loadStats();
+                    this.loadGameStats();
+                }, 30000);
             }
 
             async loadStats() {
@@ -148,9 +209,8 @@
                     const data = await response.json();
                     
                     if (data.status === 'success') {
-                        document.getElementById('total-users').textContent = data.stats.total_users;
-                        document.getElementById('active-sessions').textContent = data.stats.active_sessions;
-                        document.getElementById('db-size').textContent = data.stats.db_size;
+                        this.stats = data.stats;
+                        this.updateStatsDisplay();
                     }
                 } catch (error) {
                     console.error('Failed to load stats:', error);
@@ -163,39 +223,13 @@
                     const data = await response.json();
                     
                     if (data.status === 'success') {
-                        this.renderUsersTable(data.users);
+                        this.users = data.users;
+                        this.updateUsersTable();
                     }
                 } catch (error) {
                     console.error('Failed to load users:', error);
+                    this.showMessage('Failed to load users', 'error');
                 }
-            }
-
-            renderUsersTable(users) {
-                const tbody = document.getElementById('users-table');
-                tbody.innerHTML = '';
-                
-                users.forEach(user => {
-                    const row = document.createElement('tr');
-                    row.className = 'border-b border-gray-700 hover:bg-gray-750';
-                    row.innerHTML = `
-                        <td class="p-3">${user.id}</td>
-                        <td class="p-3">${user.username}</td>
-                        <td class="p-3">${user.email}</td>
-                        <td class="p-3">${user.is_admin ? '<span class="text-red-400">Yes</span>' : 'No'}</td>
-                        <td class="p-3">${new Date(user.created_at).toLocaleDateString()}</td>
-                        <td class="p-3">
-                            <button class="bg-yellow-600 hover:bg-yellow-500 px-2 py-1 rounded text-xs mr-2" 
-                                    onclick="toggleAdmin(${user.id}, ${user.is_admin})">
-                                ${user.is_admin ? 'Remove Admin' : 'Make Admin'}
-                            </button>
-                            <button class="bg-red-600 hover:bg-red-500 px-2 py-1 rounded text-xs" 
-                                    onclick="deleteUser(${user.id})">
-                                Delete
-                            </button>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
             }
 
             async loadGameStats() {
@@ -204,108 +238,256 @@
                     const data = await response.json();
                     
                     if (data.status === 'success') {
-                        this.renderGameStats(data.stats);
+                        this.updateGameStats(data.stats);
                     }
                 } catch (error) {
                     console.error('Failed to load game stats:', error);
                 }
             }
 
-            renderGameStats(stats) {
-                const levelStats = document.getElementById('level-stats');
-                const recentActivity = document.getElementById('recent-activity');
-                
-                levelStats.innerHTML = stats.level_completion.map(level => 
-                    `<p>Level ${level.level}: ${level.completions} completions</p>`
-                ).join('');
-                
-                recentActivity.innerHTML = stats.recent_activity.map(activity => 
-                    `<p class="text-sm">${activity.username} - Level ${activity.level} - ${new Date(activity.timestamp).toLocaleString()}</p>`
-                ).join('');
+            updateStatsDisplay() {
+                document.getElementById('total-users').textContent = this.stats.total_users || 0;
+                document.getElementById('active-sessions').textContent = this.stats.active_sessions || 0;
+                document.getElementById('db-size').textContent = this.stats.db_size || 'Unknown';
             }
-        }
 
-        // Global functions for user actions
-        async function toggleAdmin(userId, isAdmin) {
-            if (!confirm(`Are you sure you want to ${isAdmin ? 'remove admin access from' : 'grant admin access to'} this user?`)) {
-                return;
+            updateUsersTable() {
+                const tbody = document.getElementById('users-table');
+                
+                if (this.users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400">No users found</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = this.users.map(user => `
+                    <tr class="border-b border-gray-700 hover:bg-gray-700">
+                        <td class="py-3 text-white">${user.username}</td>
+                        <td class="py-3 text-gray-300">${user.email}</td>
+                        <td class="py-3">
+                            <span class="px-2 py-1 rounded text-xs ${user.is_admin ? 'bg-red-600 text-white' : 'bg-gray-600 text-gray-200'}">
+                                ${user.is_admin ? 'Admin' : 'User'}
+                            </span>
+                        </td>
+                        <td class="py-3">
+                            <div class="flex space-x-2">
+                                <button onclick="admin.toggleAdmin(${user.id}, ${!user.is_admin})" 
+                                        class="bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded text-xs transition-colors">
+                                    ${user.is_admin ? 'Remove Admin' : 'Make Admin'}
+                                </button>
+                                <button onclick="admin.deleteUser(${user.id}, '${user.username}')" 
+                                        class="bg-red-600 hover:bg-red-500 px-2 py-1 rounded text-xs transition-colors">
+                                    Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
             }
-            
-            try {
-                const response = await fetch('/api/admin/toggle-admin', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId, is_admin: !isAdmin })
+
+            updateGameStats(stats) {
+                // Level completion stats
+                const levelStatsContainer = document.getElementById('level-stats');
+                if (stats.level_completion && stats.level_completion.length > 0) {
+                    levelStatsContainer.innerHTML = stats.level_completion.map(level => `
+                        <div class="flex justify-between items-center bg-gray-700 p-2 rounded">
+                            <span class="text-gray-300">Level ${level.level}</span>
+                            <span class="text-blue-400 font-bold">${level.completions} completions</span>
+                        </div>
+                    `).join('');
+                } else {
+                    levelStatsContainer.innerHTML = '<div class="text-gray-400">No level data available</div>';
+                }
+
+                // Recent activity
+                const activityContainer = document.getElementById('recent-activity');
+                if (stats.recent_activity && stats.recent_activity.length > 0) {
+                    activityContainer.innerHTML = stats.recent_activity.map(activity => `
+                        <div class="bg-gray-700 p-2 rounded text-sm">
+                            <div class="text-white">${activity.username}</div>
+                            <div class="text-gray-400">Level ${activity.level} • ${new Date(activity.timestamp).toLocaleString()}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    activityContainer.innerHTML = '<div class="text-gray-400">No recent activity</div>';
+                }
+            }
+
+            setupEventListeners() {
+                // Refresh users button
+                document.getElementById('refresh-users').addEventListener('click', () => {
+                    this.loadUsers();
                 });
-                
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    window.location.reload();
-                } else {
-                    alert(result.message || 'Failed to update user');
-                }
-            } catch (error) {
-                console.error('Toggle admin error:', error);
-                alert('Failed to update user');
-            }
-        }
 
-        async function deleteUser(userId) {
-            if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/admin/delete-user', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId })
+                // Database operations
+                document.getElementById('backup-db').addEventListener('click', () => {
+                    this.backupDatabase();
                 });
-                
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    window.location.reload();
-                } else {
-                    alert(result.message || 'Failed to delete user');
+
+                document.getElementById('clear-sessions').addEventListener('click', () => {
+                    this.clearOldSessions();
+                });
+
+                // Logout button
+                document.getElementById('logout-btn').addEventListener('click', () => {
+                    this.logout();
+                });
+
+                // Modal handlers
+                document.getElementById('modal-cancel').addEventListener('click', () => {
+                    this.hideModal();
+                });
+
+                document.getElementById('modal-confirm').addEventListener('click', () => {
+                    this.executeModalAction();
+                });
+            }
+
+            async toggleAdmin(userId, makeAdmin) {
+                try {
+                    const response = await fetch('/api/admin/toggle-admin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId, is_admin: makeAdmin })
+                    });
+
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        this.showMessage(data.message, 'success');
+                        await this.loadUsers();
+                    } else {
+                        this.showMessage(data.message, 'error');
+                    }
+                } catch (error) {
+                    this.showMessage('Failed to update user role', 'error');
                 }
-            } catch (error) {
-                console.error('Delete user error:', error);
-                alert('Failed to delete user');
             }
-        }
 
-        function backupDatabase() {
-            window.location.href = '/api/admin/backup-db';
-        }
+            deleteUser(userId, username) {
+                this.showModal(
+                    'Delete User',
+                    `Are you sure you want to delete user "${username}"? This action cannot be undone.`,
+                    async () => {
+                        try {
+                            const response = await fetch('/api/admin/delete-user', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ user_id: userId })
+                            });
 
-        async function clearSessions() {
-            if (!confirm('Clear all old game sessions (older than 7 days)?')) {
-                return;
+                            const data = await response.json();
+                            if (data.status === 'success') {
+                                this.showMessage(data.message, 'success');
+                                await this.loadUsers();
+                                await this.loadStats();
+                            } else {
+                                this.showMessage(data.message, 'error');
+                            }
+                        } catch (error) {
+                            this.showMessage('Failed to delete user', 'error');
+                        }
+                    }
+                );
             }
-            
-            try {
-                const response = await fetch('/api/admin/clear-sessions', { method: 'POST' });
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    alert(result.message);
-                    // Reload stats to reflect changes
-                    window.location.reload();
-                } else {
-                    alert(result.message || 'Failed to clear sessions');
+
+            async backupDatabase() {
+                try {
+                    const response = await fetch('/api/admin/backup-db');
+                    
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = response.headers.get('Content-Disposition')?.split('filename=')[1] || 'backup.db';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                        
+                        this.showMessage('Database backup downloaded', 'success');
+                    } else {
+                        this.showMessage('Failed to create backup', 'error');
+                    }
+                } catch (error) {
+                    this.showMessage('Failed to download backup', 'error');
                 }
-            } catch (error) {
-                console.error('Clear sessions error:', error);
-                alert('Failed to clear sessions');
+            }
+
+            async clearOldSessions() {
+                this.showModal(
+                    'Clear Old Sessions',
+                    'This will delete all game sessions older than 7 days. Continue?',
+                    async () => {
+                        try {
+                            const response = await fetch('/api/admin/clear-sessions', {
+                                method: 'POST'
+                            });
+
+                            const data = await response.json();
+                            if (data.status === 'success') {
+                                this.showMessage(data.message, 'success');
+                                await this.loadStats();
+                            } else {
+                                this.showMessage('Failed to clear sessions', 'error');
+                            }
+                        } catch (error) {
+                            this.showMessage('Failed to clear sessions', 'error');
+                        }
+                    }
+                );
+            }
+
+            showModal(title, message, confirmAction) {
+                document.getElementById('modal-title').textContent = title;
+                document.getElementById('modal-message').textContent = message;
+                document.getElementById('user-modal').classList.remove('hidden');
+                document.getElementById('user-modal').classList.add('flex');
+                this.modalAction = confirmAction;
+            }
+
+            hideModal() {
+                document.getElementById('user-modal').classList.add('hidden');
+                document.getElementById('user-modal').classList.remove('flex');
+                this.modalAction = null;
+            }
+
+            executeModalAction() {
+                if (this.modalAction) {
+                    this.modalAction();
+                }
+                this.hideModal();
+            }
+
+            showMessage(message, type) {
+                const container = document.getElementById('message-container');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `p-3 rounded border ${
+                    type === 'success' ? 'bg-green-800 text-green-200 border-green-600' :
+                    type === 'error' ? 'bg-red-800 text-red-200 border-red-600' :
+                    'bg-blue-800 text-blue-200 border-blue-600'
+                }`;
+                messageDiv.textContent = message;
+
+                container.appendChild(messageDiv);
+
+                setTimeout(() => {
+                    container.removeChild(messageDiv);
+                }, 5000);
+            }
+
+            async logout() {
+                try {
+                    await fetch('/api/auth/logout');
+                    window.location.href = '/';
+                } catch (error) {
+                    this.showMessage('Logout failed', 'error');
+                }
             }
         }
 
-        // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', () => {
-            new AdminDashboard();
-        });
+        // Initialize admin dashboard
+        const admin = new AdminDashboard();
+        window.admin = admin; // Make available globally for onclick handlers
     </script>
 </body>
 </html>

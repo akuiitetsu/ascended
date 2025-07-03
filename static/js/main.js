@@ -3,6 +3,7 @@ import { LevelManager } from './managers/level-manager.js';
 import { CosmeticManager } from './managers/cosmetic-manager.js';
 import { ModalManager } from './managers/modal-manager.js';
 import { GameManager } from './managers/game-manager.js';
+import { ProgressManager } from './managers/progress-manager.js';
 
 class EscapeTheLabGame {
     constructor() {
@@ -17,6 +18,7 @@ class EscapeTheLabGame {
         this.cosmeticManager = new CosmeticManager(this);
         this.modalManager = new ModalManager(this);
         this.gameManager = new GameManager(this);
+        this.progressManager = new ProgressManager(this);
         
         // Initialize tutorial manager from level manager
         this.tutorialManager = this.levelManager.tutorialManager;
@@ -40,8 +42,9 @@ class EscapeTheLabGame {
     }
 
     init() {
-        // Load saved cosmetics
+        // Load saved cosmetics and progress
         this.cosmeticManager.loadPlayerData();
+        this.loadUserProgress();
         
         // Initialize game state
         this.gameActive = false;
@@ -50,11 +53,44 @@ class EscapeTheLabGame {
         console.log('AscendEd: Tech Lab Breakout initialized');
     }
 
+    async loadUserProgress() {
+        try {
+            // Load all user progress from server
+            const allProgress = await this.progressManager.loadProgress();
+            
+            if (allProgress) {
+                // Calculate total rooms completed based on server progress
+                let completedRooms = 0;
+                
+                if (Array.isArray(allProgress)) {
+                    // Server returned array format
+                    completedRooms = allProgress.filter(room => 
+                        room.completion_status === 'completed' && 
+                        room.completion_percentage >= 100
+                    ).length;
+                } else if (typeof allProgress === 'object') {
+                    // Local progress format
+                    completedRooms = Object.values(allProgress).filter(room => 
+                        room.completion_percentage >= 100
+                    ).length;
+                }
+                
+                this.player.roomsCompleted = completedRooms;
+                console.log(`Loaded user progress: ${completedRooms} rooms completed`);
+            }
+        } catch (error) {
+            console.warn('Failed to load user progress:', error);
+        }
+    }
+
     async loadRoom(roomNumber) {
         try {
             this.inRoom = true;
             this.gameActive = true;
             this.currentRoom = roomNumber;
+            
+            // Track room entry
+            this.progressManager.enterRoom(roomNumber);
             
             await this.levelManager.loadRoom(roomNumber);
             console.log(`Successfully loaded room ${roomNumber}`);
@@ -96,15 +132,55 @@ class EscapeTheLabGame {
         this.cosmeticManager.showCosmeticMenu();
     }
 
-    roomCompleted(message) {
-        this.player.roomsCompleted++;
-        this.cosmeticManager.unlockCosmetics();
-        this.cosmeticManager.savePlayerData();
-        
-        if (this.player.roomsCompleted >= this.totalRooms) {
-            this.gameWon();
-        } else {
-            this.modalManager.showSuccessModal(message);
+    async roomCompleted(message, roomData = {}) {
+        try {
+            // Prepare comprehensive progress data
+            const progressData = {
+                room_name: `Room ${this.currentRoom}`,
+                status: 'completed',
+                completion_percentage: 100,
+                completion_status: 'completed',
+                score: roomData.score || 100,
+                time_spent: roomData.timeSpent || Date.now() - (this.progressManager.roomStartTime || this.progressManager.sessionStartTime),
+                room_data: {
+                    ...roomData,
+                    completed_at: new Date().toISOString(),
+                    message: message
+                }
+            };
+            
+            // Save progress to server
+            await this.progressManager.saveProgress(this.currentRoom, progressData);
+            
+            // Update local player data
+            this.player.roomsCompleted++;
+            this.cosmeticManager.unlockCosmetics();
+            this.cosmeticManager.savePlayerData();
+            
+            if (this.player.roomsCompleted >= this.totalRooms) {
+                this.gameWon();
+            } else {
+                this.modalManager.showSuccessModal(message);
+            }
+        } catch (error) {
+            console.error('Failed to save room completion:', error);
+            // Still show success modal even if save failed
+            this.modalManager.showSuccessModal(message + ' (Progress saved locally)');
+        }
+    }
+
+    async saveRoomProgress(roomNumber, progressData) {
+        try {
+            await this.progressManager.saveProgress(roomNumber, {
+                room_name: `Room ${roomNumber}`,
+                status: progressData.status || 'in_progress',
+                completion_percentage: progressData.completion_percentage || 0,
+                score: progressData.score || 0,
+                time_spent: progressData.time_spent || 0,
+                room_data: progressData.room_data || {}
+            });
+        } catch (error) {
+            console.error('Failed to save room progress:', error);
         }
     }
 
@@ -136,6 +212,13 @@ class EscapeTheLabGame {
         this.inRoom = false;
         this.gameActive = false;
         this.loadRoom(1);
+    }
+
+    // Cleanup method for when user logs out or closes game
+    cleanup() {
+        if (this.progressManager) {
+            this.progressManager.cleanup();
+        }
     }
 
     setupEventListeners() {
@@ -182,6 +265,13 @@ class EscapeTheLabGame {
 // Initialize the game
 const game = new EscapeTheLabGame();
 window.game = game;
+
+// Handle page unload to save progress
+window.addEventListener('beforeunload', () => {
+    if (window.game && window.game.progressManager) {
+        window.game.cleanup();
+    }
+});
 
 // Set up event listeners for modals
 document.addEventListener('DOMContentLoaded', () => {

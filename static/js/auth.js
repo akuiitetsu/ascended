@@ -57,6 +57,11 @@ class Auth {
             console.log('Response data:', result); // Debug logging
 
             if (result.status === 'success') {
+                // Handle user switching in progress manager
+                if (window.game && window.game.progressManager) {
+                    window.game.progressManager.switchUser(result.user.username);
+                }
+                
                 // Reload page to let server render the authenticated state
                 window.location.reload();
             } else {
@@ -103,6 +108,11 @@ class Auth {
 
     async logout() {
         try {
+            // Clean up progress manager before logout
+            if (window.game && window.game.progressManager) {
+                window.game.cleanup();
+            }
+            
             await fetch('/api/auth/logout');
             window.location.reload();
         } catch (error) {
