@@ -117,56 +117,108 @@ class DatabaseManager:
             return False, str(e)
     
     def migrate_schema(self):
-        """Apply schema migrations"""
+        """Handle database schema migrations for existing databases"""
         try:
             conn = self.get_connection()
+            migrations_applied = []
             
-            # Check current schema version
-            current_version = self.get_schema_version(conn)
+            # Check if is_admin column exists in users table
+            cursor = conn.execute("PRAGMA table_info(users)")
+            columns = [column[1] for column in cursor.fetchall()]
             
-            if current_version < 2.0:
-                # Apply level_data table migration
-                print("Applying schema migration: Adding level_data table...")
-                
-                # Read and execute the schema file
-                schema_path = os.path.join(os.path.dirname(__file__), 'database', 'schema.sql')
-                if os.path.exists(schema_path):
-                    with open(schema_path, 'r', encoding='utf-8') as f:
-                        schema_sql = f.read()
-                    
-                    # Split by semicolon and execute each statement
-                    statements = [stmt.strip() for stmt in schema_sql.split(';') if stmt.strip()]
-                    for statement in statements:
-                        if statement:
-                            try:
-                                conn.executescript(statement + ';')
-                            except sqlite3.Error as e:
-                                # Ignore errors for statements that already exist
-                                if 'already exists' not in str(e):
-                                    print(f"Warning during migration: {e}")
-                    
-                    conn.commit()
-                    print("✓ Schema migration completed successfully")
-                    return "Schema updated to version 2.0 with level management support"
-                else:
-                    print("✗ Schema file not found")
-                    return False
+            if 'is_admin' not in columns:
+                conn.execute('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0')
+                migrations_applied.append('Added is_admin column to users table')
             
+            # Check if level_data table exists
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='level_data'")
+            if not cursor.fetchone():
+                conn.execute('''
+                    CREATE TABLE level_data (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        room_id INTEGER NOT NULL,
+                        level_number INTEGER NOT NULL,
+                        name TEXT NOT NULL,
+                        data TEXT DEFAULT '{}',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(room_id, level_number)
+                    )
+                ''')
+                migrations_applied.append('Created level_data table')
+            
+            # Check if user_room_progress table exists
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='user_room_progress'")
+            if not cursor.fetchone():
+                conn.execute('''
+                    CREATE TABLE user_room_progress (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        room_number INTEGER NOT NULL,
+                        room_name TEXT,
+                        completion_status TEXT DEFAULT 'not_started',
+                        completion_percentage INTEGER DEFAULT 0,
+                        time_spent INTEGER DEFAULT 0,
+                        best_score INTEGER DEFAULT 0,
+                        attempts INTEGER DEFAULT 0,
+                        last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        completed_at TIMESTAMP NULL,
+                        room_data TEXT DEFAULT '{}',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users (id),
+                        UNIQUE(user_id, room_number)
+                    )
+                ''')
+                migrations_applied.append('Created user_room_progress table')
+            
+            # Check if user_achievements table exists
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='user_achievements'")
+            if not cursor.fetchone():
+                conn.execute('''
+                    CREATE TABLE user_achievements (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        achievement_type TEXT NOT NULL,
+                        achievement_name TEXT NOT NULL,
+                        description TEXT,
+                        earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        room_number INTEGER,
+                        metadata TEXT DEFAULT '{}',
+                        FOREIGN KEY (user_id) REFERENCES users (id)
+                    )
+                ''')
+                migrations_applied.append('Created user_achievements table')
+            
+            # Check if user_sessions table exists
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='user_sessions'")
+            if not cursor.fetchone():
+                conn.execute('''
+                    CREATE TABLE user_sessions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        session_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        session_end TIMESTAMP NULL,
+                        total_time INTEGER DEFAULT 0,
+                        rooms_visited TEXT DEFAULT '[]',
+                        actions_count INTEGER DEFAULT 0,
+                        ip_address TEXT,
+                        user_agent TEXT,
+                        FOREIGN KEY (user_id) REFERENCES users (id)
+                    )
+                ''')
+                migrations_applied.append('Created user_sessions table')
+            
+            conn.commit()
             conn.close()
-            return True
             
+            if migrations_applied:
+                return f"Applied migrations: {', '.join(migrations_applied)}"
+            else:
+                return True  # No migrations needed
         except Exception as e:
-            print(f"✗ Schema migration failed: {str(e)}")
             return False, str(e)
-
-    def get_schema_version(self, conn):
-        """Get current schema version"""
-        try:
-            result = conn.execute("SELECT value FROM system_info WHERE key = 'schema_version'").fetchone()
-            return float(result[0]) if result else 1.0
-        except:
-            return 1.0
-
+    
     def check_database_exists(self):
         """Check if database file exists and is accessible"""
         try:
@@ -354,5 +406,275 @@ class DatabaseManager:
             return {'success': True}
         except sqlite3.IntegrityError:
             return {'success': False, 'error': 'Username or email already exists'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def save_user_room_progress(self, user_id, room_number, progress_data):
+        """Save or update user progress for a specific room"""
+        try:
+            conn = self.get_connection()
+            
+            # Extract progress details
+            completion_status = progress_data.get('status', 'in_progress')
+            completion_percentage = min(100, max(0, progress_data.get('completion_percentage', 0)))
+            time_spent = progress_data.get('time_spent', 0)
+            score = progress_data.get('score', 0)
+            room_name = progress_data.get('room_name', f'Room {room_number}')
+            room_data = json.dumps(progress_data.get('room_data', {}))
+            
+            # Check if progress already exists
+            existing = conn.execute(
+                'SELECT id, attempts, best_score FROM user_room_progress WHERE user_id = ? AND room_number = ?',
+                (user_id, room_number)
+            ).fetchone()
+            
+            if existing:
+                # Update existing progress
+                new_attempts = existing['attempts'] + (1 if completion_status == 'completed' else 0)
+                new_best_score = max(existing['best_score'], score)
+                completed_at = 'CURRENT_TIMESTAMP' if completion_status == 'completed' else None
+                
+                if completed_at:
+                    conn.execute('''
+                        UPDATE user_room_progress 
+                        SET completion_status = ?, completion_percentage = ?, time_spent = time_spent + ?, 
+                            best_score = ?, attempts = ?, room_data = ?, last_accessed = CURRENT_TIMESTAMP,
+                            completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                        WHERE user_id = ? AND room_number = ?
+                    ''', (completion_status, completion_percentage, time_spent, new_best_score, 
+                          new_attempts, room_data, user_id, room_number))
+                else:
+                    conn.execute('''
+                        UPDATE user_room_progress 
+                        SET completion_status = ?, completion_percentage = ?, time_spent = time_spent + ?, 
+                            best_score = ?, room_data = ?, last_accessed = CURRENT_TIMESTAMP,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE user_id = ? AND room_number = ?
+                    ''', (completion_status, completion_percentage, time_spent, new_best_score, 
+                          room_data, user_id, room_number))
+            else:
+                # Insert new progress
+                attempts = 1 if completion_status == 'completed' else 0
+                completed_at_value = 'CURRENT_TIMESTAMP' if completion_status == 'completed' else None
+                
+                if completed_at_value:
+                    conn.execute('''
+                        INSERT INTO user_room_progress 
+                        (user_id, room_number, room_name, completion_status, completion_percentage, 
+                         time_spent, best_score, attempts, room_data, completed_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    ''', (user_id, room_number, room_name, completion_status, completion_percentage,
+                          time_spent, score, attempts, room_data))
+                else:
+                    conn.execute('''
+                        INSERT INTO user_room_progress 
+                        (user_id, room_number, room_name, completion_status, completion_percentage, 
+                         time_spent, best_score, attempts, room_data)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (user_id, room_number, room_name, completion_status, completion_percentage,
+                          time_spent, score, attempts, room_data))
+            
+            conn.commit()
+            conn.close()
+            return {'success': True}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def get_user_room_progress(self, user_id, room_number=None):
+        """Get user progress for specific room or all rooms"""
+        try:
+            conn = self.get_connection()
+            
+            if room_number:
+                progress = conn.execute(
+                    'SELECT * FROM user_room_progress WHERE user_id = ? AND room_number = ?',
+                    (user_id, room_number)
+                ).fetchone()
+                conn.close()
+                
+                if progress:
+                    return {
+                        'success': True,
+                        'progress': dict(progress)
+                    }
+                else:
+                    return {'success': True, 'progress': None}
+            else:
+                # Get all room progress for user
+                progress_list = conn.execute(
+                    'SELECT * FROM user_room_progress WHERE user_id = ? ORDER BY room_number',
+                    (user_id,)
+                ).fetchall()
+                conn.close()
+                
+                return {
+                    'success': True,
+                    'progress': [dict(row) for row in progress_list]
+                }
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def save_user_achievement(self, user_id, achievement_type, achievement_name, description="", room_number=None, metadata=None):
+        """Save a new achievement for user"""
+        try:
+            conn = self.get_connection()
+            
+            # Check if achievement already exists
+            existing = conn.execute(
+                'SELECT id FROM user_achievements WHERE user_id = ? AND achievement_type = ? AND achievement_name = ?',
+                (user_id, achievement_type, achievement_name)
+            ).fetchone()
+            
+            if existing:
+                return {'success': True, 'message': 'Achievement already exists'}
+            
+            metadata_json = json.dumps(metadata or {})
+            
+            conn.execute('''
+                INSERT INTO user_achievements 
+                (user_id, achievement_type, achievement_name, description, room_number, metadata)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (user_id, achievement_type, achievement_name, description, room_number, metadata_json))
+            
+            conn.commit()
+            conn.close()
+            return {'success': True, 'message': 'Achievement saved'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def get_user_achievements(self, user_id):
+        """Get all achievements for a user"""
+        try:
+            conn = self.get_connection()
+            achievements = conn.execute(
+                'SELECT * FROM user_achievements WHERE user_id = ? ORDER BY earned_at DESC',
+                (user_id,)
+            ).fetchall()
+            conn.close()
+            
+            return {
+                'success': True,
+                'achievements': [dict(row) for row in achievements]
+            }
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def start_user_session(self, user_id, ip_address=None, user_agent=None):
+        """Start a new user session"""
+        try:
+            conn = self.get_connection()
+            
+            cursor = conn.execute('''
+                INSERT INTO user_sessions (user_id, ip_address, user_agent)
+                VALUES (?, ?, ?)
+            ''', (user_id, ip_address, user_agent))
+            
+            session_id = cursor.lastrowid
+            conn.commit()
+            conn.close()
+            
+            return {'success': True, 'session_id': session_id}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def update_user_session(self, session_id, rooms_visited=None, actions_count=None):
+        """Update user session with activity data"""
+        try:
+            conn = self.get_connection()
+            
+            updates = []
+            params = []
+            
+            if rooms_visited is not None:
+                updates.append('rooms_visited = ?')
+                params.append(json.dumps(rooms_visited))
+            
+            if actions_count is not None:
+                updates.append('actions_count = ?')
+                params.append(actions_count)
+            
+            if updates:
+                params.append(session_id)
+                conn.execute(f'''
+                    UPDATE user_sessions 
+                    SET {', '.join(updates)}
+                    WHERE id = ?
+                ''', params)
+                
+                conn.commit()
+            
+            conn.close()
+            return {'success': True}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def end_user_session(self, session_id):
+        """End a user session"""
+        try:
+            conn = self.get_connection()
+            
+            # Calculate total time
+            conn.execute('''
+                UPDATE user_sessions 
+                SET session_end = CURRENT_TIMESTAMP,
+                    total_time = (strftime('%s', 'now') - strftime('%s', session_start))
+                WHERE id = ?
+            ''', (session_id,))
+            
+            conn.commit()
+            conn.close()
+            return {'success': True}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def get_user_statistics(self, user_id):
+        """Get comprehensive user statistics"""
+        try:
+            conn = self.get_connection()
+            
+            # Basic progress stats
+            progress_stats = conn.execute('''
+                SELECT 
+                    COUNT(*) as rooms_attempted,
+                    COUNT(CASE WHEN completion_status = 'completed' THEN 1 END) as rooms_completed,
+                    AVG(completion_percentage) as avg_completion,
+                    SUM(time_spent) as total_time,
+                    MAX(best_score) as highest_score,
+                    SUM(attempts) as total_attempts
+                FROM user_room_progress 
+                WHERE user_id = ?
+            ''', (user_id,)).fetchone()
+            
+            # Achievement stats
+            achievement_stats = conn.execute('''
+                SELECT 
+                    COUNT(*) as total_achievements,
+                    COUNT(CASE WHEN achievement_type = 'room_completion' THEN 1 END) as room_achievements,
+                    COUNT(CASE WHEN achievement_type = 'score_milestone' THEN 1 END) as score_achievements
+                FROM user_achievements 
+                WHERE user_id = ?
+            ''', (user_id,)).fetchone()
+            
+            # Session stats
+            session_stats = conn.execute('''
+                SELECT 
+                    COUNT(*) as total_sessions,
+                    AVG(total_time) as avg_session_time,
+                    SUM(total_time) as total_session_time,
+                    MAX(actions_count) as max_actions_per_session
+                FROM user_sessions 
+                WHERE user_id = ? AND session_end IS NOT NULL
+            ''', (user_id,)).fetchone()
+            
+            conn.close()
+            
+            return {
+                'success': True,
+                'statistics': {
+                    'progress': dict(progress_stats) if progress_stats else {},
+                    'achievements': dict(achievement_stats) if achievement_stats else {},
+                    'sessions': dict(session_stats) if session_stats else {}
+                }
+            }
         except Exception as e:
             return {'success': False, 'error': str(e)}

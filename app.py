@@ -628,15 +628,7 @@ def create_level():
         level_data = data.get('data', {})
         
         if not all([room_id, level_number, name]):
-            return jsonify({'status': 'error', 'message': 'Missing required fields: room_id, level_number, and name are required'}), 400
-        
-        # Validate room_id
-        if not (1 <= room_id <= 5):
-            return jsonify({'status': 'error', 'message': 'Invalid room_id. Must be between 1 and 5'}), 400
-        
-        # Validate level_number
-        if not (1 <= level_number <= 100):
-            return jsonify({'status': 'error', 'message': 'Invalid level_number. Must be between 1 and 100'}), 400
+            return jsonify({'status': 'error', 'message': 'Missing required fields'}), 400
         
         conn = db_manager.get_connection()
         
@@ -648,7 +640,7 @@ def create_level():
         
         if existing:
             conn.close()
-            return jsonify({'status': 'error', 'message': f'Level {level_number} already exists in room {room_id}'}), 409
+            return jsonify({'status': 'error', 'message': 'Level already exists'}), 409
         
         # Create new level
         cursor = conn.execute('''
@@ -660,11 +652,7 @@ def create_level():
         conn.commit()
         conn.close()
         
-        return jsonify({
-            'status': 'success', 
-            'level_id': level_id, 
-            'message': f'Level "{name}" created successfully'
-        })
+        return jsonify({'status': 'success', 'level_id': level_id, 'message': 'Level created successfully'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
@@ -677,43 +665,18 @@ def update_level(level_id):
         data = request.get_json()
         name = data.get('name')
         level_data = data.get('data', {})
-        level_number = data.get('level_number')
         
         if not name:
             return jsonify({'status': 'error', 'message': 'Name is required'}), 400
         
         conn = db_manager.get_connection()
         
-        # Check if level exists
-        existing_level = conn.execute('SELECT * FROM level_data WHERE id = ?', (level_id,)).fetchone()
-        if not existing_level:
-            conn.close()
-            return jsonify({'status': 'error', 'message': 'Level not found'}), 404
-        
-        # Check for duplicate level number in same room (excluding current level)
-        if level_number:
-            duplicate = conn.execute(
-                'SELECT id FROM level_data WHERE room_id = ? AND level_number = ? AND id != ?',
-                (existing_level['room_id'], level_number, level_id)
-            ).fetchone()
-            
-            if duplicate:
-                conn.close()
-                return jsonify({'status': 'error', 'message': f'Level number {level_number} already exists in this room'}), 409
-        
         # Update level
-        if level_number:
-            conn.execute('''
-                UPDATE level_data 
-                SET name = ?, level_number = ?, data = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            ''', (name, level_number, json.dumps(level_data), level_id))
-        else:
-            conn.execute('''
-                UPDATE level_data 
-                SET name = ?, data = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            ''', (name, json.dumps(level_data), level_id))
+        conn.execute('''
+            UPDATE level_data 
+            SET name = ?, data = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (name, json.dumps(level_data), level_id))
         
         conn.commit()
         conn.close()
@@ -736,19 +699,12 @@ def delete_level(level_id):
             conn.close()
             return jsonify({'status': 'error', 'message': 'Level not found'}), 404
         
-        level_name = level['name']
-        level_number = level['level_number']
-        room_id = level['room_id']
-        
         # Delete level
         conn.execute('DELETE FROM level_data WHERE id = ?', (level_id,))
         conn.commit()
         conn.close()
         
-        return jsonify({
-            'status': 'success', 
-            'message': f'Level {level_number}: "{level_name}" deleted successfully'
-        })
+        return jsonify({'status': 'success', 'message': 'Level deleted successfully'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
@@ -847,131 +803,6 @@ def import_levels():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-@app.route('/api/admin/levels/populate-defaults', methods=['POST'])
-@login_required
-@admin_required
-def populate_default_levels():
-    """Populate database with default levels from codebase"""
-    try:
-        data = request.get_json() or {}
-        room_id = data.get('room_id', 1)
-        
-        conn = db_manager.get_connection()
-        
-        # Check if levels already exist for this room
-        existing_count = conn.execute(
-            'SELECT COUNT(*) FROM level_data WHERE room_id = ?', (room_id,)
-        ).fetchone()[0]
-        
-        if existing_count > 0:
-            conn.close()
-            return jsonify({
-                'status': 'info', 
-                'message': f'Room {room_id} already has {existing_count} levels'
-            })
-        
-        # Room-specific default levels
-        default_levels = {
-            1: [  # Flowchart Lab
-                {
-                    'level_number': 1,
-                    'name': 'Basic Start-End Flow',
-                    'data': {
-                        'description': 'Create a simple flowchart with START and END nodes',
-                        'difficulty': 'easy',
-                        'objectives': ['Place START node', 'Place END node', 'Connect with arrow'],
-                        'hints': ['Use oval shapes for start and end', 'Connect nodes with arrows'],
-                        'validation': {'requiredNodes': ['oval', 'oval'], 'minConnections': 1}
-                    }
-                },
-                {
-                    'level_number': 2,
-                    'name': 'Process Flow',
-                    'data': {
-                        'description': 'Add process steps between start and end',
-                        'difficulty': 'easy',
-                        'objectives': ['Create multi-step process', 'Use proper symbols'],
-                        'hints': ['Rectangles for processes', 'Logical flow order'],
-                        'validation': {'requiredNodes': ['oval', 'rectangle', 'oval'], 'minConnections': 2}
-                    }
-                }
-            ],
-            2: [  # Network Nexus
-                {
-                    'level_number': 1,
-                    'name': 'Basic Network Topology',
-                    'data': {
-                        'description': 'Build a simple network with PCs and router',
-                        'difficulty': 'easy',
-                        'objectives': ['Place network devices', 'Connect with cables'],
-                        'hints': ['Start with end devices', 'Connect to central router'],
-                        'validation': {'requiredDevices': ['pc', 'router'], 'minConnections': 2}
-                    }
-                }
-            ],
-            3: [  # AI Systems
-                {
-                    'level_number': 1,
-                    'name': 'AI Ethics Training',
-                    'data': {
-                        'description': 'Train AI to make ethical decisions',
-                        'difficulty': 'medium',
-                        'objectives': ['Complete ethics scenarios', 'Achieve high accuracy'],
-                        'hints': ['Consider human impact', 'Privacy is important'],
-                        'validation': {'minAccuracy': 75, 'categoriesCompleted': 5}
-                    }
-                }
-            ],
-            4: [  # Database Emergency
-                {
-                    'level_number': 1,
-                    'name': 'Basic SQL Queries',
-                    'data': {
-                        'description': 'Learn fundamental SQL SELECT statements',
-                        'difficulty': 'easy',
-                        'objectives': ['Execute SELECT queries', 'Use WHERE clauses'],
-                        'hints': ['SELECT * FROM table', 'Use WHERE for filtering'],
-                        'validation': {'correctQueries': 3, 'syntax': 'valid'}
-                    }
-                }
-            ],
-            5: [  # Programming Crisis
-                {
-                    'level_number': 1,
-                    'name': 'Debug Basic Code',
-                    'data': {
-                        'description': 'Find and fix common programming errors',
-                        'difficulty': 'medium',
-                        'objectives': ['Identify bugs', 'Fix syntax errors', 'Test solutions'],
-                        'hints': ['Check variable names', 'Look for missing semicolons'],
-                        'validation': {'bugsFixed': 3, 'testsPass': True}
-                    }
-                }
-            ]
-        }
-        
-        room_levels = default_levels.get(room_id, [])
-        imported_count = 0
-        
-        for level_data in room_levels:
-            conn.execute('''
-                INSERT INTO level_data (room_id, level_number, name, data, created_at, updated_at)
-                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-            ''', (room_id, level_data['level_number'], level_data['name'], 
-                  json.dumps(level_data['data'])))
-            imported_count += 1
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'status': 'success', 
-            'message': f'Populated {imported_count} default levels for room {room_id}'
-        })
-        
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
 @app.route('/dashboard')
 @login_required
 def user_dashboard():
@@ -1054,151 +885,137 @@ def get_user_progress():
 def get_user_badges():
     """Get user's badges"""
     try:
-        # Check for new badge eligibility first
-        badge_check = db_manager.check_badge_eligibility(current_user.id)
-        
-        # Get all available badges with user's earned status
-        all_badges_result = db_manager.get_all_badges()
-        user_badges_result = db_manager.get_user_badges(current_user.id)
-        
-        if all_badges_result['success'] and user_badges_result['success']:
-            all_badges = all_badges_result['badges']
-            earned_badges = {badge['id']: badge for badge in user_badges_result['badges']}
-            
-            # Combine data
-            badges_data = []
-            for badge in all_badges:
-                badge_info = {
-                    'id': badge['id'],
-                    'name': badge['name'],
-                    'description': badge['description'],
-                    'icon': badge['icon'],
-                    'earned': badge['id'] in earned_badges,
-                    'earned_at': earned_badges[badge['id']]['earned_at'] if badge['id'] in earned_badges else None
-                }
-                badges_data.append(badge_info)
-            
-            response_data = {
-                'status': 'success',
-                'badges': badges_data
-            }
-            
-            # Include new badges if any were awarded
-            if badge_check['success'] and badge_check['new_badges']:
-                response_data['new_badges'] = badge_check['new_badges']
-            
-            return jsonify(response_data)
-        else:
-            return jsonify({'status': 'error', 'message': 'Failed to fetch badges'}), 500
-            
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-@app.route('/api/progress/save', methods=['POST'])
-@login_required
-def save_user_progress():
-    """Enhanced progress saving with badge checking"""
-    try:
-        data = request.get_json()
-        room_number = data.get('room_number')
-        progress_data = data.get('progress_data', {})
-        
-        if not room_number:
-            return jsonify({'status': 'error', 'message': 'Room number required'}), 400
-        
-        # Save progress
-        result = db_manager.save_user_room_progress(current_user.id, room_number, progress_data)
-        
-        if result['success']:
-            # Check for new badges
-            badge_result = db_manager.check_badge_eligibility(current_user.id)
-            
-            response = {'status': 'success', 'message': 'Progress saved'}
-            
-            if badge_result['success'] and badge_result['new_badges']:
-                response['new_badges'] = badge_result['new_badges']
-            
-            return jsonify(response)
-        else:
-            return jsonify({'status': 'error', 'message': result['error']}), 500
-            
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-@app.route('/api/admin/badges')
-@login_required
-@admin_required
-def admin_get_badges():
-    """Get all badges for admin management"""
-    try:
-        result = db_manager.get_all_badges()
-        
-        if result['success']:
-            return jsonify({'status': 'success', 'badges': result['badges']})
-        else:
-            return jsonify({'status': 'error', 'message': result['error']}), 500
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-@app.route('/api/admin/award-badge', methods=['POST'])
-@login_required
-@admin_required
-def admin_award_badge():
-    """Award a badge to a user (admin only)"""
-    try:
-        data = request.get_json()
-        user_id = data.get('user_id')
-        badge_name = data.get('badge_name')
-        
-        if not all([user_id, badge_name]):
-            return jsonify({'status': 'error', 'message': 'Missing required fields'}), 400
-        
-        result = db_manager.award_badge(user_id, badge_name)
-        
-        if result['success']:
-            return jsonify({'status': 'success', 'message': result['message']})
-        else:
-            return jsonify({'status': 'error', 'message': result['error']}), 400
-            
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-@app.route('/api/admin/badge-stats')
-@login_required
-@admin_required  
-def admin_badge_stats():
-    """Get badge statistics for admin dashboard"""
-    try:
         conn = db_manager.get_connection()
         
-        # Get badge award statistics
-        badge_stats = conn.execute('''
-            SELECT b.name, b.icon, COUNT(ub.id) as award_count
+        # Get all available badges with user's earned status
+        badges = conn.execute('''
+            SELECT b.*, ub.earned_at
             FROM badges b
-            LEFT JOIN user_badges ub ON b.id = ub.badge_id
-            GROUP BY b.id, b.name, b.icon
-            ORDER BY award_count DESC
-        ''').fetchall()
-        
-        # Get recent badge awards
-        recent_awards = conn.execute('''
-            SELECT u.username, b.name as badge_name, b.icon, ub.earned_at
-            FROM user_badges ub
-            JOIN users u ON ub.user_id = u.id
-            JOIN badges b ON ub.badge_id = b.id
-            ORDER BY ub.earned_at DESC
-            LIMIT 10
-        ''').fetchall()
+            LEFT JOIN user_badges ub ON b.id = ub.badge_id AND ub.user_id = ?
+            ORDER BY b.id
+        ''', (current_user.id,)).fetchall()
         
         conn.close()
         
-        return jsonify({
-            'status': 'success',
-            'stats': {
-                'badge_stats': [dict(row) for row in badge_stats],
-                'recent_awards': [dict(row) for row in recent_awards]
-            }
-        })
+        badges_data = []
+        for badge in badges:
+            badges_data.append({
+                'id': badge['id'],
+                'name': badge['name'],
+                'description': badge['description'],
+                'icon': badge['icon'],
+                'earned': badge['earned_at'] is not None,
+                'earned_at': badge['earned_at']
+            })
+        
+        return jsonify({'status': 'success', 'badges': badges_data})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/game/levels/<int:room_id>')
+def get_game_levels(room_id):
+    """Get levels for game play (public endpoint)"""
+    try:
+        conn = db_manager.get_connection()
+        levels = conn.execute('''
+            SELECT level_number, name, data FROM level_data 
+            WHERE room_id = ?
+            ORDER BY level_number
+        ''', (room_id,)).fetchall()
+        conn.close()
+        
+        levels_data = []
+        for level in levels:
+            level_data = json.loads(level['data']) if level['data'] else {}
+            levels_data.append({
+                'level_number': level['level_number'],
+                'name': level['name'],
+                **level_data  # Merge level data into response
+            })
+        
+        return jsonify({'status': 'success', 'levels': levels_data})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/admin/levels/populate-defaults', methods=['POST'])
+@login_required
+@admin_required
+def populate_default_levels():
+    """Populate database with default levels from codebase"""
+    try:
+        conn = db_manager.get_connection()
+        
+        # Check if levels already exist
+        existing_count = conn.execute('SELECT COUNT(*) FROM level_data').fetchone()[0]
+        if existing_count > 0:
+            conn.close()
+            return jsonify({'status': 'info', 'message': f'{existing_count} levels already exist'})
+        
+        # Execute the default level inserts (already in schema.sql)
+        # This will be handled by the schema migration
+        result = db_manager.migrate_schema()
+        conn.close()
+        
+        return jsonify({'status': 'success', 'message': 'Default levels populated successfully'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/admin/levels/reorder', methods=['POST'])
+@login_required
+@admin_required
+def reorder_levels():
+    """Reorder levels within a room"""
+    try:
+        data = request.get_json()
+        room_id = data.get('room_id')
+        levels_data = data.get('levels', [])
+        
+        if not room_id or not levels_data:
+            return jsonify({'status': 'error', 'message': 'Missing required data'}), 400
+        
+        conn = db_manager.get_connection()
+        
+        # Update level numbers in a transaction using a two-phase approach
+        conn.execute('BEGIN TRANSACTION')
+        
+        try:
+            # Phase 1: Set all levels to temporary negative numbers to avoid conflicts
+            temp_offset = -1000000  # Large negative number to avoid conflicts
+            for i, level_data in enumerate(levels_data):
+                level_id = level_data.get('id')
+                if level_id:
+                    temp_level_number = temp_offset - i
+                    conn.execute('''
+                        UPDATE level_data 
+                        SET level_number = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ? AND room_id = ?
+                    ''', (temp_level_number, level_id, room_id))
+            
+            # Phase 2: Set the actual level numbers
+            for level_data in levels_data:
+                level_id = level_data.get('id')
+                new_level_number = level_data.get('level_number')
+                
+                if level_id and new_level_number:
+                    conn.execute('''
+                        UPDATE level_data 
+                        SET level_number = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ? AND room_id = ?
+                    ''', (new_level_number, level_id, room_id))
+            
+            conn.execute('COMMIT')
+            conn.close()
+            
+            return jsonify({
+                'status': 'success', 
+                'message': f'Successfully reordered {len(levels_data)} levels'
+            })
+            
+        except Exception as e:
+            conn.execute('ROLLBACK')
+            conn.close()
+            raise e
+            
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
