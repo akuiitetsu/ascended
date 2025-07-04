@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escape the Lab - Tech Edition</title>
+    <title>AscendEd: Tech Lab Breakout</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="static/css/main.css">
@@ -40,7 +40,12 @@
                     <h3 class="text-xl font-bold mb-4 text-blue-400">Login</h3>
                     <div class="space-y-4">
                         <input type="text" name="email" placeholder="Email or Username" class="w-full challenge-input px-4 py-2 rounded" required>
-                        <input type="password" name="password" placeholder="Password" class="w-full challenge-input px-4 py-2 rounded" required>
+                        <div class="relative">
+                            <input type="password" name="password" id="login-password" placeholder="Password" class="w-full challenge-input px-4 py-2 pr-12 rounded" required>
+                            <button type="button" class="password-toggle absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 focus:outline-none" data-target="login-password">
+                                <i class="bi bi-eye" id="login-password-icon"></i>
+                            </button>
+                        </div>
                         <div class="flex items-center">
                             <input type="checkbox" name="remember" id="remember-me" class="mr-2 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500">
                             <label for="remember-me" class="text-sm text-gray-300">Remember me for 24 hours</label>
@@ -58,8 +63,18 @@
                     <div class="space-y-4">
                         <input type="text" name="username" placeholder="Username" class="w-full challenge-input px-4 py-2 rounded" required>
                         <input type="email" name="email" placeholder="Email" class="w-full challenge-input px-4 py-2 rounded" required>
-                        <input type="password" name="password" placeholder="Password" class="w-full challenge-input px-4 py-2 rounded" required>
-                        <input type="password" name="confirm_password" placeholder="Confirm Password" class="w-full challenge-input px-4 py-2 rounded" required>
+                        <div class="relative">
+                            <input type="password" name="password" id="register-password" placeholder="Password" class="w-full challenge-input px-4 py-2 pr-12 rounded" required>
+                            <button type="button" class="password-toggle absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 focus:outline-none" data-target="register-password">
+                                <i class="bi bi-eye" id="register-password-icon"></i>
+                            </button>
+                        </div>
+                        <div class="relative">
+                            <input type="password" name="confirm_password" id="confirm-password" placeholder="Confirm Password" class="w-full challenge-input px-4 py-2 pr-12 rounded" required>
+                            <button type="button" class="password-toggle absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 focus:outline-none" data-target="confirm-password">
+                                <i class="bi bi-eye" id="confirm-password-icon"></i>
+                            </button>
+                        </div>
                         <button type="submit" class="w-full btn-primary px-4 py-2 rounded">Register</button>
                     </div>
                     <p class="text-sm text-gray-400 mt-4">
@@ -70,7 +85,7 @@
             <!-- Move start game button after auth forms -->
             <div class="space-y-4">
                 <button id="start-game" class="{% if not current_user.is_authenticated %}hidden{% endif %} bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 px-8 py-4 rounded-lg text-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg">
-                    <i class="bi bi-play-fill mr-2"></i>START ESCAPE SEQUENCE
+                    <i class="bi bi-play-fill mr-2"></i>LINK START!
                 </button>
             </div>
         </div>
@@ -178,6 +193,23 @@
     <script>
         // Initialize character menu button functionality
         document.addEventListener('DOMContentLoaded', () => {
+            // Password visibility toggle functionality
+            document.querySelectorAll('.password-toggle').forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    const passwordInput = document.getElementById(targetId);
+                    const icon = document.getElementById(targetId + '-icon');
+                    
+                    if (passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                        icon.className = 'bi bi-eye-slash';
+                    } else {
+                        passwordInput.type = 'password';
+                        icon.className = 'bi bi-eye';
+                    }
+                });
+            });
+            
             // Start game functionality
             const startGameBtn = document.getElementById('start-game');
             const welcomeScreen = document.getElementById('welcome-screen');
@@ -214,36 +246,9 @@
                     }
                 });
             });
-            
-            // Tutorial button functionality - works when in any room
-            const tutorialBtn = document.getElementById('show-tutorial-btn');
-            
-            tutorialBtn.addEventListener('click', () => {
-                if (window.game && window.game.inRoom && window.game.showRoomTutorial) {
-                    window.game.showRoomTutorial();
-                } else if (window.game && !window.game.inRoom) {
-                    // Show message that tutorial is only available in rooms
-                    const message = document.createElement('div');
-                    message.className = 'fixed top-4 right-4 bg-yellow-800 text-yellow-200 p-3 rounded z-50';
-                    message.textContent = 'Tutorial is only available when you\'re in a room! Click "Start Escape Sequence" or use the room navigation buttons.';
-                    document.body.appendChild(message);
-                    setTimeout(() => message.remove(), 4000);
-                } else {
-                    // Fallback error message
-                    const message = document.createElement('div');
-                    message.className = 'fixed top-4 right-4 bg-red-800 text-red-200 p-3 rounded z-50';
-                    message.textContent = 'Tutorial system not available. Please refresh the page.';
-                    document.body.appendChild(message);
-                    setTimeout(() => message.remove(), 3000);
-                }
-            });
         });
     </script>
     <script type="module" src="static/js/main.js"></script>
-    <script type="module" src="static/js/auth.js"></script>
-</body>
-</html>
-</html>
 </body>
     <script type="module" src="static/js/auth.js"></script>
     <script type="module" src="static/js/main.js"></script>

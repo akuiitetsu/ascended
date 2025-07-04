@@ -1,128 +1,80 @@
-/* Character Avatar Styles */
-.character-avatar {
-    max-width: 300px;
-    margin: 0 auto;
-}
-
-.character-avatar-display {
-    position: relative;
-    min-height: 200px;
-}
-
-.character-visual {
-    position: relative;
-    display: inline-block;
-}
-
-.character-accessories {
-    margin-top: 10px;
-}
-
-/* Cosmetic Menu Styles */
-.cosmetic-item {
-    min-height: 80px;
+/* Badge Display Styles */
+.badge-item {
+    min-height: 120px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
+    transition: all 0.3s ease;
 }
 
-.cosmetic-item:hover:not(.locked) {
+.badge-item:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-.cosmetic-item.locked {
+.badge-item.earned {
+    border-color: #f59e0b;
+    background: linear-gradient(135deg, #92400e, #f59e0b);
+}
+
+.badge-item.locked {
     cursor: not-allowed;
     filter: grayscale(100%);
 }
 
-.cosmetic-category {
-    border-bottom: 1px solid #374151;
-    padding-bottom: 1rem;
+/* Badge Unlock Animation */
+.badge-unlock-animation {
+    animation: unlock-glow 2s ease-in-out;
 }
 
-.cosmetic-category:last-child {
-    border-bottom: none;
+@keyframes unlock-glow {
+    0% { box-shadow: 0 0 0 rgba(245, 158, 11, 0); }
+    50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.8); }
+    100% { box-shadow: 0 0 0 rgba(245, 158, 11, 0); }
 }
 
-/* Character Preview Animations */
-.character-visual {
-    animation: gentle-bob 3s ease-in-out infinite;
-}
-
-@keyframes gentle-bob {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-5px); }
-}
-
-/* Victory Character Display */
-.victory-character {
+/* Victory Badge Display */
+.victory-badges {
     background: linear-gradient(135deg, #1f2937, #374151);
     border-radius: 15px;
     padding: 20px;
     max-width: 400px;
     margin: 0 auto;
-    border: 2px solid #10b981;
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    border: 2px solid #f59e0b;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
 }
 
-/* Unlock Animation */
-.cosmetic-unlock-animation {
-    animation: unlock-glow 2s ease-in-out;
-}
-
-@keyframes unlock-glow {
-    0% { box-shadow: 0 0 0 rgba(168, 85, 247, 0); }
-    50% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.8); }
-    100% { box-shadow: 0 0 0 rgba(168, 85, 247, 0); }
-}
-
-/* Character Stats Display */
-.character-stats {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    padding: 12px;
-    margin-top: 15px;
-}
-
-.character-stats p {
-    margin: 4px 0;
+/* Badge Progress Bar */
+.badge-progress-bar {
+    background: linear-gradient(90deg, #f59e0b, #eab308);
+    transition: width 0.5s ease;
+    border-radius: 9999px;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .cosmetic-options {
-        max-height: 60vh;
-        overflow-y: auto;
+    .badge-item {
+        min-height: 100px;
+        padding: 12px;
     }
     
-    .character-visual {
-        font-size: 4rem !important;
-    }
-    
-    .cosmetic-item {
-        min-height: 60px;
-        padding: 8px;
+    .badge-item .text-4xl {
+        font-size: 2.5rem;
     }
 }
 
-/* Equipment Categories */
-.cosmetic-category h4 {
-    border-left: 4px solid currentColor;
+/* Badge Category Headers */
+.badge-category h4 {
+    border-left: 4px solid #f59e0b;
     padding-left: 8px;
     margin-bottom: 8px;
+    color: #f59e0b;
 }
 
-/* Special Effects for Rare Items */
-.cosmetic-item[data-item="biohazard"],
-.cosmetic-item[data-item="bio-helmet"],
-.cosmetic-item[data-item="bio-scanner"] {
-    background: linear-gradient(45deg, #1f2937, #7c3aed);
-}
-
-.cosmetic-item[data-item="radiation"],
-.cosmetic-item[data-item="dosimeter"] {
-    background: linear-gradient(45deg, #1f2937, #eab308);
+/* Special Effects for Earned Badges */
+.badge-item.earned:hover {
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 0 8px 16px rgba(245, 158, 11, 0.4);
 }

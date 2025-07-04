@@ -159,3 +159,41 @@ body {
     background: rgba(255, 255, 255, 0.3);
     border-radius: 2px;
 }
+
+/* Password toggle button styles */
+.password-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    transition: color 0.2s ease;
+    z-index: 10;
+}
+
+.password-toggle:hover {
+    color: #60a5fa !important;
+}
+
+.password-toggle:focus {
+    outline: none;
+    color: #60a5fa !important;
+}
+
+.password-toggle i {
+    font-size: 16px;
+}
+
+/* Ensure password inputs have proper padding for the toggle button */
+.challenge-input[type="password"] {
+    padding-right: 3rem;
+}
+
+/* Adjust padding for text inputs when they become visible */
+input[type="text"].challenge-input {
+    padding-right: 3rem;
+}

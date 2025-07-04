@@ -6,108 +6,685 @@
     <title>Level Editor - AscendEd Admin</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <style>
+        .json-editor {
+            font-family: 'Courier New', monospace;
+            background: #1f2937;
+            color: #f3f4f6;
+            border: 1px solid #4b5563;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            resize: vertical;
+        }
+        .selected {
+            background-color: #1e40af !important;
+            border-color: #3b82f6 !important;
+        }
+        .sortable-ghost {
+            opacity: 0.5;
+        }
+        .sortable-chosen {
+            background-color: #374151 !important;
+        }
+        .sortable-drag {
+            background-color: #1f2937 !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        .drag-handle {
+            cursor: grab;
+            padding: 0.5rem;
+            color: #6b7280;
+            transition: color 0.2s;
+        }
+        .drag-handle:hover {
+            color: #9ca3af;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        .level-item {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .level-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+    </style>
 </head>
 <body class="bg-gray-900 text-white font-mono">
-    <header class="bg-gradient-to-r from-gray-900 via-green-900 to-blue-900 p-4 shadow-lg">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-3xl font-bold text-green-100">
-                <i class="bi bi-gear"></i> Level Editor
-            </h1>
-            <div class="flex items-center space-x-4">
-                <a href="/admin" class="bg-red-600 hover:bg-red-500 px-3 py-2 rounded transition-colors">
-                    <i class="bi bi-arrow-left"></i> Back to Dashboard
-                </a>
+    <header class="bg-gradient-to-r from-gray-900 via-red-900 to-purple-900 p-4 shadow-lg">
+        <div class="container mx-auto">
+            <!-- Desktop header -->
+            <div class="hidden md:flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-red-100">
+                    <i class="bi bi-tools"></i> Level Editor
+                </h1>
+                <div class="flex items-center space-x-4">
+                    <a href="/admin" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded transition-colors">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
             </div>
-        </div>
-    </header>
-
-    <main class="container mx-auto p-6">
-        <div class="bg-gray-800 rounded-lg p-6">
-            <h2 class="text-2xl font-bold text-white mb-4">Level Editor</h2>
-            <p class="text-gray-300 mb-6">Create and manage game levels for different rooms.</p>
             
-            <div class="text-center py-12">
-                <i class="bi bi-tools text-6xl text-blue-400 mb-4"></i>
-                <h3 class="text-xl font-bold text-white mb-2">Level Editor Coming Soon</h3>
-                <p class="text-gray-400">Advanced level editing functionality will be available in a future update.</p>
-            </div>
-        </div>
-    </main>
-
-    <script type="module" src="/static/js/admin/level-editor.js"></script>
-</body>
-</html>
-                </a>
-                <span class="text-blue-300">{{ current_user.username }}</span>
+            <!-- Mobile header -->
+            <div class="md:hidden">
+                <div class="flex flex-col space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h1 class="text-xl font-bold text-red-100">
+                            <i class="bi bi-tools"></i> Level Editor
+                        </h1>
+                    </div>
+                    <div class="flex justify-center">
+                        <a href="/admin" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded transition-colors text-center">
+                            <i class="bi bi-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
 
     <main class="container mx-auto p-6">
-        <!-- Room Tabs -->
+        <!-- Navigation Tabs -->
         <div class="mb-6">
-            <div class="flex space-x-2 border-b border-gray-700">
-                <button class="room-tab px-4 py-2 rounded-t-lg transition-colors active" data-room="1">
-                    <i class="bi bi-diagram-3"></i> Flowchart Lab
+            <div class="flex space-x-2 border-b border-gray-700 overflow-x-auto">
+                <button class="nav-tab px-4 py-2 rounded-t-lg transition-colors active" data-tab="editor">
+                    <i class="bi bi-pencil-square"></i> Level Editor
                 </button>
-                <button class="room-tab px-4 py-2 rounded-t-lg transition-colors" data-room="2">
-                    <i class="bi bi-router"></i> Network Nexus
-                </button>
-                <button class="room-tab px-4 py-2 rounded-t-lg transition-colors" data-room="3">
-                    <i class="bi bi-robot"></i> AI Systems
-                </button>
-                <button class="room-tab px-4 py-2 rounded-t-lg transition-colors" data-room="4">
-                    <i class="bi bi-database-x"></i> Database Crisis
-                </button>
-                <button class="room-tab px-4 py-2 rounded-t-lg transition-colors" data-room="5">
-                    <i class="bi bi-bug"></i> Programming Crisis
+                <button class="nav-tab px-4 py-2 rounded-t-lg transition-colors" data-tab="guide">
+                    <i class="bi bi-book"></i> Admin Guide
                 </button>
             </div>
         </div>
 
-        <div class="grid grid-cols-12 gap-6">
-            <!-- Level List -->
-            <div class="col-span-4">
-                <div class="bg-gray-800 rounded-lg p-4">
+        <!-- Level Editor Tab Content -->
+        <div id="editor-tab" class="tab-content">
+            <!-- Room Tabs -->
+            <div class="mb-6">
+                <div class="flex space-x-2 border-b border-gray-700 overflow-x-auto">
+                    <button class="room-tab px-4 py-2 rounded-t-lg transition-colors active whitespace-nowrap" data-room="1">
+                        <i class="bi bi-diagram-3"></i> Flowchart Lab
+                    </button>
+                    <button class="room-tab px-4 py-2 rounded-t-lg transition-colors whitespace-nowrap" data-room="2">
+                        <i class="bi bi-cloud"></i> Cloud Scale
+                    </button>
+                    <button class="room-tab px-4 py-2 rounded-t-lg transition-colors whitespace-nowrap" data-room="3">
+                        <i class="bi bi-robot"></i> AI Systems
+                    </button>
+                    <button class="room-tab px-4 py-2 rounded-t-lg transition-colors whitespace-nowrap" data-room="4">
+                        <i class="bi bi-database-x"></i> Database Emergency
+                    </button>
+                    <button class="room-tab px-4 py-2 rounded-t-lg transition-colors whitespace-nowrap" data-room="5">
+                        <i class="bi bi-bug"></i> Programming Crisis
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Level Management -->
+                <div class="bg-gray-800 rounded-lg p-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold text-blue-400">Levels</h2>
+                        <h2 class="text-xl font-bold text-purple-400">Level Management</h2>
                         <div class="flex space-x-2">
-                            <button id="create-level-btn" class="bg-green-600 hover:bg-green-500 px-3 py-2 rounded text-sm transition-colors">
-                                <i class="bi bi-plus"></i> New
+                            <button id="populate-defaults-btn" class="bg-green-600 hover:bg-green-500 px-3 py-1 rounded text-sm transition-colors" title="Populate Default Levels">
+                                <i class="bi bi-download"></i>
                             </button>
-                            <button id="import-levels-btn" class="bg-purple-600 hover:bg-purple-500 px-3 py-2 rounded text-sm transition-colors">
-                                <i class="bi bi-upload"></i> Import
-                            </button>
-                            <button id="export-levels-btn" class="bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded text-sm transition-colors">
-                                <i class="bi bi-download"></i> Export
+                            <button id="create-level-btn" class="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm transition-colors">
+                                <i class="bi bi-plus"></i>
                             </button>
                         </div>
                     </div>
-                    <div id="levels-list" class="space-y-2">
+                    
+                    <div class="space-y-2 mb-4">
+                        <button id="import-levels-btn" class="w-full bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded text-sm transition-colors">
+                            <i class="bi bi-upload"></i> Import Levels
+                        </button>
+                        <button id="export-levels-btn" class="w-full bg-yellow-600 hover:bg-yellow-500 px-4 py-2 rounded text-sm transition-colors">
+                            <i class="bi bi-download"></i> Export Levels
+                        </button>
+                    </div>
+
+                    <div id="levels-list" class="space-y-2 max-h-96 overflow-y-auto">
                         <!-- Levels will be loaded here -->
                     </div>
                 </div>
-            </div>
 
-            <!-- Level Editor -->
-            <div class="col-span-8">
-                <div class="bg-gray-800 rounded-lg p-4">
+                <!-- Level Editor -->
+                <div class="lg:col-span-2 bg-gray-800 rounded-lg p-6">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-bold text-blue-400">Level Editor</h2>
                         <div class="flex space-x-2">
-                            <button id="save-level-btn" class="bg-green-600 hover:bg-green-500 px-4 py-2 rounded transition-colors" disabled>
-                                <i class="bi bi-save"></i> Save
+                            <button id="save-level-btn" class="bg-green-600 hover:bg-green-500 px-4 py-2 rounded text-sm transition-colors" disabled>
+                                <i class="bi bi-save"></i> Save Level
                             </button>
-                            <button id="delete-level-btn" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded transition-colors" disabled>
-                                <i class="bi bi-trash"></i> Delete
+                            <button id="delete-level-btn" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded text-sm transition-colors" disabled>
+                                <i class="bi bi-trash"></i> Delete Level
                             </button>
                         </div>
                     </div>
 
-                    <div id="editor-content" class="space-y-4">
+                    <div id="editor-content">
                         <div class="text-center text-gray-400 py-12">
                             <i class="bi bi-arrow-left text-4xl mb-2"></i>
                             <p>Select a level to edit or create a new one</p>
+                            <p class="text-sm mt-2">Click "Populate Defaults" to load levels from the codebase</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Guide Tab Content -->
+        <div id="guide-tab" class="tab-content hidden">
+            <div class="max-w-6xl mx-auto">
+                <!-- Guide Header -->
+                <div class="bg-gray-800 rounded-lg p-4 lg:p-6 mb-6">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4">
+                        <div>
+                            <h2 class="text-2xl lg:text-3xl font-bold text-blue-400 mb-2">
+                                <i class="bi bi-book"></i> Level Editor Admin Guide
+                            </h2>
+                            <p class="text-gray-300 text-base lg:text-lg">
+                                Complete guide for creating, editing, and managing levels in the AscendEd platform.
+                            </p>
+                        </div>
+                        <div class="mt-4 lg:mt-0 flex flex-col sm:flex-row gap-2">
+                            <button class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-sm transition-colors" onclick="window.print()">
+                                <i class="bi bi-printer"></i> Print Guide
+                            </button>
+                            <button class="bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded text-sm transition-colors" onclick="downloadGuide()">
+                                <i class="bi bi-download"></i> Download PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Navigation -->
+                <div class="bg-gray-800 rounded-lg p-4 mb-6 lg:hidden">
+                    <h3 class="text-lg font-bold text-cyan-400 mb-3">
+                        <i class="bi bi-list"></i> Quick Navigation
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <a href="#quick-start" class="text-blue-400 hover:text-blue-300 text-sm p-2 bg-gray-700 rounded block">Quick Start</a>
+                        <a href="#level-management" class="text-purple-400 hover:text-purple-300 text-sm p-2 bg-gray-700 rounded block">Level Management</a>
+                        <a href="#json-config" class="text-yellow-400 hover:text-yellow-300 text-sm p-2 bg-gray-700 rounded block">JSON Configuration</a>
+                        <a href="#import-export" class="text-orange-400 hover:text-orange-300 text-sm p-2 bg-gray-700 rounded block">Import & Export</a>
+                        <a href="#best-practices" class="text-cyan-400 hover:text-cyan-300 text-sm p-2 bg-gray-700 rounded block">Best Practices</a>
+                        <a href="#troubleshooting" class="text-red-400 hover:text-red-300 text-sm p-2 bg-gray-700 rounded block">Troubleshooting</a>
+                    </div>
+                </div>
+
+                <!-- Quick Start Section -->
+                <div id="quick-start" class="bg-gray-800 rounded-lg p-4 lg:p-6 mb-6">
+                    <h3 class="text-xl lg:text-2xl font-bold text-green-400 mb-4">
+                        <i class="bi bi-play-circle"></i> Quick Start
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <div class="bg-gray-700 rounded-lg p-4 text-center hover:bg-gray-650 transition-colors">
+                            <i class="bi bi-download text-2xl lg:text-3xl text-green-400 mb-3"></i>
+                            <h4 class="font-bold mb-2 text-sm lg:text-base">1. Load Defaults</h4>
+                            <p class="text-xs lg:text-sm text-gray-300">Click "Populate Defaults" to load existing levels from the codebase into the database</p>
+                        </div>
+                        <div class="bg-gray-700 rounded-lg p-4 text-center hover:bg-gray-650 transition-colors">
+                            <i class="bi bi-pencil text-2xl lg:text-3xl text-blue-400 mb-3"></i>
+                            <h4 class="font-bold mb-2 text-sm lg:text-base">2. Edit Levels</h4>
+                            <p class="text-xs lg:text-sm text-gray-300">Select a level from the list to edit its configuration and properties</p>
+                        </div>
+                        <div class="bg-gray-700 rounded-lg p-4 text-center hover:bg-gray-650 transition-colors md:col-span-2 xl:col-span-1">
+                            <i class="bi bi-plus-circle text-2xl lg:text-3xl text-purple-400 mb-3"></i>
+                            <h4 class="font-bold mb-2 text-sm lg:text-base">3. Create New</h4>
+                            <p class="text-xs lg:text-sm text-gray-300">Use the "+" button to create brand new levels with custom configurations</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Video Tutorial Placeholder -->
+                    <div class="mt-6 bg-gray-700 rounded-lg p-4">
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                            <div>
+                                <h4 class="font-bold text-blue-400 mb-2">📹 Video Tutorial</h4>
+                                <p class="text-sm text-gray-300">Watch a step-by-step walkthrough of the level editor features</p>
+                            </div>
+                            <button class="mt-3 lg:mt-0 bg-red-600 hover:bg-red-500 px-4 py-2 rounded text-sm transition-colors">
+                                <i class="bi bi-play-fill"></i> Watch Tutorial (Coming Soon)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Level Management Section -->
+                <div id="level-management" class="bg-gray-800 rounded-lg p-4 lg:p-6 mb-6">
+                    <h3 class="text-xl lg:text-2xl font-bold text-purple-400 mb-4">
+                        <i class="bi bi-gear"></i> Level Management
+                    </h3>
+                    
+                    <div class="space-y-6">
+                        <!-- Creating Levels -->
+                        <div class="border-l-4 border-blue-500 pl-4 bg-gray-700 p-4 rounded-r-lg">
+                            <h4 class="text-lg lg:text-xl font-semibold text-blue-400 mb-3">Creating New Levels</h4>
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                <div class="space-y-2 text-gray-300 text-sm lg:text-base">
+                                    <p><strong>Step 1:</strong> Select the appropriate room tab (Flowchart Lab, Network Nexus, etc.)</p>
+                                    <p><strong>Step 2:</strong> Click the <code class="bg-gray-600 px-2 py-1 rounded">+</code> button in the Level Management panel</p>
+                                    <p><strong>Step 3:</strong> Enter a unique level number and descriptive name</p>
+                                </div>
+                                <div class="space-y-2 text-gray-300 text-sm lg:text-base">
+                                    <p><strong>Step 4:</strong> Click "Create Level" - a template will be loaded automatically</p>
+                                    <p><strong>Step 5:</strong> Edit the JSON configuration and save your changes</p>
+                                    <p><strong>Tip:</strong> Level numbers are assigned automatically in sequence</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Editing Levels -->
+                        <div class="border-l-4 border-green-500 pl-4 bg-gray-700 p-4 rounded-r-lg">
+                            <h4 class="text-lg lg:text-xl font-semibold text-green-400 mb-3">Editing Existing Levels</h4>
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                <div class="space-y-2 text-gray-300 text-sm lg:text-base">
+                                    <p><strong>Step 1:</strong> Click on any level in the levels list to select it</p>
+                                    <p><strong>Step 2:</strong> The editor will load the level's configuration in JSON format</p>
+                                    <p><strong>Step 3:</strong> Modify the JSON data - use the helper buttons for assistance</p>
+                                </div>
+                                <div class="space-y-2 text-gray-300 text-sm lg:text-base">
+                                    <p><strong>Step 4:</strong> Click "Save Level" to persist your changes</p>
+                                    <p><strong>Note:</strong> Use "Validate JSON" before saving to check for syntax errors</p>
+                                    <p><strong>Tip:</strong> "Format JSON" helps organize your code for better readability</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reordering Levels -->
+                        <div class="border-l-4 border-yellow-500 pl-4 bg-gray-700 p-4 rounded-r-lg">
+                            <h4 class="text-lg lg:text-xl font-semibold text-yellow-400 mb-3">Reordering Levels</h4>
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                <div class="space-y-2 text-gray-300 text-sm lg:text-base">
+                                    <p><strong>Drag & Drop:</strong> Use the grip icon to drag levels into new positions</p>
+                                    <p><strong>Auto-Numbering:</strong> Level numbers update automatically as you reorder</p>
+                                    <p><strong>Save Changes:</strong> Click "Save Order" to persist the new arrangement</p>
+                                </div>
+                                <div class="space-y-2 text-gray-300 text-sm lg:text-base">
+                                    <p><strong>Visual Feedback:</strong> Level numbers change in real-time during reordering</p>
+                                    <p><strong>Confirmation:</strong> Changes aren't saved until you click "Save Order"</p>
+                                    <p><strong>Mobile Support:</strong> Touch-friendly drag and drop on mobile devices</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Deleting Levels -->
+                        <div class="border-l-4 border-red-500 pl-4 bg-gray-700 p-4 rounded-r-lg">
+                            <h4 class="text-lg lg:text-xl font-semibold text-red-400 mb-3">Deleting Levels</h4>
+                            <div class="space-y-2 text-gray-300 text-sm lg:text-base">
+                                <p><strong>Step 1:</strong> Select the level you want to delete</p>
+                                <p><strong>Step 2:</strong> Click the "Delete Level" button</p>
+                                <p><strong>Step 3:</strong> Confirm the deletion in the dialog</p>
+                                <p><strong>⚠️ Warning:</strong> This action cannot be undone - consider exporting first for backup</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JSON Configuration Guide -->
+                <div id="json-config" class="bg-gray-800 rounded-lg p-4 lg:p-6 mb-6">
+                    <h3 class="text-xl lg:text-2xl font-bold text-yellow-400 mb-4">
+                        <i class="bi bi-code-square"></i> JSON Configuration Guide
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <p class="text-gray-300 text-sm lg:text-base">Each level is defined by a JSON configuration object. Here are the key properties:</p>
+                        
+                        <!-- Common Properties -->
+                        <div class="bg-gray-700 rounded-lg p-4">
+                            <h4 class="font-semibold text-blue-400 mb-3 text-sm lg:text-base">Common Properties (All Rooms)</h4>
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs lg:text-sm">
+                                <div class="space-y-1">
+                                    <p><code class="text-green-400 bg-gray-800 px-1 rounded">name</code>: Level display name</p>
+                                    <p><code class="text-green-400 bg-gray-800 px-1 rounded">story</code>: Narrative context</p>
+                                    <p><code class="text-green-400 bg-gray-800 px-1 rounded">objective</code>: What the player needs to do</p>
+                                    <p><code class="text-green-400 bg-gray-800 px-1 rounded">character</code>: NPC providing instructions</p>
+                                </div>
+                                <div class="space-y-1">
+                                    <p><code class="text-green-400 bg-gray-800 px-1 rounded">taskType</code>: Type of challenge</p>
+                                    <p><code class="text-green-400 bg-gray-800 px-1 rounded">instruction</code>: Detailed instructions</p>
+                                    <p><code class="text-green-400 bg-gray-800 px-1 rounded">hint</code>: Help text for players</p>
+                                    <p><code class="text-green-400 bg-gray-800 px-1 rounded">successCriteria</code>: Win conditions</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Room-Specific Properties -->
+                        <div class="space-y-3">
+                            <h4 class="font-semibold text-purple-400 text-sm lg:text-base">Room-Specific Properties</h4>
+                            
+                            <details class="bg-gray-700 rounded-lg">
+                                <summary class="p-3 cursor-pointer font-medium text-sm lg:text-base hover:bg-gray-600 rounded-lg transition-colors">
+                                    <i class="bi bi-diagram-3"></i> Flowchart Lab (Room 1)
+                                </summary>
+                                <div class="p-3 border-t border-gray-600">
+                                    <div class="mb-3 text-sm text-gray-300">
+                                        <p><strong>Purpose:</strong> Interactive flowchart creation and validation</p>
+                                        <p><strong>Task Type:</strong> <code class="bg-gray-800 px-1 rounded">flowchart</code></p>
+                                    </div>
+                                    <pre class="text-xs lg:text-sm text-gray-300 bg-gray-800 p-3 rounded overflow-x-auto"><code>{
+  "taskType": "flowchart",
+  "flowchartData": {
+    "startNode": { "id": "start", "type": "start", "text": "Start" },
+    "endNode": { "id": "end", "type": "end", "text": "End" },
+    "nodes": [],
+    "connections": []
+  }
+}</code></pre>
+                                </div>
+                            </details>
+
+                            <details class="bg-gray-700 rounded-lg">
+                                <summary class="p-3 cursor-pointer font-medium text-sm lg:text-base hover:bg-gray-600 rounded-lg transition-colors">
+                                    <i class="bi bi-cloud"></i> Cloud Scale (Room 2)
+                                </summary>
+                                <div class="p-3 border-t border-gray-600">
+                                    <div class="mb-3 text-sm text-gray-300">
+                                        <p><strong>Purpose:</strong> Cloud resource allocation and scaling</p>
+                                        <p><strong>Task Type:</strong> <code class="bg-gray-800 px-1 rounded">cloud-scale</code></p>
+                                    </div>
+                                    <pre class="text-xs lg:text-sm text-gray-300 bg-gray-800 p-3 rounded overflow-x-auto"><code>{
+  "taskType": "cloud-scale",
+  "resources": {
+    "vm": 2,
+    "cpu": 4,
+    "memory": "8GB"
+  },
+  "scalingPolicy": "auto",
+  "minInstances": 1,
+  "maxInstances": 5
+}</code></pre>
+                                </div>
+                            </details>
+
+                            <details class="bg-gray-700 rounded-lg">
+                                <summary class="p-3 cursor-pointer font-medium text-sm lg:text-base hover:bg-gray-600 rounded-lg transition-colors">
+                                    <i class="bi bi-robot"></i> AI Systems (Room 3)
+                                </summary>
+                                <div class="p-3 border-t border-gray-600">
+                                    <div class="mb-3 text-sm text-gray-300">
+                                        <p><strong>Purpose:</strong> AI training through card-based learning</p>
+                                        <p><strong>Task Type:</strong> <code class="bg-gray-800 px-1 rounded">ai-training</code></p>
+                                    </div>
+                                    <pre class="text-xs lg:text-sm text-gray-300 bg-gray-800 p-3 rounded overflow-x-auto"><code>{
+  "taskType": "ai-training",
+  "category": "ethics",
+  "dataset": [],
+  "algorithm": "decision-tree",
+  "trainingRounds": 5
+}</code></pre>
+                                </div>
+                            </details>
+
+                            <details class="bg-gray-700 rounded-lg">
+                                <summary class="p-3 cursor-pointer font-medium text-sm lg:text-base hover:bg-gray-600 rounded-lg transition-colors">
+                                    <i class="bi bi-database-x"></i> Database Emergency (Room 4)
+                                </summary>
+                                <div class="p-3 border-t border-gray-600">
+                                    <div class="mb-3 text-sm text-gray-300">
+                                        <p><strong>Purpose:</strong> SQL query writing and database management</p>
+                                        <p><strong>Task Type:</strong> <code class="bg-gray-800 px-1 rounded">sql-query</code></p>
+                                    </div>
+                                    <pre class="text-xs lg:text-sm text-gray-300 bg-gray-800 p-3 rounded overflow-x-auto"><code>{
+  "taskType": "sql-query",
+  "database": "emergency_db",
+  "tables": ["users", "orders", "products"],
+  "expectedQuery": "SELECT * FROM users WHERE active = 1",
+  "difficulty": "beginner"
+}</code></pre>
+                                </div>
+                            </details>
+
+                            <details class="bg-gray-700 rounded-lg">
+                                <summary class="p-3 cursor-pointer font-medium text-sm lg:text-base hover:bg-gray-600 rounded-lg transition-colors">
+                                    <i class="bi bi-bug"></i> Programming Crisis (Room 5)
+                                </summary>
+                                <div class="p-3 border-t border-gray-600">
+                                    <div class="mb-3 text-sm text-gray-300">
+                                        <p><strong>Purpose:</strong> Code debugging and programming logic</p>
+                                        <p><strong>Task Type:</strong> <code class="bg-gray-800 px-1 rounded">code-debug</code></p>
+                                    </div>
+                                    <pre class="text-xs lg:text-sm text-gray-300 bg-gray-800 p-3 rounded overflow-x-auto"><code>{
+  "taskType": "code-debug",
+  "code": "def example():\n    pass",
+  "language": "python",
+  "bugs": [],
+  "playerStart": { "x": 1, "y": 6 }
+}</code></pre>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Import/Export Guide -->
+                <div id="import-export" class="bg-gray-800 rounded-lg p-4 lg:p-6 mb-6">
+                    <h3 class="text-xl lg:text-2xl font-bold text-orange-400 mb-4">
+                        <i class="bi bi-arrow-repeat"></i> Import & Export
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="border border-purple-500 rounded-lg p-4">
+                            <h4 class="font-semibold text-purple-400 mb-3 text-sm lg:text-base">
+                                <i class="bi bi-upload"></i> Importing Levels
+                            </h4>
+                            <div class="space-y-2 text-xs lg:text-sm text-gray-300">
+                                <p>• Use JSON format with "levels" array</p>
+                                <p>• Each level needs level_number, name, and data</p>
+                                <p>• Check "overwrite" to replace existing levels</p>
+                                <p>• Validate JSON before importing</p>
+                                <p>• Supports bulk import for multiple levels</p>
+                                <p>• Automatic validation and error reporting</p>
+                            </div>
+                            <div class="mt-3">
+                                <button class="text-purple-400 hover:text-purple-300 text-sm" onclick="showImportExample()">
+                                    <i class="bi bi-eye"></i> Show Example Format
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="border border-yellow-500 rounded-lg p-4">
+                            <h4 class="font-semibold text-yellow-400 mb-3 text-sm lg:text-base">
+                                <i class="bi bi-download"></i> Exporting Levels
+                            </h4>
+                            <div class="space-y-2 text-xs lg:text-sm text-gray-300">
+                                <p>• Exports all levels for current room</p>
+                                <p>• Downloads as JSON file</p>
+                                <p>• Use for backups or sharing</p>
+                                <p>• Can be imported to other instances</p>
+                                <p>• Includes metadata and timestamps</p>
+                                <p>• Compatible with version control systems</p>
+                            </div>
+                            <div class="mt-3">
+                                <button class="text-yellow-400 hover:text-yellow-300 text-sm" onclick="downloadBackupGuide()">
+                                    <i class="bi bi-info-circle"></i> Backup Best Practices
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Advanced Import/Export Features -->
+                    <div class="mt-6 bg-gray-700 rounded-lg p-4">
+                        <h4 class="font-semibold text-cyan-400 mb-3">Advanced Features</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-300">
+                            <div>
+                                <h5 class="font-medium text-blue-400 mb-2">Batch Operations</h5>
+                                <ul class="space-y-1 text-xs lg:text-sm">
+                                    <li>• Import multiple rooms at once</li>
+                                    <li>• Selective import by level numbers</li>
+                                    <li>• Merge levels from different sources</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h5 class="font-medium text-green-400 mb-2">Version Control</h5>
+                                <ul class="space-y-1 text-xs lg:text-sm">
+                                    <li>• Export includes creation dates</li>
+                                    <li>• Track changes between versions</li>
+                                    <li>• Rollback to previous configurations</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Best Practices -->
+                <div id="best-practices" class="bg-gray-800 rounded-lg p-4 lg:p-6 mb-6">
+                    <h3 class="text-xl lg:text-2xl font-bold text-cyan-400 mb-4">
+                        <i class="bi bi-award"></i> Best Practices
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-gray-700 rounded-lg p-4">
+                            <h4 class="font-semibold text-green-400 mb-3 text-sm lg:text-base">Do's ✓</h4>
+                            <ul class="space-y-2 text-xs lg:text-sm text-gray-300">
+                                <li class="flex items-start"><i class="bi bi-check-circle text-green-400 mr-2 mt-1"></i>Use descriptive, meaningful level names</li>
+                                <li class="flex items-start"><i class="bi bi-check-circle text-green-400 mr-2 mt-1"></i>Test levels thoroughly before deployment</li>
+                                <li class="flex items-start"><i class="bi bi-check-circle text-green-400 mr-2 mt-1"></i>Export backups regularly for safety</li>
+                                <li class="flex items-start"><i class="bi bi-check-circle text-green-400 mr-2 mt-1"></i>Use sequential level numbers for progression</li>
+                                <li class="flex items-start"><i class="bi bi-check-circle text-green-400 mr-2 mt-1"></i>Validate JSON before saving changes</li>
+                                <li class="flex items-start"><i class="bi bi-check-circle text-green-400 mr-2 mt-1"></i>Provide clear, helpful instructions</li>
+                                <li class="flex items-start"><i class="bi bi-check-circle text-green-400 mr-2 mt-1"></i>Include useful hints for struggling players</li>
+                                <li class="flex items-start"><i class="bi bi-check-circle text-green-400 mr-2 mt-1"></i>Document custom configurations</li>
+                            </ul>
+                        </div>
+                        <div class="bg-gray-700 rounded-lg p-4">
+                            <h4 class="font-semibold text-red-400 mb-3 text-sm lg:text-base">Don'ts ✗</h4>
+                            <ul class="space-y-2 text-xs lg:text-sm text-gray-300">
+                                <li class="flex items-start"><i class="bi bi-x-circle text-red-400 mr-2 mt-1"></i>Don't skip level numbers in sequence</li>
+                                <li class="flex items-start"><i class="bi bi-x-circle text-red-400 mr-2 mt-1"></i>Don't use duplicate level numbers</li>
+                                <li class="flex items-start"><i class="bi bi-x-circle text-red-400 mr-2 mt-1"></i>Don't delete levels without backing up first</li>
+                                <li class="flex items-start"><i class="bi bi-x-circle text-red-400 mr-2 mt-1"></i>Don't ignore JSON validation errors</li>
+                                <li class="flex items-start"><i class="bi bi-x-circle text-red-400 mr-2 mt-1"></i>Don't make levels overly complex</li>
+                                <li class="flex items-start"><i class="bi bi-x-circle text-red-400 mr-2 mt-1"></i>Don't forget to define success criteria</li>
+                                <li class="flex items-start"><i class="bi bi-x-circle text-red-400 mr-2 mt-1"></i>Don't omit error handling scenarios</li>
+                                <li class="flex items-start"><i class="bi bi-x-circle text-red-400 mr-2 mt-1"></i>Don't deploy untested configurations</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Performance Tips -->
+                    <div class="mt-6 bg-gray-700 rounded-lg p-4">
+                        <h4 class="font-semibold text-blue-400 mb-3">Performance & Optimization Tips</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs lg:text-sm text-gray-300">
+                            <div>
+                                <p><strong>Level Design:</strong></p>
+                                <ul class="mt-1 space-y-1">
+                                    <li>• Keep JSON structures reasonably sized</li>
+                                    <li>• Avoid deeply nested objects when possible</li>
+                                    <li>• Use consistent naming conventions</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p><strong>Testing:</strong></p>
+                                <ul class="mt-1 space-y-1">
+                                    <li>• Test on different screen sizes</li>
+                                    <li>• Verify mobile compatibility</li>
+                                    <li>• Check loading times for complex levels</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Troubleshooting -->
+                <div id="troubleshooting" class="bg-gray-800 rounded-lg p-4 lg:p-6">
+                    <h3 class="text-xl lg:text-2xl font-bold text-red-400 mb-4">
+                        <i class="bi bi-exclamation-triangle"></i> Troubleshooting
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <details class="bg-gray-700 rounded-lg">
+                            <summary class="p-3 cursor-pointer hover:bg-gray-600 rounded-lg transition-colors text-sm lg:text-base">JSON Validation Errors</summary>
+                            <div class="p-3 border-t border-gray-600 text-xs lg:text-sm text-gray-300">
+                                <p class="font-medium mb-2">Common issues and solutions:</p>
+                                <ul class="list-disc ml-5 space-y-1">
+                                    <li><strong>Missing commas:</strong> Ensure commas separate all properties except the last one</li>
+                                    <li><strong>Unmatched quotes:</strong> Check that all strings are properly quoted</li>
+                                    <li><strong>Bracket mismatches:</strong> Verify all { } and [ ] are properly closed</li>
+                                    <li><strong>Trailing commas:</strong> Remove commas after the last property in objects</li>
+                                    <li><strong>Quick fix:</strong> Use the "Format JSON" button to auto-correct formatting</li>
+                                </ul>
+                            </div>
+                        </details>
+
+                        <details class="bg-gray-700 rounded-lg">
+                            <summary class="p-3 cursor-pointer hover:bg-gray-600 rounded-lg transition-colors text-sm lg:text-base">Level Not Loading in Game</summary>
+                            <div class="p-3 border-t border-gray-600 text-xs lg:text-sm text-gray-300">
+                                <p class="font-medium mb-2">Diagnostic steps:</p>
+                                <ul class="list-disc ml-5 space-y-1">
+                                    <li><strong>Check required properties:</strong> Ensure name, taskType, and room-specific fields are present</li>
+                                    <li><strong>Verify taskType:</strong> Must match the expected type for the room</li>
+                                    <li><strong>Browser console:</strong> Check for JavaScript errors in developer tools</li>
+                                    <li><strong>Network issues:</strong> Verify server connectivity and API responses</li>
+                                    <li><strong>Cache problems:</strong> Try a hard refresh (Ctrl+F5) or clear browser cache</li>
+                                </ul>
+                            </div>
+                        </details>
+
+                        <details class="bg-gray-700 rounded-lg">
+                            <summary class="p-3 cursor-pointer hover:bg-gray-600 rounded-lg transition-colors text-sm lg:text-base">Import/Export Issues</summary>
+                            <div class="p-3 border-t border-gray-600 text-xs lg:text-sm text-gray-300">
+                                <p class="font-medium mb-2">Common solutions:</p>
+                                <ul class="list-disc ml-5 space-y-1">
+                                    <li><strong>File format:</strong> Ensure JSON follows the documented structure</li>
+                                    <li><strong>File permissions:</strong> Check browser download settings for exports</li>
+                                    <li><strong>Level conflicts:</strong> Use "overwrite" option carefully to avoid data loss</li>
+                                    <li><strong>Large files:</strong> Break down large imports into smaller batches</li>
+                                    <li><strong>Encoding issues:</strong> Save files in UTF-8 encoding</li>
+                                </ul>
+                            </div>
+                        </details>
+
+                        <details class="bg-gray-700 rounded-lg">
+                            <summary class="p-3 cursor-pointer hover:bg-gray-600 rounded-lg transition-colors text-sm lg:text-base">Performance Issues</summary>
+                            <div class="p-3 border-t border-gray-600 text-xs lg:text-sm text-gray-300">
+                                <p class="font-medium mb-2">Optimization strategies:</p>
+                                <ul class="list-disc ml-5 space-y-1">
+                                    <li><strong>Large datasets:</strong> Reduce the size of embedded data arrays</li>
+                                    <li><strong>Complex objects:</strong> Simplify nested JSON structures</li>
+                                    <li><strong>Memory usage:</strong> Monitor browser memory consumption</li>
+                                    <li><strong>Loading times:</strong> Consider pagination for rooms with many levels</li>
+                                    <li><strong>Mobile devices:</strong> Test on lower-powered devices for compatibility</li>
+                                </ul>
+                            </div>
+                        </details>
+
+                        <details class="bg-gray-700 rounded-lg">
+                            <summary class="p-3 cursor-pointer hover:bg-gray-600 rounded-lg transition-colors text-sm lg:text-base">Database Connection Errors</summary>
+                            <div class="p-3 border-t border-gray-600 text-xs lg:text-sm text-gray-300">
+                                <p class="font-medium mb-2">Connection troubleshooting:</p>
+                                <ul class="list-disc ml-5 space-y-1">
+                                    <li><strong>Server status:</strong> Check if the backend server is running</li>
+                                    <li><strong>Database availability:</strong> Verify database service is active</li>
+                                    <li><strong>Network connectivity:</strong> Test internet connection and firewall settings</li>
+                                    <li><strong>Authentication:</strong> Ensure you're logged in with admin privileges</li>
+                                    <li><strong>Session timeout:</strong> Try logging out and back in</li>
+                                </ul>
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <!-- Emergency Contacts -->
+                    <div class="mt-6 bg-gray-700 rounded-lg p-4">
+                        <h4 class="font-semibold text-orange-400 mb-3">Need More Help?</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs lg:text-sm text-gray-300">
+                            <div>
+                                <p><strong>Documentation:</strong></p>
+                                <ul class="mt-1 space-y-1">
+                                    <li>• Check the system logs for detailed errors</li>
+                                    <li>• Review the API documentation</li>
+                                    <li>• Search the knowledge base</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p><strong>Support:</strong></p>
+                                <ul class="mt-1 space-y-1">
+                                    <li>• Contact system administrator</li>
+                                    <li>• Submit a bug report</li>
+                                    <li>• Check community forums</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -115,28 +692,68 @@
         </div>
     </main>
 
+    <!-- Import Example Modal -->
+    <div id="import-example-modal" class="fixed inset-0 bg-black bg-opacity-80 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg p-6 max-w-3xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Import Format Example</h3>
+                <button id="close-import-example" class="text-gray-400 hover:text-white text-2xl">
+                    <i class="bi bi-x-circle"></i>
+                </button>
+            </div>
+            <pre class="text-sm text-gray-300 bg-gray-900 p-4 rounded overflow-x-auto"><code>{
+  "room_id": 1,
+  "export_date": "2024-01-01T00:00:00.000Z",
+  "levels": [
+    {
+      "level_number": 1,
+      "name": "Basic Flowchart",
+      "data": {
+        "name": "Basic Flowchart",
+        "story": "Welcome to the Flowchart Lab...",
+        "objective": "Create a simple flowchart",
+        "character": "Dr. Flow",
+        "taskType": "flowchart",
+        "instruction": "Drag and connect the nodes...",
+        "hint": "Start with the Start node...",
+        "flowchartData": {
+          "startNode": { "id": "start", "type": "start", "text": "Start" },
+          "endNode": { "id": "end", "type": "end", "text": "End" },
+          "nodes": [],
+          "connections": []
+        },
+        "successCriteria": {}
+      }
+    }
+  ]
+}</code></pre>
+        </div>
+    </div>
+
     <!-- Create Level Modal -->
-    <div id="create-level-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 class="text-xl font-bold mb-4 text-blue-400">Create New Level</h3>
+    <div id="create-level-modal" class="fixed inset-0 bg-black bg-opacity-80 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold mb-4">Create New Level</h3>
             <form id="create-level-form">
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium mb-2">Level Number</label>
-                        <input type="number" name="level_number" min="1" required 
-                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
-                    </div>
-                    <div>
                         <label class="block text-sm font-medium mb-2">Level Name</label>
-                        <input type="text" name="name" required 
-                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                        <input type="text" name="name" required
+                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                               placeholder="Enter a descriptive name for this level">
                     </div>
-                    <div class="flex justify-end space-x-2">
-                        <button type="button" id="cancel-create" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded transition-colors">
-                            Cancel
+                    <div class="bg-blue-900 border border-blue-600 rounded-lg p-3">
+                        <div class="flex items-center">
+                            <i class="bi bi-info-circle text-blue-400 mr-2"></i>
+                            <span class="text-sm text-blue-200">Level number will be assigned automatically</span>
+                        </div>
+                    </div>
+                    <div class="flex space-x-4">
+                        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded transition-colors">
+                            Create Level
                         </button>
-                        <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-500 rounded transition-colors">
-                            Create
+                        <button type="button" id="cancel-create" class="flex-1 bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded transition-colors">
+                            Cancel
                         </button>
                     </div>
                 </div>
@@ -145,27 +762,29 @@
     </div>
 
     <!-- Import Levels Modal -->
-    <div id="import-levels-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-gray-800 p-6 rounded-lg max-w-2xl w-full mx-4">
-            <h3 class="text-xl font-bold mb-4 text-blue-400">Import Levels</h3>
+    <div id="import-levels-modal" class="fixed inset-0 bg-black bg-opacity-80 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4">
+            <h3 class="text-xl font-bold mb-4">Import Levels</h3>
             <form id="import-levels-form">
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium mb-2">JSON Data</label>
-                        <textarea name="json_data" rows="10" required 
-                                  class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white font-mono"
-                                  placeholder="Paste your exported JSON data here..."></textarea>
+                        <textarea name="json_data" rows="10" required
+                                  class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white font-mono text-sm"
+                                  placeholder='{"levels": [{"level_number": 1, "name": "Level Name", "data": {...}}]}'></textarea>
                     </div>
-                    <div class="flex items-center">
-                        <input type="checkbox" name="overwrite" id="overwrite-levels" class="mr-2">
-                        <label for="overwrite-levels" class="text-sm">Overwrite existing levels</label>
+                    <div>
+                        <label class="flex items-center">
+                            <input type="checkbox" name="overwrite" class="mr-2">
+                            <span class="text-sm">Overwrite existing levels</span>
+                        </label>
                     </div>
-                    <div class="flex justify-end space-x-2">
-                        <button type="button" id="cancel-import" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded transition-colors">
-                            Cancel
+                    <div class="flex space-x-4">
+                        <button type="submit" class="flex-1 bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded transition-colors">
+                            Import Levels
                         </button>
-                        <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded transition-colors">
-                            Import
+                        <button type="button" id="cancel-import" class="flex-1 bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded transition-colors">
+                            Cancel
                         </button>
                     </div>
                 </div>
@@ -173,6 +792,71 @@
         </div>
     </div>
 
+    <!-- Add SortableJS for drag and drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script>
+        // Add enhanced reorder handling to the existing level-editor.js functionality
+        
+        // Enhanced error handling for reorder operations
+        window.handleReorderError = function(error) {
+            console.error('Reorder error:', error);
+            
+            // Show user-friendly error message
+            const errorMessage = error.message || 'Failed to reorder levels';
+            
+            // Create error notification
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="bi bi-exclamation-triangle mr-2"></i>
+                    <span>Reorder failed: ${errorMessage}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+            
+            // Reload levels to reset the order
+            if (window.levelEditor && window.levelEditor.loadLevels) {
+                window.levelEditor.loadLevels();
+            }
+        };
+        
+        // Enhanced success handling for reorder operations
+        window.handleReorderSuccess = function(message) {
+            // Create success notification
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="bi bi-check-circle mr-2"></i>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 3000);
+        };
+    </script>
     <script src="/static/js/admin/level-editor.js"></script>
 </body>
 </html>

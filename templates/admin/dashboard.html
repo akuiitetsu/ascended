@@ -6,201 +6,289 @@
     <title>Admin Dashboard - AscendEd</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-    <style>
-        .admin-card {
-            transition: transform 0.2s;
-        }
-        .admin-card:hover {
-            transform: translateY(-2px);
-        }
-        .stat-number {
-            animation: fadeIn 0.5s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
 </head>
 <body class="bg-gray-900 text-white font-mono">
-    <!-- Header -->
-    <header class="bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 p-4 shadow-lg">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-3xl font-bold text-blue-100">
-                <i class="bi bi-shield-check"></i> AscendEd Admin Dashboard
-            </h1>
-            <div class="flex items-center space-x-4">
-                <span class="text-blue-300">Administrator</span>
-                <a href="/" class="bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded transition-colors">
-                    <i class="bi bi-house"></i> Back to Game
-                </a>
-                <button id="logout-btn" class="bg-red-600 hover:bg-red-500 px-3 py-2 rounded transition-colors">
-                    <i class="bi bi-box-arrow-right"></i> Logout
-                </button>
+    <header class="bg-gradient-to-r from-gray-900 via-red-900 to-purple-900 p-4 shadow-lg">
+        <div class="container mx-auto">
+            <!-- Desktop header -->
+            <div class="hidden md:flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-red-100">
+                    <i class="bi bi-shield-check"></i> Admin Dashboard
+                </h1>
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded transition-colors">
+                        <i class="bi bi-cpu"></i> Command Center
+                    </a>
+                    <button id="logout-btn" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded transition-colors">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mobile header -->
+            <div class="md:hidden">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-xl font-bold text-red-100">
+                        <i class="bi bi-shield-check"></i> Admin
+                    </h1>
+                    <button id="mobile-menu-toggle" class="text-white p-2">
+                        <i class="bi bi-list text-xl"></i>
+                    </button>
+                </div>
+                
+                <!-- Mobile menu -->
+                <div id="mobile-menu" class="hidden mt-4 space-y-2">
+                    <a href="/" class="block bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded transition-colors text-center">
+                        <i class="bi bi-cpu"></i> Command Center
+                    </a>
+                    <button id="logout-btn-mobile" class="w-full bg-red-600 hover:bg-red-500 px-4 py-2 rounded transition-colors">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </button>
+                </div>
             </div>
         </div>
     </header>
 
-    <main class="container mx-auto p-6">
-        <!-- Statistics Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="admin-card bg-blue-900 border border-blue-600 rounded-lg p-6">
-                <div class="flex items-center">
-                    <i class="bi bi-people text-4xl text-blue-400 mr-4"></i>
-                    <div>
-                        <h3 class="text-lg font-bold text-blue-200">Total Users</h3>
-                        <p id="total-users" class="text-3xl font-bold text-blue-100 stat-number">-</p>
-                        <p class="text-sm text-blue-300">Registered players</p>
-                    </div>
+    <main class="container mx-auto p-4 lg:p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
+            <!-- System Stats -->
+            <div class="bg-gray-800 border border-gray-600 rounded-lg p-4 lg:p-6">
+                <h3 class="text-lg lg:text-xl font-bold mb-4 text-green-400">
+                    <i class="bi bi-graph-up"></i> System Stats
+                </h3>
+                <div class="space-y-2">
+                    <p class="text-sm lg:text-base">Total Users: <span id="total-users" class="text-green-300">Loading...</span></p>
+                    <p class="text-sm lg:text-base">Active Sessions: <span id="active-sessions" class="text-blue-300">Loading...</span></p>
                 </div>
             </div>
-            
-            <div class="admin-card bg-green-900 border border-green-600 rounded-lg p-6">
-                <div class="flex items-center">
-                    <i class="bi bi-activity text-4xl text-green-400 mr-4"></i>
-                    <div>
-                        <h3 class="text-lg font-bold text-green-200">Active Sessions</h3>
-                        <p id="active-sessions" class="text-3xl font-bold text-green-100 stat-number">-</p>
-                        <p class="text-sm text-green-300">Last 24 hours</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="admin-card bg-purple-900 border border-purple-600 rounded-lg p-6">
-                <div class="flex items-center">
-                    <i class="bi bi-database text-4xl text-purple-400 mr-4"></i>
-                    <div>
-                        <h3 class="text-lg font-bold text-purple-200">Database Size</h3>
-                        <p id="db-size" class="text-3xl font-bold text-purple-100 stat-number">-</p>
-                        <p class="text-sm text-purple-300">Storage used</p>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Management Sections -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- User Management -->
-            <div class="bg-gray-800 border border-gray-600 rounded-lg p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-white flex items-center">
-                        <i class="bi bi-person-gear mr-2"></i>User Management
-                    </h2>
-                    <button id="refresh-users" class="bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded text-sm transition-colors">
-                        <i class="bi bi-arrow-clockwise"></i> Refresh
+            <!-- Quick Actions -->
+            <div class="bg-gray-800 border border-gray-600 rounded-lg p-4 lg:p-6">
+                <h3 class="text-lg lg:text-xl font-bold mb-4 text-blue-400">
+                    <i class="bi bi-lightning"></i> Quick Actions
+                </h3>
+                <div class="space-y-2">
+                    <button class="w-full bg-blue-600 hover:bg-blue-500 px-3 lg:px-4 py-2 rounded transition-colors text-sm lg:text-base" onclick="backupDatabase()">
+                        <i class="bi bi-download"></i> Backup Database
+                    </button>
+                    <button class="w-full bg-yellow-600 hover:bg-yellow-500 px-3 lg:px-4 py-2 rounded transition-colors text-sm lg:text-base" onclick="clearSessions()">
+                        <i class="bi bi-trash"></i> Clear Old Sessions
                     </button>
                 </div>
-                
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="border-b border-gray-600">
-                                <th class="text-left py-2 text-gray-300">Username</th>
-                                <th class="text-left py-2 text-gray-300">Email</th>
-                                <th class="text-left py-2 text-gray-300">Role</th>
-                                <th class="text-left py-2 text-gray-300">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="users-table">
-                            <tr>
-                                <td colspan="4" class="text-center py-4 text-gray-400">Loading users...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
             </div>
 
-            <!-- Game Statistics -->
-            <div class="bg-gray-800 border border-gray-600 rounded-lg p-6">
-                <h2 class="text-xl font-bold text-white mb-4 flex items-center">
-                    <i class="bi bi-graph-up mr-2"></i>Game Statistics
-                </h2>
-                
-                <div class="space-y-4">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-300 mb-2">Level Completion</h3>
-                        <div id="level-stats" class="space-y-2">
-                            <div class="text-gray-400">Loading level data...</div>
+            <!-- System Health -->
+            <div class="bg-gray-800 border border-gray-600 rounded-lg p-4 lg:p-6 md:col-span-2 xl:col-span-1">
+                <h3 class="text-lg lg:text-xl font-bold mb-4 text-purple-400">
+                    <i class="bi bi-heart-pulse"></i> System Health
+                </h3>
+                <div class="space-y-2">
+                    <p class="text-sm lg:text-base">Database: <span id="db-status" class="text-green-300">Connected</span></p>
+                    <p class="text-sm lg:text-base">Memory Usage: <span id="memory-usage" class="text-yellow-300">Normal</span></p>
+                    <p class="text-sm lg:text-base">Uptime: <span id="uptime" class="text-blue-300">{{ uptime or 'Unknown' }}</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Management -->
+        <div class="bg-gray-800 border border-gray-600 rounded-lg p-4 lg:p-6 mb-6">
+            <!-- Header Section - Fully Responsive -->
+            <div class="flex flex-col space-y-4 mb-6">
+                <div class="flex flex-col xs:flex-row xs:justify-between xs:items-start lg:items-center space-y-3 xs:space-y-0">
+                    <h3 class="text-xl lg:text-2xl font-bold text-red-400">
+                        <i class="bi bi-people"></i> User Management
+                    </h3>
+                    
+                    <!-- Stats and Controls Container -->
+                    <div class="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                        <!-- User Count Display -->
+                        <div class="user-stats bg-gray-700 px-3 py-2 rounded-lg border border-gray-600 order-2 sm:order-1">
+                            <span id="user-count-display" class="text-sm font-medium text-gray-300">0 users</span>
+                        </div>
+                        
+                        <!-- Filter Controls -->
+                        <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 bg-gray-700 px-3 py-2 rounded-lg border border-gray-600 order-1 sm:order-2">
+                            <div class="flex items-center space-x-2">
+                                <i class="bi bi-funnel text-gray-400"></i>
+                                <label class="text-sm text-gray-300">Filter:</label>
+                            </div>
+                            <select id="user-filter" class="bg-gray-600 border border-gray-500 rounded px-2 py-1 text-white text-sm w-full sm:w-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="all">All Users</option>
+                                <option value="users">Regular Users</option>
+                                <option value="admins">Administrators</option>
+                            </select>
                         </div>
                     </div>
-                    
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-300 mb-2">Recent Activity</h3>
-                        <div id="recent-activity" class="space-y-2 max-h-48 overflow-y-auto">
-                            <div class="text-gray-400">Loading activity...</div>
-                        </div>
+                </div>
+                
+                <!-- Search Bar (Mobile-first) -->
+                <div class="flex items-center space-x-2">
+                    <div class="relative flex-1">
+                        <i class="bi bi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input 
+                            type="text" 
+                            id="user-search" 
+                            placeholder="Search users by name or email..." 
+                            class="w-full bg-gray-700 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                    </div>
+                    <button 
+                        id="clear-search" 
+                        class="bg-gray-600 hover:bg-gray-500 border border-gray-500 px-3 py-2 rounded-lg transition-colors hidden"
+                        title="Clear search"
+                    >
+                        <i class="bi bi-x-lg text-sm"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Desktop Table (Hidden on mobile/tablet) -->
+            <div class="hidden xl:block overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-600">
+                            <th class="text-left p-3 font-semibold">User</th>
+                            <th class="text-left p-3 font-semibold">Email</th>
+                            <th class="text-left p-3 font-semibold">Role</th>
+                            <th class="text-left p-3 font-semibold">Created</th>
+                            <th class="text-left p-3 font-semibold">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table">
+                        <tr>
+                            <td colspan="5" class="text-center p-4">Loading users...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Tablet Table (Simplified columns) -->
+            <div class="hidden lg:block xl:hidden overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-600">
+                            <th class="text-left p-3 font-semibold">User</th>
+                            <th class="text-left p-3 font-semibold">Role</th>
+                            <th class="text-left p-3 font-semibold">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-tablet">
+                        <tr>
+                            <td colspan="3" class="text-center p-4">Loading users...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Mobile/Small Tablet Card Layout -->
+            <div class="lg:hidden" id="users-cards">
+                <div class="text-center p-4 text-gray-400">Loading users...</div>
+            </div>
+            
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden text-center py-12">
+                <i class="bi bi-people text-gray-500 text-4xl mb-4"></i>
+                <h4 class="text-lg font-semibold text-gray-400 mb-2">No users found</h4>
+                <p class="text-gray-500 text-sm">Try adjusting your search or filter criteria</p>
+            </div>
+        </div>
+
+        <!-- Game Progress Overview -->
+        <div class="bg-gray-800 border border-gray-600 rounded-lg p-4 lg:p-6 mb-6">
+            <h3 class="text-xl lg:text-2xl font-bold mb-4 text-green-400">
+                <i class="bi bi-trophy"></i> Game Progress Overview
+            </h3>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                <div>
+                    <h4 class="text-lg font-semibold mb-2">Level Completion Stats</h4>
+                    <div id="level-stats" class="space-y-2 text-sm lg:text-base">
+                        <p>Loading statistics...</p>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-2">Recent Activity</h4>
+                    <div id="recent-activity" class="space-y-2 max-h-40 overflow-y-auto text-sm lg:text-base">
+                        <p>Loading activity...</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Database Management -->
-        <div class="mt-8 bg-gray-800 border border-gray-600 rounded-lg p-6">
-            <h2 class="text-xl font-bold text-white mb-4 flex items-center">
-                <i class="bi bi-database-gear mr-2"></i>Database Management
-            </h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button id="backup-db" class="bg-green-600 hover:bg-green-500 p-4 rounded-lg transition-colors">
-                    <i class="bi bi-download text-2xl block mb-2"></i>
-                    <span class="font-bold">Backup Database</span>
-                    <div class="text-sm opacity-75">Download .db file</div>
-                </button>
-                
-                <button id="clear-sessions" class="bg-orange-600 hover:bg-orange-500 p-4 rounded-lg transition-colors">
-                    <i class="bi bi-trash text-2xl block mb-2"></i>
-                    <span class="font-bold">Clear Old Sessions</span>
-                    <div class="text-sm opacity-75">Remove 7+ day old data</div>
-                </button>
-                
-                <a href="/admin/level-editor" class="bg-purple-600 hover:bg-purple-500 p-4 rounded-lg transition-colors text-center block">
-                    <i class="bi bi-pencil-square text-2xl block mb-2"></i>
-                    <span class="font-bold">Level Editor</span>
-                    <div class="text-sm opacity-75">Manage game levels</div>
-                </a>
-            </div>
+        <!-- Level Editor -->
+        <div class="bg-gray-800 border border-gray-600 rounded-lg p-4 lg:p-6">
+            <h3 class="text-xl lg:text-2xl font-bold mb-4 text-purple-400">
+                <i class="bi bi-tools"></i> Level Editor
+            </h3>
+            <p class="text-purple-100 mb-4 text-sm lg:text-base">Create and edit game levels for all rooms</p>
+            <a href="/admin/level-editor" class="bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded transition-colors inline-block text-sm lg:text-base">
+                <i class="bi bi-pencil-square"></i> Open Editor
+            </a>
         </div>
     </main>
 
-    <!-- User Action Modal -->
-    <div id="user-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-gray-800 border border-gray-600 rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 id="modal-title" class="text-xl font-bold text-white mb-4"></h3>
-            <p id="modal-message" class="text-gray-300 mb-6"></p>
-            <div class="flex justify-end space-x-4">
-                <button id="modal-cancel" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded transition-colors">
-                    Cancel
-                </button>
-                <button id="modal-confirm" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded transition-colors">
-                    Confirm
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Success/Error Messages -->
-    <div id="message-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
-
     <script>
+        // Admin dashboard functionality
         class AdminDashboard {
             constructor() {
-                this.currentUser = null;
-                this.users = [];
-                this.stats = {};
-                this.init();
+                this.allUsers = []; // Store all users for filtering
+                this.currentFilter = 'all';
+                this.searchTerm = '';
+                this.loadStats();
+                this.loadUsers();
+                this.loadGameStats();
+                this.bindEvents();
             }
 
-            async init() {
-                await this.loadStats();
-                await this.loadUsers();
-                await this.loadGameStats();
-                this.setupEventListeners();
+            bindEvents() {
+                // Desktop logout
+                document.getElementById('logout-btn').addEventListener('click', async () => {
+                    await fetch('/api/auth/logout');
+                    window.location.href = '/';
+                });
                 
-                // Auto-refresh every 30 seconds
-                setInterval(() => {
-                    this.loadStats();
-                    this.loadGameStats();
-                }, 30000);
+                // Mobile logout
+                document.getElementById('logout-btn-mobile').addEventListener('click', async () => {
+                    await fetch('/api/auth/logout');
+                    window.location.href = '/';
+                });
+                
+                // Mobile menu toggle
+                document.getElementById('mobile-menu-toggle').addEventListener('click', () => {
+                    const menu = document.getElementById('mobile-menu');
+                    const icon = document.querySelector('#mobile-menu-toggle i');
+                    
+                    menu.classList.toggle('hidden');
+                    icon.className = menu.classList.contains('hidden') ? 'bi bi-list text-xl' : 'bi bi-x text-xl';
+                });
+
+                // Add user filter event listener
+                document.getElementById('user-filter').addEventListener('change', (e) => {
+                    this.currentFilter = e.target.value;
+                    this.filterAndRenderUsers();
+                });
+                
+                // Add search functionality
+                const searchInput = document.getElementById('user-search');
+                const clearSearchBtn = document.getElementById('clear-search');
+                
+                searchInput.addEventListener('input', (e) => {
+                    this.searchTerm = e.target.value.toLowerCase();
+                    this.filterAndRenderUsers();
+                    
+                    // Show/hide clear button
+                    if (this.searchTerm) {
+                        clearSearchBtn.classList.remove('hidden');
+                    } else {
+                        clearSearchBtn.classList.add('hidden');
+                    }
+                });
+                
+                clearSearchBtn.addEventListener('click', () => {
+                    searchInput.value = '';
+                    this.searchTerm = '';
+                    clearSearchBtn.classList.add('hidden');
+                    this.filterAndRenderUsers();
+                });
             }
 
             async loadStats() {
@@ -209,8 +297,8 @@
                     const data = await response.json();
                     
                     if (data.status === 'success') {
-                        this.stats = data.stats;
-                        this.updateStatsDisplay();
+                        document.getElementById('total-users').textContent = data.stats.total_users;
+                        document.getElementById('active-sessions').textContent = data.stats.active_sessions;
                     }
                 } catch (error) {
                     console.error('Failed to load stats:', error);
@@ -223,13 +311,208 @@
                     const data = await response.json();
                     
                     if (data.status === 'success') {
-                        this.users = data.users;
-                        this.updateUsersTable();
+                        this.allUsers = data.users;
+                        this.filterAndRenderUsers();
                     }
                 } catch (error) {
                     console.error('Failed to load users:', error);
-                    this.showMessage('Failed to load users', 'error');
                 }
+            }
+
+            filterAndRenderUsers() {
+                let filteredUsers = this.allUsers;
+                
+                // Apply role filter
+                if (this.currentFilter === 'users') {
+                    filteredUsers = filteredUsers.filter(user => !user.is_admin);
+                } else if (this.currentFilter === 'admins') {
+                    filteredUsers = filteredUsers.filter(user => user.is_admin);
+                }
+                
+                // Apply search filter
+                if (this.searchTerm) {
+                    filteredUsers = filteredUsers.filter(user => 
+                        user.username.toLowerCase().includes(this.searchTerm) ||
+                        user.email.toLowerCase().includes(this.searchTerm)
+                    );
+                }
+                
+                this.renderUsersTable(filteredUsers);
+                this.updateUserCountDisplay(filteredUsers.length);
+                
+                // Show/hide empty state
+                const emptyState = document.getElementById('empty-state');
+                const hasUsers = filteredUsers.length > 0;
+                
+                document.getElementById('users-table').closest('.xl\\:block').style.display = hasUsers ? '' : 'none';
+                document.getElementById('users-table-tablet').closest('.lg\\:block').style.display = hasUsers ? '' : 'none';
+                document.getElementById('users-cards').style.display = hasUsers ? '' : 'none';
+                
+                if (hasUsers) {
+                    emptyState.classList.add('hidden');
+                } else {
+                    emptyState.classList.remove('hidden');
+                }
+            }
+
+            updateUserCountDisplay(count) {
+                const display = document.getElementById('user-count-display');
+                const filterText = this.currentFilter === 'all' ? 'users' : 
+                                  this.currentFilter === 'users' ? 'regular users' : 'administrators';
+                const searchText = this.searchTerm ? ' (filtered)' : '';
+                display.textContent = `${count} ${filterText}${searchText}`;
+            }
+
+            renderUsersTable(users) {
+                // Desktop table rendering
+                const tbody = document.getElementById('users-table');
+                tbody.innerHTML = '';
+                
+                // Tablet table rendering
+                const tabletTbody = document.getElementById('users-table-tablet');
+                tabletTbody.innerHTML = '';
+                
+                if (users.length === 0) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td colspan="5" class="text-center p-4 text-gray-400">No users found</td>`;
+                    tbody.appendChild(row);
+                    
+                    const tabletRow = document.createElement('tr');
+                    tabletRow.innerHTML = `<td colspan="3" class="text-center p-4 text-gray-400">No users found</td>`;
+                    tabletTbody.appendChild(tabletRow);
+                } else {
+                    users.forEach(user => {
+                        // Desktop table row
+                        const row = document.createElement('tr');
+                        row.className = 'border-b border-gray-700 hover:bg-gray-750 transition-colors';
+                        
+                        const roleDisplay = user.is_admin ? 
+                            '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-900 text-red-200 border border-red-700"><i class="bi bi-shield-check mr-1"></i>Administrator</span>' :
+                            '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-900 text-blue-200 border border-blue-700"><i class="bi bi-person mr-1"></i>User</span>';
+                        
+                        row.innerHTML = `
+                            <td class="p-3">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full ${user.is_admin ? 'bg-red-600' : 'bg-blue-600'} flex items-center justify-center mr-3">
+                                        <i class="bi ${user.is_admin ? 'bi-shield-check' : 'bi-person'} text-white text-sm"></i>
+                                    </div>
+                                    <span class="font-medium">${user.username}</span>
+                                </div>
+                            </td>
+                            <td class="p-3 text-gray-300">${user.email}</td>
+                            <td class="p-3">${roleDisplay}</td>
+                            <td class="p-3 text-gray-400">${new Date(user.created_at).toLocaleDateString()}</td>
+                            <td class="p-3">
+                                <div class="flex space-x-2">
+                                    <button class="bg-yellow-600 hover:bg-yellow-500 px-2 py-1 rounded text-xs transition-colors" 
+                                            onclick="toggleAdmin(${user.id}, ${user.is_admin})"
+                                            title="${user.is_admin ? 'Remove Admin' : 'Make Admin'}">
+                                        <i class="bi ${user.is_admin ? 'bi-shield-slash' : 'bi-shield-plus'}"></i>
+                                        <span class="hidden lg:inline">${user.is_admin ? 'Remove Admin' : 'Make Admin'}</span>
+                                    </button>
+                                    <button class="bg-red-600 hover:bg-red-500 px-2 py-1 rounded text-xs transition-colors" 
+                                            onclick="deleteUser(${user.id})"
+                                            title="Delete User">
+                                        <i class="bi bi-trash"></i>
+                                        <span class="hidden lg:inline">Delete</span>
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                        
+                        // Tablet table row (simplified)
+                        const tabletRow = document.createElement('tr');
+                        tabletRow.className = 'border-b border-gray-700 hover:bg-gray-750 transition-colors';
+                        
+                        tabletRow.innerHTML = `
+                            <td class="p-3">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-full ${user.is_admin ? 'bg-red-600' : 'bg-blue-600'} flex items-center justify-center mr-3">
+                                        <i class="bi ${user.is_admin ? 'bi-shield-check' : 'bi-person'} text-white"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">${user.username}</div>
+                                        <div class="text-sm text-gray-400">${user.email}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-3">${roleDisplay}</td>
+                            <td class="p-3">
+                                <div class="flex space-x-1">
+                                    <button class="bg-yellow-600 hover:bg-yellow-500 p-2 rounded text-sm transition-colors" 
+                                            onclick="toggleAdmin(${user.id}, ${user.is_admin})"
+                                            title="${user.is_admin ? 'Remove Admin' : 'Make Admin'}">
+                                        <i class="bi ${user.is_admin ? 'bi-shield-slash' : 'bi-shield-plus'}"></i>
+                                    </button>
+                                    <button class="bg-red-600 hover:bg-red-500 p-2 rounded text-sm transition-colors" 
+                                            onclick="deleteUser(${user.id})"
+                                            title="Delete User">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+                        tabletTbody.appendChild(tabletRow);
+                    });
+                }
+                
+                // Mobile card rendering
+                this.renderUserCards(users);
+            }
+            
+            renderUserCards(users) {
+                const cardsContainer = document.getElementById('users-cards');
+                cardsContainer.innerHTML = '';
+                
+                if (users.length === 0) {
+                    cardsContainer.innerHTML = '<div class="text-center p-4 text-gray-400">No users found</div>';
+                    return;
+                }
+                
+                users.forEach(user => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-gray-700 border border-gray-600 rounded-lg p-4 mb-3 hover:bg-gray-650 transition-colors';
+                    
+                    const roleDisplay = user.is_admin ? 
+                        '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-900 text-red-200 border border-red-700"><i class="bi bi-shield-check mr-1"></i>Admin</span>' :
+                        '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-900 text-blue-200 border border-blue-700"><i class="bi bi-person mr-1"></i>User</span>';
+                    
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center flex-1 min-w-0">
+                                <div class="w-12 h-12 rounded-full ${user.is_admin ? 'bg-red-600' : 'bg-blue-600'} flex items-center justify-center mr-3 flex-shrink-0">
+                                    <i class="bi ${user.is_admin ? 'bi-shield-check' : 'bi-person'} text-white text-lg"></i>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <h4 class="font-semibold text-white truncate">${user.username}</h4>
+                                    <p class="text-sm text-gray-300 truncate">${user.email}</p>
+                                </div>
+                            </div>
+                            <div class="ml-3 flex-shrink-0">
+                                ${roleDisplay}
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center text-sm mb-3">
+                            <span class="text-gray-400">Joined: ${new Date(user.created_at).toLocaleDateString()}</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <button class="bg-yellow-600 hover:bg-yellow-500 px-3 py-2 rounded text-sm transition-colors flex items-center justify-center" 
+                                    onclick="toggleAdmin(${user.id}, ${user.is_admin})">
+                                <i class="bi ${user.is_admin ? 'bi-shield-slash' : 'bi-shield-plus'} mr-1"></i>
+                                <span class="truncate">${user.is_admin ? 'Remove Admin' : 'Make Admin'}</span>
+                            </button>
+                            <button class="bg-red-600 hover:bg-red-500 px-3 py-2 rounded text-sm transition-colors flex items-center justify-center" 
+                                    onclick="deleteUser(${user.id})">
+                                <i class="bi bi-trash mr-1"></i>
+                                <span>Delete</span>
+                            </button>
+                        </div>
+                    `;
+                    cardsContainer.appendChild(card);
+                });
             }
 
             async loadGameStats() {
@@ -238,256 +521,120 @@
                     const data = await response.json();
                     
                     if (data.status === 'success') {
-                        this.updateGameStats(data.stats);
+                        this.renderGameStats(data.stats);
                     }
                 } catch (error) {
                     console.error('Failed to load game stats:', error);
                 }
             }
 
-            updateStatsDisplay() {
-                document.getElementById('total-users').textContent = this.stats.total_users || 0;
-                document.getElementById('active-sessions').textContent = this.stats.active_sessions || 0;
-                document.getElementById('db-size').textContent = this.stats.db_size || 'Unknown';
-            }
-
-            updateUsersTable() {
-                const tbody = document.getElementById('users-table');
+            renderGameStats(stats) {
+                const levelStats = document.getElementById('level-stats');
+                const recentActivity = document.getElementById('recent-activity');
                 
-                if (this.users.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400">No users found</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = this.users.map(user => `
-                    <tr class="border-b border-gray-700 hover:bg-gray-700">
-                        <td class="py-3 text-white">${user.username}</td>
-                        <td class="py-3 text-gray-300">${user.email}</td>
-                        <td class="py-3">
-                            <span class="px-2 py-1 rounded text-xs ${user.is_admin ? 'bg-red-600 text-white' : 'bg-gray-600 text-gray-200'}">
-                                ${user.is_admin ? 'Admin' : 'User'}
-                            </span>
-                        </td>
-                        <td class="py-3">
-                            <div class="flex space-x-2">
-                                <button onclick="admin.toggleAdmin(${user.id}, ${!user.is_admin})" 
-                                        class="bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded text-xs transition-colors">
-                                    ${user.is_admin ? 'Remove Admin' : 'Make Admin'}
-                                </button>
-                                <button onclick="admin.deleteUser(${user.id}, '${user.username}')" 
-                                        class="bg-red-600 hover:bg-red-500 px-2 py-1 rounded text-xs transition-colors">
-                                    Delete
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `).join('');
-            }
-
-            updateGameStats(stats) {
-                // Level completion stats
-                const levelStatsContainer = document.getElementById('level-stats');
-                if (stats.level_completion && stats.level_completion.length > 0) {
-                    levelStatsContainer.innerHTML = stats.level_completion.map(level => `
-                        <div class="flex justify-between items-center bg-gray-700 p-2 rounded">
-                            <span class="text-gray-300">Level ${level.level}</span>
-                            <span class="text-blue-400 font-bold">${level.completions} completions</span>
-                        </div>
-                    `).join('');
-                } else {
-                    levelStatsContainer.innerHTML = '<div class="text-gray-400">No level data available</div>';
-                }
-
-                // Recent activity
-                const activityContainer = document.getElementById('recent-activity');
-                if (stats.recent_activity && stats.recent_activity.length > 0) {
-                    activityContainer.innerHTML = stats.recent_activity.map(activity => `
-                        <div class="bg-gray-700 p-2 rounded text-sm">
-                            <div class="text-white">${activity.username}</div>
-                            <div class="text-gray-400">Level ${activity.level} • ${new Date(activity.timestamp).toLocaleString()}</div>
-                        </div>
-                    `).join('');
-                } else {
-                    activityContainer.innerHTML = '<div class="text-gray-400">No recent activity</div>';
-                }
-            }
-
-            setupEventListeners() {
-                // Refresh users button
-                document.getElementById('refresh-users').addEventListener('click', () => {
-                    this.loadUsers();
-                });
-
-                // Database operations
-                document.getElementById('backup-db').addEventListener('click', () => {
-                    this.backupDatabase();
-                });
-
-                document.getElementById('clear-sessions').addEventListener('click', () => {
-                    this.clearOldSessions();
-                });
-
-                // Logout button
-                document.getElementById('logout-btn').addEventListener('click', () => {
-                    this.logout();
-                });
-
-                // Modal handlers
-                document.getElementById('modal-cancel').addEventListener('click', () => {
-                    this.hideModal();
-                });
-
-                document.getElementById('modal-confirm').addEventListener('click', () => {
-                    this.executeModalAction();
-                });
-            }
-
-            async toggleAdmin(userId, makeAdmin) {
-                try {
-                    const response = await fetch('/api/admin/toggle-admin', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: userId, is_admin: makeAdmin })
-                    });
-
-                    const data = await response.json();
-                    if (data.status === 'success') {
-                        this.showMessage(data.message, 'success');
-                        await this.loadUsers();
-                    } else {
-                        this.showMessage(data.message, 'error');
-                    }
-                } catch (error) {
-                    this.showMessage('Failed to update user role', 'error');
-                }
-            }
-
-            deleteUser(userId, username) {
-                this.showModal(
-                    'Delete User',
-                    `Are you sure you want to delete user "${username}"? This action cannot be undone.`,
-                    async () => {
-                        try {
-                            const response = await fetch('/api/admin/delete-user', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ user_id: userId })
-                            });
-
-                            const data = await response.json();
-                            if (data.status === 'success') {
-                                this.showMessage(data.message, 'success');
-                                await this.loadUsers();
-                                await this.loadStats();
-                            } else {
-                                this.showMessage(data.message, 'error');
-                            }
-                        } catch (error) {
-                            this.showMessage('Failed to delete user', 'error');
-                        }
-                    }
-                );
-            }
-
-            async backupDatabase() {
-                try {
-                    const response = await fetch('/api/admin/backup-db');
-                    
-                    if (response.ok) {
-                        const blob = await response.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = response.headers.get('Content-Disposition')?.split('filename=')[1] || 'backup.db';
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        window.URL.revokeObjectURL(url);
-                        
-                        this.showMessage('Database backup downloaded', 'success');
-                    } else {
-                        this.showMessage('Failed to create backup', 'error');
-                    }
-                } catch (error) {
-                    this.showMessage('Failed to download backup', 'error');
-                }
-            }
-
-            async clearOldSessions() {
-                this.showModal(
-                    'Clear Old Sessions',
-                    'This will delete all game sessions older than 7 days. Continue?',
-                    async () => {
-                        try {
-                            const response = await fetch('/api/admin/clear-sessions', {
-                                method: 'POST'
-                            });
-
-                            const data = await response.json();
-                            if (data.status === 'success') {
-                                this.showMessage(data.message, 'success');
-                                await this.loadStats();
-                            } else {
-                                this.showMessage('Failed to clear sessions', 'error');
-                            }
-                        } catch (error) {
-                            this.showMessage('Failed to clear sessions', 'error');
-                        }
-                    }
-                );
-            }
-
-            showModal(title, message, confirmAction) {
-                document.getElementById('modal-title').textContent = title;
-                document.getElementById('modal-message').textContent = message;
-                document.getElementById('user-modal').classList.remove('hidden');
-                document.getElementById('user-modal').classList.add('flex');
-                this.modalAction = confirmAction;
-            }
-
-            hideModal() {
-                document.getElementById('user-modal').classList.add('hidden');
-                document.getElementById('user-modal').classList.remove('flex');
-                this.modalAction = null;
-            }
-
-            executeModalAction() {
-                if (this.modalAction) {
-                    this.modalAction();
-                }
-                this.hideModal();
-            }
-
-            showMessage(message, type) {
-                const container = document.getElementById('message-container');
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `p-3 rounded border ${
-                    type === 'success' ? 'bg-green-800 text-green-200 border-green-600' :
-                    type === 'error' ? 'bg-red-800 text-red-200 border-red-600' :
-                    'bg-blue-800 text-blue-200 border-blue-600'
-                }`;
-                messageDiv.textContent = message;
-
-                container.appendChild(messageDiv);
-
-                setTimeout(() => {
-                    container.removeChild(messageDiv);
-                }, 5000);
-            }
-
-            async logout() {
-                try {
-                    await fetch('/api/auth/logout');
-                    window.location.href = '/';
-                } catch (error) {
-                    this.showMessage('Logout failed', 'error');
-                }
+                levelStats.innerHTML = stats.level_completion.map(level => 
+                    `<p>Level ${level.level}: ${level.completions} completions</p>`
+                ).join('');
+                
+                recentActivity.innerHTML = stats.recent_activity.map(activity => 
+                    `<p class="text-sm">${activity.username} - Level ${activity.level} - ${new Date(activity.timestamp).toLocaleString()}</p>`
+                ).join('');
             }
         }
 
-        // Initialize admin dashboard
-        const admin = new AdminDashboard();
-        window.admin = admin; // Make available globally for onclick handlers
+        // Global functions for user actions
+        async function toggleAdmin(userId, isAdmin) {
+            if (!confirm(`Are you sure you want to ${isAdmin ? 'remove admin access from' : 'grant admin access to'} this user?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/toggle-admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, is_admin: !isAdmin })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    // Reload users instead of entire page for better UX
+                    const dashboard = window.adminDashboard;
+                    if (dashboard) {
+                        await dashboard.loadUsers();
+                    } else {
+                        window.location.reload();
+                    }
+                } else {
+                    alert(result.message || 'Failed to update user');
+                }
+            } catch (error) {
+                console.error('Toggle admin error:', error);
+                alert('Failed to update user');
+            }
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/delete-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    // Reload users instead of entire page for better UX
+                    const dashboard = window.adminDashboard;
+                    if (dashboard) {
+                        await dashboard.loadUsers();
+                    } else {
+                        window.location.reload();
+                    }
+                } else {
+                    alert(result.message || 'Failed to delete user');
+                }
+            } catch (error) {
+                console.error('Delete user error:', error);
+                alert('Failed to delete user');
+            }
+        }
+
+        function backupDatabase() {
+            window.location.href = '/api/admin/backup-db';
+        }
+
+        async function clearSessions() {
+            if (!confirm('Clear all old game sessions (older than 7 days)?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/clear-sessions', { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    alert(result.message);
+                    // Reload stats to reflect changes
+                    window.location.reload();
+                } else {
+                    alert(result.message || 'Failed to clear sessions');
+                }
+            } catch (error) {
+                console.error('Clear sessions error:', error);
+                alert('Failed to clear sessions');
+            }
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            window.adminDashboard = new AdminDashboard();
+        });
     </script>
 </body>
 </html>
