@@ -4,23 +4,10 @@ export class GameManager {
     }
 
     startGame() {
-        console.log('Starting game...');
         this.game.gameActive = true;
         this.game.gameStarted = true;
         
-        // Enable tutorial button when game starts
-        const tutorialBtn = document.getElementById('show-tutorial-btn');
-        if (tutorialBtn) {
-            tutorialBtn.disabled = false;
-        }
-        
-        // Load first room without showing tutorial automatically
         this.game.levelManager.loadRoom(1);
-        
-        // Set up game state monitoring
-        this.setupGameStateMonitoring();
-        
-        console.log('✓ Game started successfully');
     }
 
     roomCompleted(message) {
@@ -68,32 +55,8 @@ export class GameManager {
     }
 
     restartGame() {
-        // Reset all game state
-        this.game.currentRoom = 1;
-        this.game.gameActive = false;
-        this.game.gameStarted = false;
-        
-        // Disable tutorial button during restart
-        const tutorialBtn = document.getElementById('show-tutorial-btn');
-        if (tutorialBtn) {
-            tutorialBtn.disabled = true;
-        }
-        
-        // Stop current room
         this.game.levelManager.stopCurrentRoom();
-        
-        // Clear room content
-        document.getElementById('room-content').innerHTML = `
-            <div class="loading text-center">
-                <i class="bi bi-gear-fill animate-spin text-4xl text-yellow-400"></i>
-                <p class="mt-4">Restarting systems...</p>
-            </div>
-        `;
-        
-        // Restart after brief delay
-        setTimeout(() => {
-            this.startGame();
-        }, 1000);
+        window.location.reload();
     }
 
     enableFullscreen() {
