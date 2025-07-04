@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - AscendEd</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <style>
+        .progress-bar {
+            transition: width 0.3s ease-in-out;
+        }
+        .badge-item {
+            transition: transform 0.2s ease-in-out;
+        }
+        .badge-item:hover {
+            transform: scale(1.05);
+        }
+        .room-card {
+            transition: all 0.3s ease-in-out;
+        }
+        .room-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white font-mono">
+    <header class="bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-blue-100">
+                <i class="bi bi-person-circle"></i> Welcome, <span id="username-display">{{ current_user.username }}</span>!
+            </h1>
+            <div class="flex items-center space-x-4">
+                <a href="/" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded transition-colors">
+                    <i class="bi bi-play-circle"></i> Play Game
+                </a>
+                <button id="logout-btn" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded transition-colors">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-6">
+        <!-- User Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Overall Progress -->
+            <div class="bg-gray-800 border border-gray-600 rounded-lg p-6">
+                <h3 class="text-xl font-bold mb-4 text-green-400">
+                    <i class="bi bi-graph-up"></i> Overall Progress
+                </h3>
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-sm text-gray-300">Rooms Completed</p>
+                        <p class="text-2xl font-bold text-green-300"><span id="completed-rooms">0</span> / 5</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-300">Current Level</p>
+                        <p class="text-xl font-bold text-blue-300" id="current-level">1</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Badges Earned -->
+            <div class="bg-gray-800 border border-gray-600 rounded-lg p-6">
+                <h3 class="text-xl font-bold mb-4 text-yellow-400">
+                    <i class="bi bi-award"></i> Badges Earned
+                </h3>
+                <div class="space-y-2">
+                    <p class="text-2xl font-bold text-yellow-300"><span id="badge-count">0</span></p>
+                    <p class="text-sm text-gray-300">Total Achievements</p>
+                </div>
+            </div>
+
+            <!-- Time Played -->
+            <div class="bg-gray-800 border border-gray-600 rounded-lg p-6">
+                <h3 class="text-xl font-bold mb-4 text-purple-400">
+                    <i class="bi bi-clock"></i> Game Stats
+                </h3>
+                <div class="space-y-2">
+                    <div>
+                        <p class="text-sm text-gray-300">Sessions</p>
+                        <p class="text-xl font-bold text-purple-300" id="session-count">0</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-300">Last Played</p>
+                        <p class="text-sm text-gray-400" id="last-played">Never</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Room Progress -->
+        <div class="bg-gray-800 border border-gray-600 rounded-lg p-6 mb-6">
+            <h3 class="text-2xl font-bold mb-6 text-blue-400">
+                <i class="bi bi-diagram-3"></i> Room Progress
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="room-progress">
+                <!-- Room cards will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Recent Badges -->
+        <div class="bg-gray-800 border border-gray-600 rounded-lg p-6 mb-6">
+            <h3 class="text-2xl font-bold mb-6 text-yellow-400">
+                <i class="bi bi-trophy"></i> Recent Achievements
+            </h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4" id="recent-badges">
+                <!-- Badges will be loaded here -->
+            </div>
+        </div>
+
+        <!-- All Badges -->
+        <div class="bg-gray-800 border border-gray-600 rounded-lg p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-yellow-400">
+                    <i class="bi bi-collection"></i> All Achievements
+                </h3>
+                <div class="text-sm text-gray-400">
+                    <span id="earned-badges-count">0</span> earned / <span id="total-badges-count">0</span> total
+                </div>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4" id="all-badges">
+                <!-- All badges will be loaded here -->
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // User dashboard functionality
+        class UserDashboard {
+            constructor() {
+                this.loadUserProgress();
+                this.loadUserBadges();
+                this.bindEvents();
+            }
+
+            bindEvents() {
+                document.getElementById('logout-btn').addEventListener('click', async () => {
+                    await fetch('/api/auth/logout');
+                    window.location.href = '/';
+                });
+            }
+
+            async loadUserProgress() {
+                try {
+                    const response = await fetch('/api/user/progress');
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        this.renderUserStats(data.stats);
+                        this.renderRoomProgress(data.rooms);
+                    }
+                } catch (error) {
+                    console.error('Failed to load user progress:', error);
+                }
+            }
+
+            async loadUserBadges() {
+                try {
+                    const response = await fetch('/api/user/badges');
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        this.renderBadges(data.badges);
+                    }
+                } catch (error) {
+                    console.error('Failed to load user badges:', error);
+                }
+            }
+
+            renderUserStats(stats) {
+                document.getElementById('completed-rooms').textContent = stats.completed_rooms;
+                document.getElementById('current-level').textContent = stats.current_level;
+                document.getElementById('badge-count').textContent = stats.badge_count;
+                document.getElementById('session-count').textContent = stats.session_count;
+                document.getElementById('last-played').textContent = stats.last_played ? 
+                    new Date(stats.last_played).toLocaleDateString() : 'Never';
+            }
+
+            renderRoomProgress(rooms) {
+                const container = document.getElementById('room-progress');
+                container.innerHTML = '';
+
+                const roomData = [
+                    { id: 1, name: 'Flowchart Lab', icon: 'bi-diagram-3', color: 'blue' },
+                    { id: 2, name: 'Network Nexus', icon: 'bi-router', color: 'green' },
+                    { id: 3, name: 'AI Systems', icon: 'bi-robot', color: 'purple' },
+                    { id: 4, name: 'Database Crisis', icon: 'bi-database-x', color: 'red' },
+                    { id: 5, name: 'Programming Crisis', icon: 'bi-bug', color: 'yellow' }
+                ];
+
+                roomData.forEach(room => {
+                    const roomProgress = rooms.find(r => r.room_id === room.id) || { completed_levels: 0, total_levels: 10 };
+                    const progressPercent = Math.round((roomProgress.completed_levels / roomProgress.total_levels) * 100);
+                    const isCompleted = progressPercent === 100;
+
+                    const card = document.createElement('div');
+                    card.className = `room-card bg-gray-700 border border-gray-600 rounded-lg p-4 ${isCompleted ? 'border-green-500' : ''}`;
+                    
+                    card.innerHTML = `
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 rounded-full bg-${room.color}-600 flex items-center justify-center mr-3">
+                                <i class="bi ${room.icon} text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-${room.color}-300">${room.name}</h4>
+                                <p class="text-xs text-gray-400">Room ${room.id}</p>
+                            </div>
+                            ${isCompleted ? '<i class="bi bi-check-circle-fill text-green-400 ml-auto"></i>' : ''}
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span>Progress</span>
+                                <span>${roomProgress.completed_levels}/${roomProgress.total_levels}</span>
+                            </div>
+                            <div class="w-full bg-gray-600 rounded-full h-2">
+                                <div class="progress-bar bg-${room.color}-500 h-2 rounded-full" style="width: ${progressPercent}%"></div>
+                            </div>
+                            <p class="text-xs text-gray-400">${progressPercent}% Complete</p>
+                        </div>
+                    `;
+                    
+                    container.appendChild(card);
+                });
+            }
+
+            renderBadges(badges) {
+                const recentContainer = document.getElementById('recent-badges');
+                const allContainer = document.getElementById('all-badges');
+                
+                // Clear containers
+                recentContainer.innerHTML = '';
+                allContainer.innerHTML = '';
+
+                // Update badge counts
+                const earnedBadges = badges.filter(b => b.earned);
+                document.getElementById('earned-badges-count').textContent = earnedBadges.length;
+                document.getElementById('total-badges-count').textContent = badges.length;
+
+                // Sort badges by earned date for recent badges
+                const recentBadges = earnedBadges
+                    .sort((a, b) => new Date(b.earned_at) - new Date(a.earned_at))
+                    .slice(0, 6);
+
+                // Render recent badges
+                recentBadges.forEach(badge => {
+                    const badgeElement = this.createBadgeElement(badge, true);
+                    recentContainer.appendChild(badgeElement);
+                });
+
+                if (recentBadges.length === 0) {
+                    recentContainer.innerHTML = '<p class="text-gray-400 col-span-full text-center py-8">No badges earned yet. Start playing to unlock achievements!</p>';
+                }
+
+                // Render all badges
+                badges.forEach(badge => {
+                    const badgeElement = this.createBadgeElement(badge, false);
+                    allContainer.appendChild(badgeElement);
+                });
+            }
+
+            createBadgeElement(badge, isRecent) {
+                const div = document.createElement('div');
+                div.className = `badge-item p-4 rounded-lg border text-center ${
+                    badge.earned 
+                        ? 'bg-yellow-900 border-yellow-600' 
+                        : 'bg-gray-700 border-gray-600 opacity-50'
+                }`;
+
+                const earnedDate = badge.earned_at ? new Date(badge.earned_at).toLocaleDateString() : '';
+                
+                div.innerHTML = `
+                    <div class="text-3xl mb-2">${badge.icon}</div>
+                    <h4 class="font-bold text-sm ${badge.earned ? 'text-yellow-300' : 'text-gray-400'}">${badge.name}</h4>
+                    <p class="text-xs text-gray-400 mt-1">${badge.description}</p>
+                    ${badge.earned ? `<p class="text-xs text-yellow-400 mt-2">Earned: ${earnedDate}</p>` : ''}
+                    ${isRecent && badge.earned ? '<span class="inline-block bg-green-600 text-white text-xs px-2 py-1 rounded-full mt-2">New!</span>' : ''}
+                `;
+
+                return div;
+            }
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            window.userDashboard = new UserDashboard();
+        });
+    </script>
+</body>
+</html>

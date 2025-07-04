@@ -57,13 +57,13 @@ class Auth {
             console.log('Response data:', result); // Debug logging
 
             if (result.status === 'success') {
-                // Handle user switching in progress manager
-                if (window.game && window.game.progressManager) {
-                    window.game.progressManager.switchUser(result.user.username);
+                // Check if user is admin and redirect accordingly
+                if (result.user && result.user.is_admin) {
+                    window.location.href = '/admin';
+                } else {
+                    // Redirect regular users to their dashboard
+                    window.location.href = '/dashboard';
                 }
-                
-                // Reload page to let server render the authenticated state
-                window.location.reload();
             } else {
                 this.showMessage(result.message || 'Login failed', 'error');
             }
@@ -108,11 +108,6 @@ class Auth {
 
     async logout() {
         try {
-            // Clean up progress manager before logout
-            if (window.game && window.game.progressManager) {
-                window.game.cleanup();
-            }
-            
             await fetch('/api/auth/logout');
             window.location.reload();
         } catch (error) {
@@ -139,31 +134,24 @@ class Auth {
     }
 
     onLoginSuccess(user) {
-        // Hide auth forms
-        document.getElementById('auth-forms').classList.add('hidden');
-        // Show start game button
-        document.getElementById('start-game').classList.remove('hidden');
-        // Show user welcome message
-        document.getElementById('user-welcome').classList.remove('hidden');
-        document.getElementById('welcome-username').textContent = user.username;
-        // Show user info in header
-        document.getElementById('user-display').textContent = user.username;
-        document.getElementById('logout-btn').classList.remove('hidden');
-        
-        // Show admin button if user is admin
+        // Check if user is admin and redirect to admin dashboard
         if (user.is_admin) {
-            const adminBtn = document.getElementById('admin-panel-btn');
-            if (adminBtn) {
-                adminBtn.classList.remove('hidden');
-                adminBtn.addEventListener('click', () => {
-                    window.location.href = '/admin';
-                });
-            }
+            window.location.href = '/admin';
+            return;
         }
         
-        this.showMessage(`Welcome back, ${user.username}!`, 'success');
+        // Redirect regular users to their dashboard
+        window.location.href = '/dashboard';
     }
 }
+
+// Initialize auth when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.auth = new Auth();
+});
+        document.getElementById('logout-btn').classList.remove('hidden');
+        
+        this.showMessage(`Welcome back, ${user.username}!`, 'success');
 
 // Initialize auth when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {

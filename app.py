@@ -806,27 +806,77 @@ def import_levels():
 @app.route('/dashboard')
 @login_required
 def user_dashboard():
-    """User dashboard - redirect to main game page"""
-    return render_template('index.html')
+    """User dashboard"""
+    # Redirect admins to admin dashboard
+    if current_user.is_admin:
+        return redirect('/admin')
+    return render_template('user-dashboard.html')
 
 @app.route('/api/user/progress')
 @login_required
 def get_user_progress():
-    """Get current user's progress summary"""
+    """Get user's game progress"""
     try:
-        result = db_manager.get_user_room_progress(current_user.id)
+        conn = db_manager.get_connection()
         
-        if result['success']:
-            return jsonify({
-                'status': 'success',
-                'progress': result['progress'],
-                'user': {
-                    'username': current_user.username,
-                    'email': current_user.email
-                }
+        # Get user's overall stats
+        user_sessions = conn.execute(
+            "SELECT COUNT(*) FROM game_state WHERE session_id LIKE ?",
+            (f'user_{current_user.id}_%',)
+        ).fetchone()[0]
+        
+        # Get current level
+        current_level_row = conn.execute(
+            "SELECT MAX(current_level) FROM game_state WHERE session_id LIKE ?",
+            (f'user_{current_user.id}_%',)
+        ).fetchone()
+        current_level = current_level_row[0] if current_level_row[0] else 1
+        
+        # Get last played
+        last_played_row = conn.execute(
+            "SELECT MAX(updated_at) FROM game_state WHERE session_id LIKE ?",
+            (f'user_{current_user.id}_%',)
+        ).fetchone()
+        last_played = last_played_row[0] if last_played_row[0] else None
+        
+        # Get badge count
+        badge_count = conn.execute(
+            "SELECT COUNT(*) FROM user_badges WHERE user_id = ?",
+            (current_user.id,)
+        ).fetchone()[0]
+        
+        # Calculate completed rooms (assuming 10 levels per room)
+        completed_rooms = max(0, (current_level - 1) // 10)
+        
+        # Get room-specific progress
+        rooms_progress = []
+        for room_id in range(1, 6):  # 5 rooms
+            start_level = (room_id - 1) * 10 + 1
+            end_level = room_id * 10
+            
+            completed_levels = 0
+            if current_level > start_level:
+                completed_levels = min(10, current_level - start_level + 1)
+            
+            rooms_progress.append({
+                'room_id': room_id,
+                'completed_levels': completed_levels,
+                'total_levels': 10
             })
-        else:
-            return jsonify({'status': 'error', 'message': result['error']}), 500
+        
+        conn.close()
+        
+        return jsonify({
+            'status': 'success',
+            'stats': {
+                'completed_rooms': completed_rooms,
+                'current_level': current_level,
+                'badge_count': badge_count,
+                'session_count': user_sessions,
+                'last_played': last_played
+            },
+            'rooms': rooms_progress
+        })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
@@ -835,19 +885,30 @@ def get_user_progress():
 def get_user_badges():
     """Get user's badges"""
     try:
-        result = db_manager.get_user_achievements(current_user.id)
+        conn = db_manager.get_connection()
         
-        if result['success']:
-            # Filter for badge-type achievements
-            badges = [achievement for achievement in result['achievements'] 
-                     if achievement.get('achievement_type') == 'room_completion']
-            
-            return jsonify({
-                'status': 'success',
-                'badges': badges
+        # Get all available badges with user's earned status
+        badges = conn.execute('''
+            SELECT b.*, ub.earned_at
+            FROM badges b
+            LEFT JOIN user_badges ub ON b.id = ub.badge_id AND ub.user_id = ?
+            ORDER BY b.id
+        ''', (current_user.id,)).fetchall()
+        
+        conn.close()
+        
+        badges_data = []
+        for badge in badges:
+            badges_data.append({
+                'id': badge['id'],
+                'name': badge['name'],
+                'description': badge['description'],
+                'icon': badge['icon'],
+                'earned': badge['earned_at'] is not None,
+                'earned_at': badge['earned_at']
             })
-        else:
-            return jsonify({'status': 'error', 'message': result['error']}), 500
+        
+        return jsonify({'status': 'success', 'badges': badges_data})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
@@ -857,8 +918,7 @@ def get_game_levels(room_id):
     try:
         conn = db_manager.get_connection()
         levels = conn.execute('''
-            SELECT room_id, level_number, name, data 
-            FROM level_data 
+            SELECT level_number, name, data FROM level_data 
             WHERE room_id = ?
             ORDER BY level_number
         ''', (room_id,)).fetchall()
@@ -866,11 +926,11 @@ def get_game_levels(room_id):
         
         levels_data = []
         for level in levels:
+            level_data = json.loads(level['data']) if level['data'] else {}
             levels_data.append({
-                'room_id': level['room_id'],
                 'level_number': level['level_number'],
                 'name': level['name'],
-                'data': json.loads(level['data']) if level['data'] else {}
+                **level_data  # Merge level data into response
             })
         
         return jsonify({'status': 'success', 'levels': levels_data})
@@ -883,12 +943,20 @@ def get_game_levels(room_id):
 def populate_default_levels():
     """Populate database with default levels from codebase"""
     try:
-        # This would populate default level data
-        # For now, return success
-        return jsonify({
-            'status': 'success',
-            'message': 'Default levels populated successfully'
-        })
+        conn = db_manager.get_connection()
+        
+        # Check if levels already exist
+        existing_count = conn.execute('SELECT COUNT(*) FROM level_data').fetchone()[0]
+        if existing_count > 0:
+            conn.close()
+            return jsonify({'status': 'info', 'message': f'{existing_count} levels already exist'})
+        
+        # Execute the default level inserts (already in schema.sql)
+        # This will be handled by the schema migration
+        result = db_manager.migrate_schema()
+        conn.close()
+        
+        return jsonify({'status': 'success', 'message': 'Default levels populated successfully'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
@@ -903,7 +971,7 @@ def reorder_levels():
         levels_data = data.get('levels', [])
         
         if not room_id or not levels_data:
-            return jsonify({'status': 'error', 'message': 'Missing room_id or levels data'}), 400
+            return jsonify({'status': 'error', 'message': 'Missing required data'}), 400
         
         conn = db_manager.get_connection()
         
@@ -911,30 +979,42 @@ def reorder_levels():
         conn.execute('BEGIN TRANSACTION')
         
         try:
-            # First, set all level numbers to negative values to avoid conflicts
+            # Phase 1: Set all levels to temporary negative numbers to avoid conflicts
+            temp_offset = -1000000  # Large negative number to avoid conflicts
             for i, level_data in enumerate(levels_data):
                 level_id = level_data.get('id')
-                conn.execute(
-                    'UPDATE level_data SET level_number = ? WHERE id = ?',
-                    (-(i + 1), level_id)
-                )
+                if level_id:
+                    temp_level_number = temp_offset - i
+                    conn.execute('''
+                        UPDATE level_data 
+                        SET level_number = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ? AND room_id = ?
+                    ''', (temp_level_number, level_id, room_id))
             
-            # Then, set the correct positive level numbers
-            for i, level_data in enumerate(levels_data):
+            # Phase 2: Set the actual level numbers
+            for level_data in levels_data:
                 level_id = level_data.get('id')
-                conn.execute(
-                    'UPDATE level_data SET level_number = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                    (i + 1, level_id)
-                )
+                new_level_number = level_data.get('level_number')
+                
+                if level_id and new_level_number:
+                    conn.execute('''
+                        UPDATE level_data 
+                        SET level_number = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ? AND room_id = ?
+                    ''', (new_level_number, level_id, room_id))
             
-            conn.commit()
-            return jsonify({'status': 'success', 'message': 'Levels reordered successfully'})
+            conn.execute('COMMIT')
+            conn.close()
+            
+            return jsonify({
+                'status': 'success', 
+                'message': f'Successfully reordered {len(levels_data)} levels'
+            })
             
         except Exception as e:
-            conn.rollback()
-            return jsonify({'status': 'error', 'message': str(e)}), 500
-        finally:
+            conn.execute('ROLLBACK')
             conn.close()
+            raise e
             
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
