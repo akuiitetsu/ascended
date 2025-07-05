@@ -246,6 +246,31 @@
                     }
                 });
             });
+            
+            // Tutorial button functionality
+            const tutorialBtn = document.getElementById('show-tutorial-btn');
+            if (tutorialBtn) {
+                tutorialBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log('Tutorial button clicked from template');
+                    
+                    // Try to show tutorial
+                    if (window.game && window.game.showTutorial) {
+                        window.game.showTutorial();
+                    } else if (window.game && window.game.tutorialManager) {
+                        const currentRoom = window.game.currentRoom || 1;
+                        window.game.tutorialManager.showTutorial(currentRoom);
+                    } else {
+                        console.log('Game not ready yet, retrying...');
+                        setTimeout(() => {
+                            if (window.game && window.game.showTutorial) {
+                                window.game.showTutorial();
+                            }
+                        }, 500);
+                    }
+                });
+                console.log('Tutorial button listener added from template');
+            }
         });
     </script>
     <script type="module" src="static/js/main.js"></script>

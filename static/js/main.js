@@ -51,6 +51,39 @@ class EscapeTheLabGame {
         this.inRoom = false;
         
         console.log('AscendEd: Tech Lab Breakout initialized');
+        
+        // Setup tutorial button after DOM is ready
+        this.setupTutorialButton();
+    }
+    
+    setupTutorialButton() {
+        const tutorialBtn = document.getElementById('show-tutorial-btn');
+        if (tutorialBtn) {
+            tutorialBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Tutorial button clicked, showing tutorial for room:', this.currentRoom);
+                this.showTutorial(this.currentRoom);
+            });
+            console.log('Tutorial button event listener added');
+        } else {
+            console.warn('Tutorial button not found in DOM');
+        }
+    }
+    
+    showTutorial(roomNumber = null) {
+        const room = roomNumber || this.currentRoom || 1;
+        console.log('Showing tutorial for room:', room);
+        
+        if (this.tutorialManager) {
+            this.tutorialManager.showTutorial(room);
+        } else {
+            console.error('Tutorial manager not available');
+            // Fallback
+            import('./managers/tutorial-manager.js').then(module => {
+                const tutorialManager = new module.TutorialManager();
+                tutorialManager.showTutorial(room);
+            });
+        }
     }
 
     async loadUserProgress() {
@@ -261,6 +294,28 @@ class EscapeTheLabGame {
         console.log('Wave navigation buttons configured');
     }
 }
+
+// Initialize when DOM loads
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, initializing game...');
+    window.game = new EscapeTheLabGame();
+    
+    // Additional tutorial button setup as backup
+    setTimeout(() => {
+        const tutorialBtn = document.getElementById('show-tutorial-btn');
+        if (tutorialBtn && !tutorialBtn.hasAttribute('data-listener-added')) {
+            tutorialBtn.addEventListener('click', () => {
+                console.log('Backup tutorial button clicked');
+                if (window.game && window.game.showTutorial) {
+                    window.game.showTutorial();
+                } else if (window.game && window.game.tutorialManager) {
+                    window.game.tutorialManager.showTutorial(window.game.currentRoom || 1);
+                }
+            });
+            tutorialBtn.setAttribute('data-listener-added', 'true');
+        }
+    }, 100);
+});
 
 // Initialize the game
 const game = new EscapeTheLabGame();

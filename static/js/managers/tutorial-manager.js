@@ -430,3 +430,6 @@ export class TutorialManager {
         return prereqs[roomNumber] || "None";
     }
 }
+
+// Make it globally available for button access
+window.TutorialManager = TutorialManager;

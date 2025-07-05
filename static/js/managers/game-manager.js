@@ -20,6 +20,9 @@ export class GameManager {
         // Set up game state monitoring
         this.setupGameStateMonitoring();
         
+        // Set up tutorial button functionality
+        this.setupTutorialButton();
+        
         console.log('✓ Game started successfully');
     }
 
@@ -111,6 +114,32 @@ export class GameManager {
             if (document.exitFullscreen) {
                 document.exitFullscreen();
             }
+        }
+    }
+
+    setupTutorialButton() {
+        const tutorialBtn = document.getElementById('show-tutorial-btn');
+        if (tutorialBtn) {
+            tutorialBtn.addEventListener('click', () => {
+                // Get current room number
+                const currentRoom = this.game ? this.game.currentRoom : 1;
+                this.showTutorial(currentRoom);
+            });
+        }
+    }
+    
+    showTutorial(roomNumber = 1) {
+        // Try multiple ways to access tutorial manager
+        if (this.game && this.game.levelManager && this.game.levelManager.tutorialManager) {
+            this.game.levelManager.tutorialManager.showTutorial(roomNumber);
+        } else if (this.game && this.game.tutorialManager) {
+            this.game.tutorialManager.showTutorial(roomNumber);
+        } else if (window.game && window.game.tutorialManager) {
+            window.game.tutorialManager.showTutorial(roomNumber);
+        } else {
+            // Fallback: create new instance
+            const tutorialManager = new (window.TutorialManager || TutorialManager)();
+            tutorialManager.showTutorial(roomNumber);
         }
     }
 }
