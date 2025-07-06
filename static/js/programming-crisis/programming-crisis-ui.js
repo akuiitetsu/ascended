@@ -317,11 +317,6 @@ export class ProgrammingCrisisUI {
                 }
             });
         }
-        
-        // Level editor button
-        document.getElementById('open-level-editor')?.addEventListener('click', () => {
-            this.room.levelEditor.enterEditorMode();
-        });
     }
 
     handleIndent(codeInput, start, end) {

@@ -129,6 +129,14 @@ class Room2 {
     }
 
     loadCurrentLevel() {
+        // Get current level from progress tracker if available
+        if (window.progressTracker && window.progressTracker.currentRoom === 2) {
+            const suggestedLevel = window.progressTracker.currentLevel;
+            if (suggestedLevel >= 1 && suggestedLevel <= this.maxLevels) {
+                this.currentLevel = suggestedLevel;
+            }
+        }
+
         // Ensure currentLevel is within valid bounds
         if (this.currentLevel < 1) {
             this.currentLevel = 1;
@@ -1192,15 +1200,33 @@ class Room2 {
 
         this.showLevelCompletionFeedback();
 
+        // Mark level as completed in progress tracker
+        if (window.progressTracker) {
+            window.progressTracker.markLevelCompleted(2, this.currentLevel, {
+                score: this.completionScore,
+                timeSpent: Date.now() - this.levelStartTime,
+                attempts: this.sessionData?.attempts || 1
+            });
+        }
+
         if (this.currentLevel >= this.maxLevels) {
             setTimeout(() => {
-                this.game.roomCompleted(`Network Nexus mastered! All ${this.maxLevels} networking challenges completed with expertise in topology, IP addressing, switching, routing, and CLI operations.`);
+                this.game.roomCompleted(`Network Nexus mastered! All ${this.maxLevels} networking challenges completed with expertise in topology, IP addressing, switching, routing, and CLI operations.`, {
+                    score: this.completionScore,
+                    levelsCompleted: this.maxLevels,
+                    roomId: 2
+                });
             }, 2000);
             return;
         }
 
         const nextLevel = this.currentLevel + 1;
         this.showMessage(`Level ${this.currentLevel} completed! Advancing to Level ${nextLevel}...`, 'success');
+        
+        // Update progress tracker
+        if (window.progressTracker) {
+            window.progressTracker.setCurrentLevel(nextLevel);
+        }
         
         setTimeout(() => {
             this.currentLevel = nextLevel;

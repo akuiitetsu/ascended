@@ -6,7 +6,7 @@ export class EditorUI {
     renderEditor() {
         const container = document.getElementById('room-content');
         container.innerHTML = `
-            <div class="level-editor-container p-6 fade-in">
+            <div class="p-6 fade-in">
                 <div class="text-center mb-6">
                     <i class="bi bi-pencil-square text-6xl text-blue-500 animate-pulse"></i>
                     <h2 class="text-3xl font-bold mt-4 text-blue-400">LEVEL EDITOR</h2>

@@ -52,12 +52,19 @@
                 </h3>
                 <div class="space-y-3">
                     <div>
-                        <p class="text-sm text-gray-300">Rooms Completed</p>
-                        <p class="text-2xl font-bold text-green-300"><span id="completed-rooms">0</span> / 5</p>
+                        <p class="text-sm text-gray-300">Levels Completed</p>
+                        <p class="text-2xl font-bold text-green-300"><span id="completed-levels">0</span></p>
                     </div>
                     <div>
-                        <p class="text-sm text-gray-300">Current Level</p>
-                        <p class="text-xl font-bold text-blue-300" id="current-level">1</p>
+                        <p class="text-sm text-gray-300">Current Position</p>
+                        <p class="text-lg font-bold text-blue-300">Room <span id="current-room">1</span>, Level <span id="current-level">1</span></p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-300">Overall Progress</p>
+                        <div class="w-full bg-gray-600 rounded-full h-2 mt-1">
+                            <div id="overall-progress-bar" class="progress-bar bg-green-500 h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1"><span id="overall-progress-percent">0</span>% Complete</p>
                     </div>
                 </div>
             </div>
@@ -127,103 +134,324 @@
         </div>
     </main>
 
+    <!-- Include progress tracker -->
+    <script src="/static/js/progress-tracker.js"></script>
+    
     <script>
         // User dashboard functionality
         class UserDashboard {
             constructor() {
-                this.loadUserProgress();
-                this.loadUserBadges();
+                this.progressTracker = null;
+                this.retryCount = 0;
+                this.maxRetries = 10;
+                this.init();
+            }
+
+            async init() {
+                // Wait for progress tracker to be ready
+                await this.waitForProgressTracker();
                 this.bindEvents();
+                this.loadDashboardData();
+                this.setupProgressListeners();
+            }
+
+            async waitForProgressTracker() {
+                while (!window.progressTracker && this.retryCount < this.maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    this.retryCount++;
+                }
+                
+                if (window.progressTracker) {
+                    this.progressTracker = window.progressTracker;
+                    
+                    // Wait for progress tracker to have some data (even if empty)
+                    let dataWaitCount = 0;
+                    while (this.progressTracker.userProgress === undefined && dataWaitCount < 10) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        dataWaitCount++;
+                    }
+                    
+                    console.log('Progress tracker ready for dashboard');
+                } else {
+                    console.warn('Progress tracker not available after waiting, using fallback');
+                    this.loadFallbackData();
+                }
+            }
+
+            setupProgressListeners() {
+                if (this.progressTracker) {
+                    window.addEventListener('progressUpdate', () => {
+                        this.updateProgressDisplay();
+                    });
+
+                    window.addEventListener('levelProgressUpdate', () => {
+                        this.updateProgressDisplay();
+                    });
+                }
             }
 
             bindEvents() {
                 document.getElementById('logout-btn').addEventListener('click', async () => {
-                    await fetch('/api/auth/logout');
-                    window.location.href = '/';
+                    try {
+                        // Try to logout via API
+                        await fetch('/logout', {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                    } catch (error) {
+                        console.debug('Logout API call failed:', error);
+                    }
+                    
+                    // Clear local storage regardless
+                    localStorage.clear();
+                    
+                    // Redirect to login page
+                    window.location.href = '/login';
                 });
             }
 
-            async loadUserProgress() {
-                try {
-                    const response = await fetch('/api/user/progress');
-                    const data = await response.json();
-                    
-                    if (data.status === 'success') {
-                        this.renderUserStats(data.stats);
-                        this.renderRoomProgress(data.rooms);
-                    }
-                } catch (error) {
-                    console.error('Failed to load user progress:', error);
+            loadDashboardData() {
+                if (this.progressTracker) {
+                    this.renderProgressTrackerData();
+                } else {
+                    this.renderDefaultState();
                 }
+                
+                // Always try to load additional data
+                this.loadUserBadges();
+                this.loadUserStats();
             }
 
-            async loadUserBadges() {
-                try {
-                    const response = await fetch('/api/user/badges');
-                    const data = await response.json();
-                    
-                    if (data.status === 'success') {
-                        this.renderBadges(data.badges);
-                    }
-                } catch (error) {
-                    console.error('Failed to load user badges:', error);
-                }
+            renderProgressTrackerData() {
+                const summary = this.progressTracker.getProgressSummary();
+                
+                // Update current position display
+                document.getElementById('current-room').textContent = summary.currentPosition.room;
+                document.getElementById('current-level').textContent = summary.currentPosition.level;
+                document.getElementById('completed-levels').textContent = summary.totalLevelsCompleted;
+                
+                // Calculate overall progress with realistic totals
+                const roomTotals = {1: 10, 2: 8, 3: 12, 4: 6, 5: 15}; // Total levels per room
+                const totalPossibleLevels = Object.values(roomTotals).reduce((sum, count) => sum + count, 0);
+                const overallPercent = totalPossibleLevels > 0 ? 
+                    Math.round((summary.totalLevelsCompleted / totalPossibleLevels) * 100) : 0;
+                
+                document.getElementById('overall-progress-percent').textContent = overallPercent;
+                document.getElementById('overall-progress-bar').style.width = `${overallPercent}%`;
+                
+                // Render room progress
+                this.renderRoomProgressFromTracker();
             }
 
-            renderUserStats(stats) {
-                document.getElementById('completed-rooms').textContent = stats.completed_rooms;
-                document.getElementById('current-level').textContent = stats.current_level;
-                document.getElementById('badge-count').textContent = stats.badge_count;
-                document.getElementById('session-count').textContent = stats.session_count;
-                document.getElementById('last-played').textContent = stats.last_played ? 
-                    new Date(stats.last_played).toLocaleDateString() : 'Never';
-            }
-
-            renderRoomProgress(rooms) {
+            renderRoomProgressFromTracker() {
                 const container = document.getElementById('room-progress');
                 container.innerHTML = '';
 
                 const roomData = [
-                    { id: 1, name: 'Flowchart Lab', icon: 'bi-diagram-3', color: 'blue' },
-                    { id: 2, name: 'Network Nexus', icon: 'bi-router', color: 'green' },
-                    { id: 3, name: 'AI Systems', icon: 'bi-robot', color: 'purple' },
-                    { id: 4, name: 'Database Crisis', icon: 'bi-database-x', color: 'red' },
-                    { id: 5, name: 'Programming Crisis', icon: 'bi-bug', color: 'yellow' }
+                    { id: 1, name: 'Flowchart Lab', icon: 'bi-diagram-3', color: 'blue', totalLevels: 10 },
+                    { id: 2, name: 'Network Nexus', icon: 'bi-router', color: 'green', totalLevels: 8 },
+                    { id: 3, name: 'AI Systems', icon: 'bi-robot', color: 'purple', totalLevels: 12 },
+                    { id: 4, name: 'Database Crisis', icon: 'bi-database-x', color: 'red', totalLevels: 6 },
+                    { id: 5, name: 'Programming Crisis', icon: 'bi-bug', color: 'yellow', totalLevels: 15 }
                 ];
 
                 roomData.forEach(room => {
-                    const roomProgress = rooms.find(r => r.room_id === room.id) || { completed_levels: 0, total_levels: 10 };
-                    const progressPercent = Math.round((roomProgress.completed_levels / roomProgress.total_levels) * 100);
+                    const completedLevels = this.progressTracker.getCompletedLevelsCount(room.id);
+                    const progressPercent = Math.round((completedLevels / room.totalLevels) * 100);
                     const isCompleted = progressPercent === 100;
+                    const isCurrent = this.progressTracker.currentRoom === room.id;
 
                     const card = document.createElement('div');
-                    card.className = `room-card bg-gray-700 border border-gray-600 rounded-lg p-4 ${isCompleted ? 'border-green-500' : ''}`;
+                    card.className = `room-card bg-gray-700 border border-gray-600 rounded-lg p-4 cursor-pointer transition-all hover:border-gray-500 ${
+                        isCompleted ? 'border-green-500' : ''
+                    } ${isCurrent ? 'border-blue-400' : ''}`;
                     
                     card.innerHTML = `
                         <div class="flex items-center mb-3">
                             <div class="w-10 h-10 rounded-full bg-${room.color}-600 flex items-center justify-center mr-3">
                                 <i class="bi ${room.icon} text-white"></i>
                             </div>
-                            <div>
+                            <div class="flex-1">
                                 <h4 class="font-bold text-${room.color}-300">${room.name}</h4>
                                 <p class="text-xs text-gray-400">Room ${room.id}</p>
                             </div>
-                            ${isCompleted ? '<i class="bi bi-check-circle-fill text-green-400 ml-auto"></i>' : ''}
+                            ${isCompleted ? '<i class="bi bi-check-circle-fill text-green-400"></i>' : ''}
+                            ${isCurrent && !isCompleted ? '<i class="bi bi-play-circle-fill text-blue-400"></i>' : ''}
                         </div>
                         <div class="space-y-2">
                             <div class="flex justify-between text-sm">
                                 <span>Progress</span>
-                                <span>${roomProgress.completed_levels}/${roomProgress.total_levels}</span>
+                                <span>${completedLevels}/${room.totalLevels}</span>
                             </div>
                             <div class="w-full bg-gray-600 rounded-full h-2">
                                 <div class="progress-bar bg-${room.color}-500 h-2 rounded-full" style="width: ${progressPercent}%"></div>
                             </div>
                             <p class="text-xs text-gray-400">${progressPercent}% Complete</p>
+                            ${isCurrent ? '<p class="text-xs text-blue-400 font-semibold">🎯 Current Room</p>' : ''}
                         </div>
                     `;
                     
+                    // Add click handler to navigate to appropriate level
+                    card.addEventListener('click', () => {
+                        let targetLevel = 1;
+                        
+                        if (isCurrent) {
+                            // Go to current level in current room
+                            targetLevel = this.progressTracker.currentLevel;
+                        } else {
+                            // Find the first incomplete level, or level 1 if none completed
+                            for (let level = 1; level <= room.totalLevels; level++) {
+                                if (!this.progressTracker.isLevelCompleted(room.id, level)) {
+                                    targetLevel = level;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        window.location.href = `/room/${room.id}/level/${targetLevel}`;
+                    });
+                    
                     container.appendChild(card);
                 });
+            }
+
+            updateProgressDisplay() {
+                if (this.progressTracker) {
+                    this.renderProgressTrackerData();
+                }
+            }
+
+            renderDefaultState() {
+                // Show default state when no progress tracker is available
+                document.getElementById('current-room').textContent = '1';
+                document.getElementById('current-level').textContent = '1';
+                document.getElementById('completed-levels').textContent = '0';
+                document.getElementById('overall-progress-percent').textContent = '0';
+                document.getElementById('overall-progress-bar').style.width = '0%';
+                
+                this.renderDefaultRoomProgress();
+            }
+
+            renderDefaultRoomProgress() {
+                const container = document.getElementById('room-progress');
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <i class="bi bi-play-circle text-6xl text-gray-400 mb-6"></i>
+                        <h4 class="text-xl font-semibold text-gray-300 mb-3">Ready to Start Your Journey?</h4>
+                        <p class="text-gray-400 mb-6 max-w-md mx-auto">
+                            Begin your learning adventure through five challenging rooms. 
+                            Master flowcharts, networks, AI, databases, and programming!
+                        </p>
+                        <a href="/room/1/level/1" class="bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-lg transition-colors inline-flex items-center text-lg font-semibold">
+                            <i class="bi bi-play-fill mr-3"></i>
+                            Start Your Adventure
+                        </a>
+                    </div>
+                `;
+            }
+
+            async loadFallbackData() {
+                try {
+                    // Try to load from API as fallback
+                    const response = await fetch('/api/user/progress', {
+                        credentials: 'include'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        throw new Error('Invalid response format');
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        this.renderFallbackStats(data.stats);
+                        this.renderFallbackRoomProgress(data.rooms);
+                    } else {
+                        this.renderDefaultState();
+                    }
+                } catch (error) {
+                    console.error('Failed to load fallback data:', error);
+                    this.renderDefaultState();
+                }
+            }
+
+            async loadUserBadges() {
+                try {
+                    const response = await fetch('/api/user/badges', {
+                        credentials: 'include'
+                    });
+                    
+                    if (response.ok) {
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            const data = await response.json();
+                            if (data.status === 'success') {
+                                this.renderBadges(data.badges);
+                                return;
+                            }
+                        }
+                    }
+                    
+                    // Fallback to empty badges
+                    this.renderEmptyBadges();
+                } catch (error) {
+                    console.error('Failed to load user badges:', error);
+                    this.renderEmptyBadges();
+                }
+            }
+
+            async loadUserStats() {
+                try {
+                    const response = await fetch('/api/user/stats', {
+                        credentials: 'include'
+                    });
+                    
+                    if (response.ok) {
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            const data = await response.json();
+                            if (data.status === 'success') {
+                                this.renderUserStats(data.stats);
+                                return;
+                            }
+                        }
+                    }
+                    
+                    // Fallback to default stats
+                    this.renderDefaultStats();
+                } catch (error) {
+                    console.error('Failed to load user stats:', error);
+                    this.renderDefaultStats();
+                }
+            }
+
+            renderDefaultStats() {
+                document.getElementById('badge-count').textContent = '0';
+                document.getElementById('session-count').textContent = '0';
+                document.getElementById('last-played').textContent = 'Never';
+            }
+
+            renderUserStats(stats) {
+                document.getElementById('badge-count').textContent = stats.badge_count || 0;
+                document.getElementById('session-count').textContent = stats.session_count || 0;
+                document.getElementById('last-played').textContent = stats.last_played ? 
+                    new Date(stats.last_played).toLocaleDateString() : 'Never';
+            }
+
+            renderEmptyBadges() {
+                const recentContainer = document.getElementById('recent-badges');
+                const allContainer = document.getElementById('all-badges');
+                
+                recentContainer.innerHTML = '<p class="text-gray-400 col-span-full text-center py-8">No badges earned yet. Start playing to unlock achievements!</p>';
+                allContainer.innerHTML = '<p class="text-gray-400 col-span-full text-center py-8">Complete levels to discover available achievements!</p>';
+                
+                document.getElementById('earned-badges-count').textContent = '0';
+                document.getElementById('total-badges-count').textContent = '0';
             }
 
             renderBadges(badges) {
@@ -272,7 +500,7 @@
                 const earnedDate = badge.earned_at ? new Date(badge.earned_at).toLocaleDateString() : '';
                 
                 div.innerHTML = `
-                    <div class="text-3xl mb-2">${badge.icon}</div>
+                    <div class="text-3xl mb-2">${badge.icon || '🏆'}</div>
                     <h4 class="font-bold text-sm ${badge.earned ? 'text-yellow-300' : 'text-gray-400'}">${badge.name}</h4>
                     <p class="text-xs text-gray-400 mt-1">${badge.description}</p>
                     ${badge.earned ? `<p class="text-xs text-yellow-400 mt-2">Earned: ${earnedDate}</p>` : ''}

@@ -49,6 +49,38 @@
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
+        
+        /* Navigation Tab Styles */
+        .nav-tab {
+            background-color: #374151;
+            color: #9ca3af;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-tab:hover {
+            background-color: #4b5563;
+            color: #d1d5db;
+        }
+        .nav-tab.active {
+            background-color: #1f2937;
+            color: #60a5fa;
+            border-bottom-color: #3b82f6;
+        }
+        
+        /* Room Tab Styles */
+        .room-tab {
+            background-color: #374151;
+            color: #9ca3af;
+            border-bottom: 2px solid transparent;
+        }
+        .room-tab:hover {
+            background-color: #4b5563;
+            color: #d1d5db;
+        }
+        .room-tab.active {
+            background-color: #1f2937;
+            color: #a78bfa;
+            border-bottom-color: #8b5cf6;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white font-mono">
@@ -106,13 +138,13 @@
                         <i class="bi bi-diagram-3"></i> Flowchart Lab
                     </button>
                     <button class="room-tab px-4 py-2 rounded-t-lg transition-colors whitespace-nowrap" data-room="2">
-                        <i class="bi bi-cloud"></i> Cloud Scale
+                        <i class="bi bi-diagram-2"></i> Network Nexus
                     </button>
                     <button class="room-tab px-4 py-2 rounded-t-lg transition-colors whitespace-nowrap" data-room="3">
                         <i class="bi bi-robot"></i> AI Systems
                     </button>
                     <button class="room-tab px-4 py-2 rounded-t-lg transition-colors whitespace-nowrap" data-room="4">
-                        <i class="bi bi-database-x"></i> Database Emergency
+                        <i class="bi bi-database-x"></i> Database Crisis
                     </button>
                     <button class="room-tab px-4 py-2 rounded-t-lg transition-colors whitespace-nowrap" data-room="5">
                         <i class="bi bi-bug"></i> Programming Crisis
@@ -129,10 +161,22 @@
                             <button id="populate-defaults-btn" class="bg-green-600 hover:bg-green-500 px-3 py-1 rounded text-sm transition-colors" title="Populate Default Levels">
                                 <i class="bi bi-download"></i>
                             </button>
-                            <button id="create-level-btn" class="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm transition-colors">
+                            <button id="create-level-btn" class="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm transition-colors" title="Create New Level">
                                 <i class="bi bi-plus"></i>
                             </button>
                         </div>
+                    </div>
+                    
+                    <!-- Room Info Display -->
+                    <div id="room-info" class="mb-4 p-3 bg-gray-700 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <i id="room-icon" class="bi bi-diagram-3 text-purple-400 mr-2"></i>
+                                <span id="room-name" class="font-semibold text-white">Flowchart Lab</span>
+                            </div>
+                            <span id="room-level-count" class="text-xs text-gray-400">0 levels</span>
+                        </div>
+                        <p id="room-description" class="text-xs text-gray-300 mt-1">Interactive flowchart creation and validation</p>
                     </div>
                     
                     <div class="space-y-2 mb-4">
@@ -144,8 +188,33 @@
                         </button>
                     </div>
 
+                    <!-- Template Levels Section -->
+                    <div id="template-levels-section" class="mb-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-semibold text-blue-400">
+                                <i class="bi bi-collection"></i> Template Levels
+                            </h3>
+                            <button id="show-templates-btn" class="text-xs text-blue-400 hover:text-blue-300">
+                                <i class="bi bi-eye"></i> Show
+                            </button>
+                        </div>
+                        <div id="template-levels-list" class="space-y-1 hidden">
+                            <!-- Template levels will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Database Levels Section -->
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-sm font-semibold text-green-400">
+                            <i class="bi bi-database"></i> Database Levels
+                        </h3>
+                        <button id="refresh-levels-btn" class="text-xs text-green-400 hover:text-green-300" title="Refresh Database Levels">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+
                     <div id="levels-list" class="space-y-2 max-h-96 overflow-y-auto">
-                        <!-- Levels will be loaded here -->
+                        <!-- Database levels will be loaded here -->
                     </div>
                 </div>
 
@@ -324,7 +393,7 @@
 
                 <!-- JSON Configuration Guide -->
                 <div id="json-config" class="bg-gray-800 rounded-lg p-4 lg:p-6 mb-6">
-                    <h3 class="text-xl lg:text-2xl font-bold text-yellow-400 mb-4">
+                    <h3 class="text-xl lg:text-2xl font-bold text-yellow-400 mb-4"> </h3>
                         <i class="bi bi-code-square"></i> JSON Configuration Guide
                     </h3>
                     
@@ -377,23 +446,22 @@
 
                             <details class="bg-gray-700 rounded-lg">
                                 <summary class="p-3 cursor-pointer font-medium text-sm lg:text-base hover:bg-gray-600 rounded-lg transition-colors">
-                                    <i class="bi bi-cloud"></i> Cloud Scale (Room 2)
+                                    <i class="bi bi-diagram-2"></i> Network Nexus (Room 2)
                                 </summary>
                                 <div class="p-3 border-t border-gray-600">
                                     <div class="mb-3 text-sm text-gray-300">
-                                        <p><strong>Purpose:</strong> Cloud resource allocation and scaling</p>
-                                        <p><strong>Task Type:</strong> <code class="bg-gray-800 px-1 rounded">cloud-scale</code></p>
+                                        <p><strong>Purpose:</strong> Network configuration and management</p>
+                                        <p><strong>Task Type:</strong> <code class="bg-gray-800 px-1 rounded">network</code></p>
                                     </div>
                                     <pre class="text-xs lg:text-sm text-gray-300 bg-gray-800 p-3 rounded overflow-x-auto"><code>{
-  "taskType": "cloud-scale",
-  "resources": {
-    "vm": 2,
-    "cpu": 4,
-    "memory": "8GB"
-  },
-  "scalingPolicy": "auto",
-  "minInstances": 1,
-  "maxInstances": 5
+  "taskType": "network",
+  "nodes": [
+    { "id": "1", "label": "Router", "type": "router" },
+    { "id": "2", "label": "Switch", "type": "switch" }
+  ],
+  "edges": [
+    { "from": "1", "to": "2", "label": "Ethernet" }
+  ]
 }</code></pre>
                                 </div>
                             </details>
@@ -419,7 +487,7 @@
 
                             <details class="bg-gray-700 rounded-lg">
                                 <summary class="p-3 cursor-pointer font-medium text-sm lg:text-base hover:bg-gray-600 rounded-lg transition-colors">
-                                    <i class="bi bi-database-x"></i> Database Emergency (Room 4)
+                                    <i class="bi bi-database-x"></i> Database Crisis (Room 4)
                                 </summary>
                                 <div class="p-3 border-t border-gray-600">
                                     <div class="mb-3 text-sm text-gray-300">
@@ -460,7 +528,7 @@
 
                 <!-- Import/Export Guide -->
                 <div id="import-export" class="bg-gray-800 rounded-lg p-4 lg:p-6 mb-6">
-                    <h3 class="text-xl lg:text-2xl font-bold text-orange-400 mb-4">
+                    <h3 class="text-xl lg:text-2xl font-bold text-orange-400 mb-4"></h3>
                         <i class="bi bi-arrow-repeat"></i> Import & Export
                     </h3>
                     
@@ -792,6 +860,54 @@
         </div>
     </div>
 
+    <!-- Existing Levels Modal -->
+    <div id="existing-levels-modal" class="fixed inset-0 bg-black bg-opacity-80 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg p-6 max-w-5xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-orange-400">
+                    <i class="bi bi-folder2-open"></i> Existing Levels from Codebase
+                </h3>
+                <button id="close-existing" class="text-gray-400 hover:text-white text-2xl">
+                    <i class="bi bi-x-circle"></i>
+                </button>
+            </div>
+            
+            <!-- Loading State -->
+            <div id="existing-levels-loading" class="text-center py-8">
+                <div class="inline-flex items-center">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-400 mr-3"></div>
+                    <span class="text-orange-400">Loading existing levels from codebase...</span>
+                </div>
+            </div>
+            
+            <!-- Content -->
+            <div id="existing-levels-content" class="hidden">
+                <div class="mb-4 p-4 bg-gray-700 rounded-lg">
+                    <div class="flex items-start space-x-3">
+                        <i class="bi bi-info-circle text-blue-400 text-xl mt-1"></i>
+                        <div>
+                            <h4 class="font-semibold text-blue-400 mb-1">About Existing Levels</h4>
+                            <p class="text-sm text-gray-300">
+                                These are the levels currently defined in the codebase. You can preview them and selectively import them into the database for editing. 
+                                Imported levels will be assigned new level numbers automatically.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="existing-levels-list">
+                    <!-- Existing levels will be rendered here -->
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-700">
+                    <button id="cancel-existing" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add SortableJS for drag and drop -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script>
@@ -857,6 +973,10 @@
             }, 3000);
         };
     </script>
+    <script src="/static/js/admin/level-editor.js"></script>
+</body>
+</html>
+</html>
     <script src="/static/js/admin/level-editor.js"></script>
 </body>
 </html>

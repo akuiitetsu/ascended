@@ -2,7 +2,6 @@ import { GridManager } from './grid-manager.js';
 import { CodeExecutor } from './code-executor.js';
 import { PlayerActions } from './player-actions.js';
 import { LevelGenerator } from './level-generator.js';
-import { LevelEditor } from './level-editor.js';
 import { ProgrammingCrisisUI } from './programming-crisis-ui.js';
 
 class Room6 {
@@ -32,7 +31,6 @@ class Room6 {
         this.codeExecutor = new CodeExecutor(this);
         this.playerActions = new PlayerActions(this);
         this.levelGenerator = new LevelGenerator(this);
-        this.levelEditor = new LevelEditor(this);
         this.ui = new ProgrammingCrisisUI(this);
     }
 

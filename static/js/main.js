@@ -86,31 +86,80 @@ class EscapeTheLabGame {
         }
     }
 
+    async roomCompleted(message, roomData = {}) {
+        try {
+            // Prepare comprehensive progress data
+            const progressData = {
+                room_name: `Room ${this.currentRoom}`,
+                status: 'completed',
+                completion_percentage: 100,
+                completion_status: 'completed',
+                score: roomData.score || 100,
+                time_spent: roomData.timeSpent || Date.now() - (this.progressManager.roomStartTime || this.progressManager.sessionStartTime),
+                room_data: {
+                    ...roomData,
+                    completed_at: new Date().toISOString(),
+                    message: message
+                }
+            };
+            
+            // Save progress to server
+            await this.progressManager.saveProgress(this.currentRoom, progressData);
+            
+            // Update local player data
+            this.player.roomsCompleted++;
+            this.cosmeticManager.unlockCosmetics();
+            this.cosmeticManager.savePlayerData();
+            
+            // Check if all rooms are completed
+            const summary = window.progressTracker.getProgressSummary();
+            const totalRoomsCompleted = Object.values(summary.roomsProgress).filter(room => 
+                room.percentage >= 80 // 80% completion threshold
+            ).length;
+            
+            if (totalRoomsCompleted >= this.totalRooms) {
+                this.gameWon();
+            } else {
+                this.modalManager.showSuccessModal(message);
+            }
+        } catch (error) {
+            console.error('Failed to save room completion:', error);
+            // Still show success modal even if save failed
+            this.modalManager.showSuccessModal(message + ' (Progress saved locally)');
+        }
+    }
+
     async loadUserProgress() {
         try {
-            // Load all user progress from server
-            const allProgress = await this.progressManager.loadProgress();
-            
-            if (allProgress) {
-                // Calculate total rooms completed based on server progress
-                let completedRooms = 0;
-                
-                if (Array.isArray(allProgress)) {
-                    // Server returned array format
-                    completedRooms = allProgress.filter(room => 
-                        room.completion_status === 'completed' && 
-                        room.completion_percentage >= 100
-                    ).length;
-                } else if (typeof allProgress === 'object') {
-                    // Local progress format
-                    completedRooms = Object.values(allProgress).filter(room => 
-                        room.completion_percentage >= 100
-                    ).length;
-                }
-                
-                this.player.roomsCompleted = completedRooms;
-                console.log(`Loaded user progress: ${completedRooms} rooms completed`);
+            // Wait for progress tracker to be ready
+            if (!window.progressTracker) {
+                await new Promise(resolve => {
+                    const checkProgress = () => {
+                        if (window.progressTracker) {
+                            resolve();
+                        } else {
+                            setTimeout(checkProgress, 100);
+                        }
+                    };
+                    checkProgress();
+                });
             }
+
+            // Get progress summary from progress tracker
+            const summary = window.progressTracker.getProgressSummary();
+            
+            // Calculate completed rooms (80% threshold)
+            let completedRooms = 0;
+            Object.values(summary.roomsProgress).forEach(room => {
+                if (room.percentage >= 80) completedRooms++;
+            });
+            
+            this.player.roomsCompleted = completedRooms;
+            console.log(`Loaded user progress: ${completedRooms} rooms completed, ${summary.totalLevelsCompleted} total levels completed`);
+            
+            // Update current position
+            this.currentRoom = summary.currentPosition.room;
+            
         } catch (error) {
             console.warn('Failed to load user progress:', error);
         }
@@ -122,8 +171,15 @@ class EscapeTheLabGame {
             this.gameActive = true;
             this.currentRoom = roomNumber;
             
-            // Track room entry
-            this.progressManager.enterRoom(roomNumber);
+            // Update progress tracker current room
+            if (window.progressTracker) {
+                window.progressTracker.setCurrentRoom(roomNumber);
+            }
+            
+            // Track room entry if progress manager is available
+            if (this.progressManager && typeof this.progressManager.enterRoom === 'function') {
+                this.progressManager.enterRoom(roomNumber);
+            }
             
             await this.levelManager.loadRoom(roomNumber);
             console.log(`Successfully loaded room ${roomNumber}`);
@@ -165,59 +221,7 @@ class EscapeTheLabGame {
         this.cosmeticManager.showCosmeticMenu();
     }
 
-    async roomCompleted(message, roomData = {}) {
-        try {
-            // Prepare comprehensive progress data
-            const progressData = {
-                room_name: `Room ${this.currentRoom}`,
-                status: 'completed',
-                completion_percentage: 100,
-                completion_status: 'completed',
-                score: roomData.score || 100,
-                time_spent: roomData.timeSpent || Date.now() - (this.progressManager.roomStartTime || this.progressManager.sessionStartTime),
-                room_data: {
-                    ...roomData,
-                    completed_at: new Date().toISOString(),
-                    message: message
-                }
-            };
-            
-            // Save progress to server
-            await this.progressManager.saveProgress(this.currentRoom, progressData);
-            
-            // Update local player data
-            this.player.roomsCompleted++;
-            this.cosmeticManager.unlockCosmetics();
-            this.cosmeticManager.savePlayerData();
-            
-            if (this.player.roomsCompleted >= this.totalRooms) {
-                this.gameWon();
-            } else {
-                this.modalManager.showSuccessModal(message);
-            }
-        } catch (error) {
-            console.error('Failed to save room completion:', error);
-            // Still show success modal even if save failed
-            this.modalManager.showSuccessModal(message + ' (Progress saved locally)');
-        }
-    }
-
-    async saveRoomProgress(roomNumber, progressData) {
-        try {
-            await this.progressManager.saveProgress(roomNumber, {
-                room_name: `Room ${roomNumber}`,
-                status: progressData.status || 'in_progress',
-                completion_percentage: progressData.completion_percentage || 0,
-                score: progressData.score || 0,
-                time_spent: progressData.time_spent || 0,
-                room_data: progressData.room_data || {}
-            });
-        } catch (error) {
-            console.error('Failed to save room progress:', error);
-        }
-    }
-
-    gameWon() {
+    async gameWon() {
         this.inRoom = false;
         this.gameActive = false;
         const victoryContent = this.modalManager.showVictoryContent();
