@@ -359,13 +359,25 @@
             bindEvents() {
                 // Desktop logout
                 document.getElementById('logout-btn').addEventListener('click', async () => {
-                    await fetch('/api/auth/logout');
+                    try {
+                        await fetch('/api/auth/logout');
+                    } catch (error) {
+                        console.debug('Logout error:', error);
+                    }
+                    localStorage.clear();
+                    sessionStorage.clear();
                     window.location.href = '/';
                 });
                 
                 // Mobile logout
                 document.getElementById('logout-btn-mobile').addEventListener('click', async () => {
-                    await fetch('/api/auth/logout');
+                    try {
+                        await fetch('/api/auth/logout');
+                    } catch (error) {
+                        console.debug('Logout error:', error);
+                    }
+                    localStorage.clear();
+                    sessionStorage.clear();
                     window.location.href = '/';
                 });
                 

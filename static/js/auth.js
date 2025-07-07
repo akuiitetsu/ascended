@@ -109,9 +109,17 @@ class Auth {
     async logout() {
         try {
             await fetch('/api/auth/logout');
-            window.location.reload();
+            // Clear all local storage and session storage
+            localStorage.clear();
+            sessionStorage.clear();
+            // Redirect to root page which shows login/register forms
+            window.location.href = '/';
         } catch (error) {
             console.error('Logout error:', error);
+            // Even if logout API fails, clear storage and redirect
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = '/';
         }
     }
 

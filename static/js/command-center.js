@@ -89,6 +89,11 @@ class CommandCenter {
                         <i class="bi bi-question-circle"></i>
                         <span>Help & Controls</span>
                     </button>
+
+                    <button id="cc-logout-btn" class="w-full bg-red-600 hover:bg-red-500 px-4 py-2 rounded transition-colors flex items-center justify-center space-x-2 text-sm">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span>Logout</span>
+                    </button>
                 </div>
             </div>
         `;
@@ -122,6 +127,18 @@ class CommandCenter {
         // Help button
         document.getElementById('cc-help-btn')?.addEventListener('click', () => {
             this.showHelpModal();
+        });
+
+        // Add logout functionality if needed
+        document.getElementById('cc-logout-btn')?.addEventListener('click', async () => {
+            try {
+                await fetch('/api/auth/logout');
+            } catch (error) {
+                console.debug('Logout error:', error);
+            }
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = '/';
         });
 
         // Close panel when clicking outside

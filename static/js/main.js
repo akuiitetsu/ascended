@@ -382,75 +382,232 @@ class EscapeTheLabGame {
         this.cosmeticManager.showCosmeticMenu();
     }
 
-    async gameWon() {
-        this.inRoom = false;
-        this.gameActive = false;
-        
-        // Save final completion state
-        await this.saveProgress();
-        
-        const victoryContent = this.modalManager.showVictoryContent();
-        document.getElementById('room-content').innerHTML = victoryContent;
+    showBadgesMenu() {
+        console.log('showBadgesMenu called');
+        this.showBadgesModal();
     }
 
-    gameOver(message) {
-        this.inRoom = false;
-        this.gameActive = false;
-        this.modalManager.showGameOverModal(message);
+    showBadgesModal() {
+        console.log('showBadgesModal called');
+        
+        // Remove any existing badges modal
+        const existingModal = document.getElementById('badges-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Create badges modal with room-specific styling
+        const modal = document.createElement('div');
+        modal.id = 'badges-modal';
+        modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4';
+        
+        modal.innerHTML = `
+            <div class="bg-gray-800 border border-gray-600 rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto w-full">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-yellow-400">
+                        <i class="bi bi-award mr-2"></i>Badges & Achievements
+                    </h2>
+                    <button id="close-badges-modal" class="text-gray-400 hover:text-white text-2xl transition-colors">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+                <div id="badges-content" class="space-y-6">
+                    <div class="text-center py-8">
+                        <i class="bi bi-gear-fill animate-spin text-4xl text-yellow-400"></i>
+                        <p class="mt-2 text-gray-400">Loading badges...</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        console.log('Badges modal created and added to DOM');
+        
+        // Close modal functionality
+        const closeBtn = document.getElementById('close-badges-modal');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                console.log('Close button clicked');
+                modal.remove();
+            });
+        }
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                console.log('Modal background clicked');
+                modal.remove();
+            }
+        });
+        
+        // Add escape key listener
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                modal.remove();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+        
+        // Load badges content
+        this.loadBadgesContent();
     }
 
-    async nextRoom() {
-        if (this.currentRoom < this.totalRooms) {
-            await this.loadRoom(this.currentRoom + 1);
-        } else {
-            this.gameWon();
+    async loadBadgesContent() {
+        console.log('Loading badges content...');
+        const contentElement = document.getElementById('badges-content');
+        if (!contentElement) {
+            console.error('Badges content element not found');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/user/badges', {
+                credentials: 'include'
+            });
+            
+            console.log('Badges API response status:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Badges data received:', data);
+                if (data.status === 'success') {
+                    this.renderBadgesInModal(data.badges);
+                    return;
+                }
+            }
+            
+            console.log('Failed to load badges from API, showing default');
+            // Fallback to default badges
+            this.renderDefaultBadges();
+        } catch (error) {
+            console.error('Failed to load badges:', error);
+            this.renderDefaultBadges();
         }
     }
 
-    async restart() {
-        // Reset game state
-        this.player.roomsCompleted = 0;
-        this.currentRoom = 1;
-        this.inRoom = false;
-        this.gameActive = false;
-        this.gameStarted = true; // Keep game started to stay in game interface
+    renderBadgesInModal(badges) {
+        const content = document.getElementById('badges-content');
+        if (!content) return;
         
-        // Clear saved progress
-        localStorage.removeItem('ascended_progress');
-        sessionStorage.removeItem('ascended_game_state');
+        // Group badges by room
+        const roomBadges = {
+            1: { name: 'Flowchart Lab', color: 'blue', icon: 'bi-diagram-3', badges: [] },
+            2: { name: 'Network Nexus', color: 'green', icon: 'bi-router', badges: [] },
+            3: { name: 'AI Systems', color: 'purple', icon: 'bi-robot', badges: [] },
+            4: { name: 'Database Crisis', color: 'red', icon: 'bi-database-x', badges: [] },
+            5: { name: 'Programming Crisis', color: 'yellow', icon: 'bi-bug', badges: [] },
+            0: { name: 'General', color: 'gray', icon: 'bi-star', badges: [] }
+        };
         
-        // Save reset state
-        await this.saveProgress();
+        // Sort badges into rooms
+        badges.forEach(badge => {
+            const room = badge.room_id || 0;
+            if (roomBadges[room]) {
+                roomBadges[room].badges.push(badge);
+            }
+        });
         
-        // Load room 1
-        await this.loadRoom(1);
+        // Render room sections
+        content.innerHTML = '';
+        Object.entries(roomBadges).forEach(([roomId, roomData]) => {
+            if (roomData.badges.length === 0) return;
+            
+            const roomSection = document.createElement('div');
+            roomSection.className = `room-badges-section border border-${roomData.color}-600 rounded-lg p-4`;
+            
+            roomSection.innerHTML = `
+                <div class="flex items-center mb-4">
+                    <div class="w-8 h-8 rounded-full bg-${roomData.color}-600 flex items-center justify-center mr-3">
+                        <i class="bi ${roomData.icon} text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-${roomData.color}-300">${roomData.name}</h3>
+                    <span class="ml-auto text-sm text-gray-400">
+                        ${roomData.badges.filter(b => b.earned).length}/${roomData.badges.length} earned
+                    </span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    ${roomData.badges.map(badge => this.createBadgeCard(badge, roomData.color)).join('')}
+                </div>
+            `;
+            
+            content.appendChild(roomSection);
+        });
     }
 
-    // Enhanced cleanup method
-    async cleanup() {
-        // Save final progress before cleanup
-        await this.saveProgress();
+    createBadgeCard(badge, roomColor) {
+        const earnedClass = badge.earned 
+            ? `bg-${roomColor}-900 border-${roomColor}-500 text-${roomColor}-100` 
+            : 'bg-gray-700 border-gray-600 text-gray-400 opacity-60';
+            
+        const earnedDate = badge.earned_at ? new Date(badge.earned_at).toLocaleDateString() : '';
         
-        if (this.progressManager) {
-            this.progressManager.cleanup();
-        }
+        return `
+            <div class="badge-card ${earnedClass} border rounded-lg p-3 text-center transition-all hover:scale-105">
+                <div class="text-2xl mb-2">${badge.icon || this.getRoomBadgeIcon(roomColor)}</div>
+                <h4 class="font-bold text-sm mb-1">${badge.name}</h4>
+                <p class="text-xs text-gray-400 mb-2">${badge.description}</p>
+                ${badge.earned ? `
+                    <div class="text-xs text-${roomColor}-400">
+                        <i class="bi bi-check-circle mr-1"></i>
+                        ${earnedDate}
+                    </div>
+                ` : `
+                    <div class="text-xs text-gray-500">
+                        <i class="bi bi-lock mr-1"></i>
+                        Not earned
+                    </div>
+                `}
+                ${badge.earned && badge.is_recent ? `
+                    <span class="inline-block bg-green-600 text-white text-xs px-2 py-1 rounded-full mt-1">New!</span>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    getRoomBadgeIcon(roomColor) {
+        const icons = {
+            'blue': '📊',    // Flowchart
+            'green': '🌐',   // Network
+            'purple': '🤖',  // AI
+            'red': '🗄️',     // Database
+            'yellow': '🐛',  // Programming
+            'gray': '⭐'     // General
+        };
+        return icons[roomColor] || '🏆';
+    }
+
+    renderDefaultBadges() {
+        const content = document.getElementById('badges-content');
+        if (!content) return;
+        
+        content.innerHTML = `
+            <div class="text-center py-8">
+                <i class="bi bi-award text-6xl text-yellow-400 mb-4"></i>
+                <h3 class="text-xl font-bold text-yellow-300 mb-2">No Badges Yet</h3>
+                <p class="text-gray-400 mb-4">Complete levels and challenges to earn badges!</p>
+                <button class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded transition-colors" onclick="this.closest('#badges-modal').remove()">
+                    Start Playing
+                </button>
+            </div>
+        `;
     }
 
     setupEventListeners() {
-        document.getElementById('next-room-btn').addEventListener('click', () => {
-            this.gameManager.nextRoom();
-        });
-        
-        document.getElementById('restart-btn').addEventListener('click', () => {
-            this.gameManager.restartGame();
-        });
-        
         // Add character menu button listener
-        const characterMenuBtn = document.getElementById('character-menu-btn');
-        if (characterMenuBtn) {
-            characterMenuBtn.addEventListener('click', () => {
-                this.cosmeticManager.showCosmeticMenu();
+        const badgesMenuBtn = document.getElementById('badges-menu-btn');
+        if (badgesMenuBtn) {
+            // Remove any existing listeners by cloning the element
+            const newBadgesBtn = badgesMenuBtn.cloneNode(true);
+            badgesMenuBtn.parentNode.replaceChild(newBadgesBtn, badgesMenuBtn);
+            
+            newBadgesBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Badges menu button clicked (from setupEventListeners)');
+                this.showBadgesMenu();
             });
+            console.log('Badges menu button listener added from setupEventListeners');
+        } else {
+            console.warn('Badges menu button not found in setupEventListeners');
         }
         
         // Add fullscreen toggle

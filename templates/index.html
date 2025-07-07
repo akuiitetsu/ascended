@@ -135,9 +135,9 @@
                             Room: <span id="current-room" class="font-bold text-blue-300">1</span>/5
                         </div>
                         
-                        <button id="character-menu-btn" class="bg-purple-700 hover:bg-purple-600 px-3 py-2 rounded transition-colors text-sm" title="Character Customization">
-                            <i class="bi bi-person-gear"></i>
-                            <span class="hidden lg:inline ml-1">Character</span>
+                        <button id="badges-menu-btn" class="bg-yellow-700 hover:bg-yellow-600 px-3 py-2 rounded transition-colors text-sm" title="View Badges & Achievements">
+                            <i class="bi bi-award"></i>
+                            <span class="hidden lg:inline ml-1">Badges</span>
                         </button>
                     </div>
                 </div>
@@ -298,12 +298,24 @@
                 }
             });
             
-            const characterMenuBtn = document.getElementById('character-menu-btn');
-            characterMenuBtn.addEventListener('click', () => {
-                if (window.game && window.game.showCosmeticMenu) {
-                    window.game.showCosmeticMenu();
-                }
-            });
+            const badgesMenuBtn = document.getElementById('badges-menu-btn');
+            if (badgesMenuBtn) {
+                badgesMenuBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log('Badges button clicked');
+                    
+                    // Try multiple methods to show badges
+                    if (window.game && window.game.showBadgesMenu) {
+                        window.game.showBadgesMenu();
+                    } else if (window.game && window.game.showBadgesModal) {
+                        window.game.showBadgesModal();
+                    } else {
+                        // Fallback: create and show badges modal directly
+                        showBadgesModalFallback();
+                    }
+                });
+                console.log('Badges button event listener added');
+            }
             
             // Wave navigation for testing
             document.querySelectorAll('.wave-nav-btn').forEach(btn => {
@@ -380,6 +392,180 @@
                 }
             });
         });
+
+        // Fallback function to show badges modal when game isn't ready
+        function showBadgesModalFallback() {
+            console.log('Showing badges modal fallback');
+            
+            const modal = document.createElement('div');
+            modal.id = 'badges-modal-fallback';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
+            
+            modal.innerHTML = `
+                <div class="bg-gray-800 border border-gray-600 rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-yellow-400">
+                            <i class="bi bi-award mr-2"></i>Badges & Achievements
+                        </h2>
+                        <button class="close-badges-modal text-gray-400 hover:text-white text-2xl">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                    <div class="badges-content space-y-6">
+                        <div class="text-center">
+                            <i class="bi bi-gear-fill animate-spin text-4xl text-yellow-400"></i>
+                            <p class="mt-2 text-gray-400">Loading badges...</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Close modal functionality
+            modal.querySelector('.close-badges-modal').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            });
+            
+            // Load badges content
+            loadBadgesContentFallback(modal);
+        }
+
+        // Fallback function to load badges content
+        async function loadBadgesContentFallback(modal) {
+            try {
+                const response = await fetch('/api/user/badges', {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        renderBadgesInModalFallback(modal, data.badges);
+                        return;
+                    }
+                }
+                
+                // Fallback to default badges
+                renderDefaultBadgesFallback(modal);
+            } catch (error) {
+                console.error('Failed to load badges:', error);
+                renderDefaultBadgesFallback(modal);
+            }
+        }
+
+        function renderBadgesInModalFallback(modal, badges) {
+            const content = modal.querySelector('.badges-content');
+            if (!content) return;
+            
+            // Group badges by room
+            const roomBadges = {
+                1: { name: 'Flowchart Lab', color: 'blue', icon: 'bi-diagram-3', badges: [] },
+                2: { name: 'Network Nexus', color: 'green', icon: 'bi-router', badges: [] },
+                3: { name: 'AI Systems', color: 'purple', icon: 'bi-robot', badges: [] },
+                4: { name: 'Database Crisis', color: 'red', icon: 'bi-database-x', badges: [] },
+                5: { name: 'Programming Crisis', color: 'yellow', icon: 'bi-bug', badges: [] },
+                0: { name: 'General', color: 'gray', icon: 'bi-star', badges: [] }
+            };
+            
+            // Sort badges into rooms
+            badges.forEach(badge => {
+                const room = badge.room_id || 0;
+                if (roomBadges[room]) {
+                    roomBadges[room].badges.push(badge);
+                }
+            });
+            
+            // Render room sections
+            content.innerHTML = '';
+            Object.entries(roomBadges).forEach(([roomId, roomData]) => {
+                if (roomData.badges.length === 0) return;
+                
+                const roomSection = document.createElement('div');
+                roomSection.className = `room-badges-section border border-${roomData.color}-600 rounded-lg p-4 mb-4`;
+                
+                roomSection.innerHTML = `
+                    <div class="flex items-center mb-4">
+                        <div class="w-8 h-8 rounded-full bg-${roomData.color}-600 flex items-center justify-center mr-3">
+                            <i class="bi ${roomData.icon} text-white"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-${roomData.color}-300">${roomData.name}</h3>
+                        <span class="ml-auto text-sm text-gray-400">
+                            ${roomData.badges.filter(b => b.earned).length}/${roomData.badges.length} earned
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        ${roomData.badges.map(badge => createBadgeCardFallback(badge, roomData.color)).join('')}
+                    </div>
+                `;
+                
+                content.appendChild(roomSection);
+            });
+        }
+
+        function createBadgeCardFallback(badge, roomColor) {
+            const earnedClass = badge.earned 
+                ? `bg-${roomColor}-900 border-${roomColor}-500 text-${roomColor}-100` 
+                : 'bg-gray-700 border-gray-600 text-gray-400 opacity-60';
+                
+            const earnedDate = badge.earned_at ? new Date(badge.earned_at).toLocaleDateString() : '';
+            
+            return `
+                <div class="badge-card ${earnedClass} border rounded-lg p-3 text-center transition-all hover:scale-105">
+                    <div class="text-2xl mb-2">${badge.icon || getRoomBadgeIconFallback(roomColor)}</div>
+                    <h4 class="font-bold text-sm mb-1">${badge.name}</h4>
+                    <p class="text-xs text-gray-400 mb-2">${badge.description}</p>
+                    ${badge.earned ? `
+                        <div class="text-xs text-${roomColor}-400">
+                            <i class="bi bi-check-circle mr-1"></i>
+                            ${earnedDate}
+                        </div>
+                    ` : `
+                        <div class="text-xs text-gray-500">
+                            <i class="bi bi-lock mr-1"></i>
+                            Not earned
+                        </div>
+                    `}
+                    ${badge.earned && badge.is_recent ? `
+                        <span class="inline-block bg-green-600 text-white text-xs px-2 py-1 rounded-full mt-1">New!</span>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function getRoomBadgeIconFallback(roomColor) {
+            const icons = {
+                'blue': '📊',    // Flowchart
+                'green': '🌐',   // Network
+                'purple': '🤖',  // AI
+                'red': '🗄️',     // Database
+                'yellow': '🐛',  // Programming
+                'gray': '⭐'     // General
+            };
+            return icons[roomColor] || '🏆';
+        }
+
+        function renderDefaultBadgesFallback(modal) {
+            const content = modal.querySelector('.badges-content');
+            if (!content) return;
+            
+            content.innerHTML = `
+                <div class="text-center py-8">
+                    <i class="bi bi-award text-6xl text-yellow-400 mb-4"></i>
+                    <h3 class="text-xl font-bold text-yellow-300 mb-2">No Badges Yet</h3>
+                    <p class="text-gray-400 mb-4">Complete levels and challenges to earn badges!</p>
+                    <button class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded transition-colors" onclick="document.getElementById('badges-modal-fallback').remove()">
+                        Start Playing
+                    </button>
+                </div>
+            `;
+        }
     </script>
     <script type="module" src="static/js/auth.js"></script>
     <script type="module" src="static/js/main.js"></script>

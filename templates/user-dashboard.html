@@ -23,6 +23,198 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
         }
+
+        /* Room-specific badge designs */
+        .badge-flowchart {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
+            border: 2px solid #3b82f6;
+            position: relative;
+            overflow: hidden;
+        }
+        .badge-flowchart::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+            transform: rotate(45deg);
+            animation: flowchartShine 3s infinite;
+        }
+        .badge-flowchart.earned {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), inset 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+
+        .badge-network {
+            background: linear-gradient(135deg, #047857 0%, #059669 50%, #10b981 100%);
+            border: 2px solid #059669;
+            position: relative;
+        }
+        .badge-network::after {
+            content: '⚡';
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 12px;
+            animation: networkPulse 2s infinite;
+        }
+        .badge-network.earned {
+            box-shadow: 0 0 20px rgba(5, 150, 105, 0.5), inset 0 0 20px rgba(5, 150, 105, 0.2);
+        }
+
+        .badge-ai {
+            background: linear-gradient(135deg, #581c87 0%, #7c3aed 50%, #a855f7 100%);
+            border: 2px solid #7c3aed;
+            position: relative;
+        }
+        .badge-ai::before {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            background: linear-gradient(45deg, transparent, rgba(168, 85, 247, 0.3), transparent);
+            border-radius: inherit;
+            animation: aiGlow 2.5s ease-in-out infinite alternate;
+        }
+        .badge-ai.earned {
+            box-shadow: 0 0 25px rgba(124, 58, 237, 0.6), inset 0 0 20px rgba(124, 58, 237, 0.3);
+        }
+
+        .badge-database {
+            background: linear-gradient(135deg, #991b1b 0%, #dc2626 50%, #ef4444 100%);
+            border: 2px solid #dc2626;
+            position: relative;
+        }
+        .badge-database::after {
+            content: '🔥';
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 16px;
+            animation: databaseCrisis 1.5s infinite;
+        }
+        .badge-database.earned {
+            box-shadow: 0 0 20px rgba(220, 38, 38, 0.5), inset 0 0 20px rgba(220, 38, 38, 0.2);
+        }
+
+        .badge-programming {
+            background: linear-gradient(135deg, #a16207 0%, #d97706 50%, #f59e0b 100%);
+            border: 2px solid #d97706;
+            position: relative;
+        }
+        .badge-programming::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 2px,
+                rgba(255, 255, 255, 0.1) 2px,
+                rgba(255, 255, 255, 0.1) 4px
+            );
+            animation: programmingMatrix 4s linear infinite;
+        }
+        .badge-programming.earned {
+            box-shadow: 0 0 20px rgba(217, 119, 6, 0.5), inset 0 0 20px rgba(217, 119, 6, 0.2);
+        }
+
+        .badge-general {
+            background: linear-gradient(135deg, #374151 0%, #6b7280 50%, #9ca3af 100%);
+            border: 2px solid #6b7280;
+            position: relative;
+        }
+        .badge-general::after {
+            content: '⭐';
+            position: absolute;
+            top: -3px;
+            right: -3px;
+            font-size: 14px;
+            animation: generalStar 3s infinite;
+        }
+        .badge-general.earned {
+            box-shadow: 0 0 15px rgba(107, 114, 128, 0.4), inset 0 0 15px rgba(107, 114, 128, 0.2);
+        }
+
+        .badge-locked {
+            background: linear-gradient(135deg, #1f2937 0%, #374151 50%, #4b5563 100%);
+            border: 2px solid #4b5563;
+            filter: grayscale(100%);
+            opacity: 0.6;
+        }
+
+        /* Animations */
+        @keyframes flowchartShine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        @keyframes networkPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.2); }
+        }
+
+        @keyframes aiGlow {
+            0% { opacity: 0.3; }
+            100% { opacity: 0.7; }
+        }
+
+        @keyframes databaseCrisis {
+            0%, 100% { transform: rotate(-5deg) scale(1); }
+            25% { transform: rotate(5deg) scale(1.1); }
+            50% { transform: rotate(-3deg) scale(0.9); }
+            75% { transform: rotate(3deg) scale(1.1); }
+        }
+
+        @keyframes programmingMatrix {
+            0% { background-position: 0 0; }
+            100% { background-position: 20px 20px; }
+        }
+
+        @keyframes generalStar {
+            0%, 100% { transform: rotate(0deg) scale(1); opacity: 1; }
+            25% { transform: rotate(90deg) scale(1.2); opacity: 0.8; }
+            50% { transform: rotate(180deg) scale(1); opacity: 0.6; }
+            75% { transform: rotate(270deg) scale(1.2); opacity: 0.8; }
+        }
+
+        /* Special effects for rare/legendary badges */
+        .badge-legendary {
+            animation: legendaryPulse 2s infinite;
+            border: 3px solid gold !important;
+        }
+
+        @keyframes legendaryPulse {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 
+                           0 0 40px rgba(255, 215, 0, 0.3),
+                           0 0 60px rgba(255, 215, 0, 0.1);
+            }
+            50% { 
+                box-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 
+                           0 0 60px rgba(255, 215, 0, 0.5),
+                           0 0 90px rgba(255, 215, 0, 0.2);
+            }
+        }
+
+        /* Hover effects */
+        .badge-item:hover:not(.badge-locked) {
+            transform: scale(1.1) rotateY(5deg);
+            z-index: 10;
+        }
+
+        /* Earned badge special glow */
+        .badge-earned {
+            animation: earnedGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes earnedGlow {
+            0% { filter: brightness(1) saturate(1); }
+            100% { filter: brightness(1.2) saturate(1.3); }
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white font-mono">
@@ -177,8 +369,8 @@
                 document.getElementById('logout-btn').addEventListener('click', async () => {
                     try {
                         // Try to logout via API
-                        await fetch('/logout', {
-                            method: 'POST',
+                        await fetch('/api/auth/logout', {
+                            method: 'GET',
                             credentials: 'include'
                         });
                     } catch (error) {
@@ -187,9 +379,10 @@
                     
                     // Clear local storage regardless
                     localStorage.clear();
+                    sessionStorage.clear();
                     
-                    // Redirect to login page
-                    window.location.href = '/login';
+                    // Redirect to root page which shows login/register
+                    window.location.href = '/';
                 });
             }
 
@@ -460,32 +653,352 @@
                     recentContainer.innerHTML = '<p class="text-gray-400 col-span-full text-center py-8">No badges earned yet. Start playing to unlock achievements!</p>';
                 }
 
-                // Render all badges
-                badges.forEach(badge => {
-                    const badgeElement = this.createBadgeElement(badge, false);
-                    allContainer.appendChild(badgeElement);
+                // Group badges by room for better organization
+                const roomBadges = this.groupBadgesByRoom(badges);
+                
+                // Render all badges organized by room
+                Object.keys(roomBadges).sort().forEach(roomId => {
+                    const roomBadgeList = roomBadges[roomId];
+                    if (roomBadgeList.length > 0) {
+                        // Add room header
+                        const roomHeader = this.createRoomBadgeHeader(roomId);
+                        allContainer.appendChild(roomHeader);
+                        
+                        // Add badges for this room
+                        roomBadgeList.forEach(badge => {
+                            const badgeElement = this.createBadgeElement(badge, false);
+                            allContainer.appendChild(badgeElement);
+                        });
+                    }
                 });
             }
 
+            groupBadgesByRoom(badges) {
+                const roomNames = {
+                    0: 'General',
+                    1: 'Flowchart Lab',
+                    2: 'Network Nexus', 
+                    3: 'AI Systems',
+                    4: 'Database Crisis',
+                    5: 'Programming Crisis'
+                };
+
+                const grouped = {};
+                
+                badges.forEach(badge => {
+                    const roomId = badge.room_id || 0;
+                    if (!grouped[roomId]) {
+                        grouped[roomId] = [];
+                    }
+                    grouped[roomId].push(badge);
+                });
+
+                return grouped;
+            }
+
+            createRoomBadgeHeader(roomId) {
+                const roomInfo = {
+                    0: { name: 'General Achievements', icon: 'bi-star', color: 'gray' },
+                    1: { name: 'Flowchart Lab', icon: 'bi-diagram-3', color: 'blue' },
+                    2: { name: 'Network Nexus', icon: 'bi-router', color: 'green' },
+                    3: { name: 'AI Systems', icon: 'bi-robot', color: 'purple' },
+                    4: { name: 'Database Crisis', icon: 'bi-database-x', color: 'red' },
+                    5: { name: 'Programming Crisis', icon: 'bi-bug', color: 'yellow' }
+                };
+
+                const info = roomInfo[roomId] || roomInfo[0];
+                const isRoomCompleted = this.isRoomCompleted(roomId);
+                
+                const header = document.createElement('div');
+                header.className = `col-span-full mb-4 mt-6 first:mt-0`;
+                header.innerHTML = `
+                    <div class="flex items-center justify-between p-3 bg-${info.color}-900 border border-${info.color}-600 rounded-lg">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-${info.color}-600 flex items-center justify-center mr-3">
+                                <i class="bi ${info.icon} text-white"></i>
+                            </div>
+                            <h4 class="text-lg font-bold text-${info.color}-200">${info.name}</h4>
+                        </div>
+                        <div class="text-sm text-${info.color}-300">
+                            ${isRoomCompleted ? 
+                                '<i class="bi bi-check-circle-fill text-green-400 mr-1"></i>Room Completed' : 
+                                '<i class="bi bi-lock-fill text-gray-400 mr-1"></i>Complete room to unlock'}
+                        </div>
+                    </div>
+                `;
+                
+                return header;
+            }
+
+            isRoomCompleted(roomId) {
+                if (!this.progressTracker || roomId === 0) return true; // General badges always available
+                
+                const roomTotals = {1: 10, 2: 8, 3: 12, 4: 6, 5: 15};
+                const completedLevels = this.progressTracker.getCompletedLevelsCount(roomId);
+                const totalLevels = roomTotals[roomId] || 10;
+                
+                return completedLevels >= totalLevels;
+            }
+
             createBadgeElement(badge, isRecent) {
+                const isRoomCompleted = this.isRoomCompleted(badge.room_id);
+                const isLocked = !badge.earned && !isRoomCompleted && badge.room_id > 0;
+                
+                // Determine badge theme based on room
+                const badgeTheme = this.getBadgeTheme(badge.room_id);
+                const rarityClass = this.getBadgeRarity(badge);
+                
                 const div = document.createElement('div');
-                div.className = `badge-item p-4 rounded-lg border text-center ${
+                div.className = `badge-item p-4 rounded-lg border text-center transition-all duration-300 ${badgeTheme} ${rarityClass} ${
                     badge.earned 
-                        ? 'bg-yellow-900 border-yellow-600' 
-                        : 'bg-gray-700 border-gray-600 opacity-50'
+                        ? 'earned badge-earned' 
+                        : isLocked
+                        ? 'badge-locked cursor-not-allowed'
+                        : 'hover:shadow-lg cursor-pointer'
                 }`;
 
                 const earnedDate = badge.earned_at ? new Date(badge.earned_at).toLocaleDateString() : '';
                 
-                div.innerHTML = `
-                    <div class="text-3xl mb-2">${badge.icon || '🏆'}</div>
-                    <h4 class="font-bold text-sm ${badge.earned ? 'text-yellow-300' : 'text-gray-400'}">${badge.name}</h4>
-                    <p class="text-xs text-gray-400 mt-1">${badge.description}</p>
-                    ${badge.earned ? `<p class="text-xs text-yellow-400 mt-2">Earned: ${earnedDate}</p>` : ''}
-                    ${isRecent && badge.earned ? '<span class="inline-block bg-green-600 text-white text-xs px-2 py-1 rounded-full mt-2">New!</span>' : ''}
-                `;
+                // Enhanced icons based on room and badge type
+                const badgeIcon = this.getBadgeIcon(badge);
+                
+                // Different content based on badge state
+                let badgeContent = '';
+                
+                if (badge.earned) {
+                    // Earned badge - show full details with enhanced styling
+                    badgeContent = `
+                        <div class="relative mb-3">
+                            <div class="text-4xl mb-2 ${isRecent ? 'animate-bounce' : 'animate-pulse'}">${badgeIcon}</div>
+                            ${isRecent ? '<div class="absolute -top-2 -right-2 w-4 h-4 bg-green-500 rounded-full animate-ping"></div>' : ''}
+                        </div>
+                        <h4 class="font-bold text-sm text-white drop-shadow-lg">${badge.name}</h4>
+                        <p class="text-xs text-gray-200 mt-1 leading-relaxed">${badge.description}</p>
+                        <div class="mt-3 space-y-1">
+                            <p class="text-xs text-green-300 font-semibold">
+                                <i class="bi bi-check-circle-fill mr-1"></i>
+                                Earned: ${earnedDate}
+                            </p>
+                            ${isRecent ? '<span class="inline-block bg-green-600 text-white text-xs px-2 py-1 rounded-full animate-pulse">🎉 New!</span>' : ''}
+                        </div>
+                    `;
+                } else if (isLocked) {
+                    // Locked badge - show what needs to be done
+                    const roomName = this.getRoomName(badge.room_id);
+                    badgeContent = `
+                        <div class="text-3xl mb-2 opacity-50">🔒</div>
+                        <h4 class="font-bold text-sm text-gray-400">${badge.name}</h4>
+                        <p class="text-xs text-gray-500 mt-1">${badge.description}</p>
+                        <p class="text-xs text-red-400 mt-2 font-semibold">
+                            <i class="bi bi-exclamation-triangle mr-1"></i>
+                            Complete ${roomName} to unlock
+                        </p>
+                    `;
+                } else {
+                    // Unlocked but not earned - show requirements with room styling
+                    badgeContent = `
+                        <div class="text-4xl mb-2 filter grayscale hover:grayscale-0 transition-all duration-300">${badgeIcon}</div>
+                        <h4 class="font-bold text-sm text-gray-200">${badge.name}</h4>
+                        <p class="text-xs text-gray-300 mt-1">${badge.description}</p>
+                        <div class="mt-3 p-2 bg-black bg-opacity-30 rounded border border-gray-600">
+                            <p class="text-xs text-blue-300 font-semibold">
+                                <i class="bi bi-target mr-1"></i>
+                                ${this.getRequirementText(badge)}
+                            </p>
+                        </div>
+                    `;
+                }
+                
+                div.innerHTML = badgeContent;
+
+                // Add click handler for unlocked badges
+                if (!isLocked) {
+                    div.addEventListener('click', () => {
+                        this.showBadgeDetails(badge);
+                    });
+                }
 
                 return div;
+            }
+
+            getBadgeTheme(roomId) {
+                const themes = {
+                    0: 'badge-general',      // General achievements
+                    1: 'badge-flowchart',    // Flowchart Construction Lab
+                    2: 'badge-network',      // Network Nexus
+                    3: 'badge-ai',           // AI System
+                    4: 'badge-database',     // Database Emergency
+                    5: 'badge-programming'   // Programming Crisis
+                };
+                return themes[roomId] || 'badge-general';
+            }
+
+            getBadgeRarity(badge) {
+                // Determine badge rarity based on requirement type
+                const rareBadges = ['all_rooms', 'room_completion', 'perfect_code', 'no_hints_total'];
+                const legendaryBadges = ['all_rooms'];
+                
+                if (legendaryBadges.includes(badge.requirement_type)) {
+                    return 'badge-legendary';
+                }
+                
+                return '';
+            }
+
+            getBadgeIcon(badge) {
+                // Enhanced icons based on room and badge type
+                const roomIcons = {
+                    0: { // General
+                        'any_completion': '🌟',
+                        'total_levels': '📈',
+                        'room_diversity': '🎯',
+                        'speed': '🏃‍♂️',
+                        'no_hints_total': '🧠',
+                        'all_rooms': '👑'
+                    },
+                    1: { // Flowchart Construction Lab
+                        'level_completion': '📊',
+                        'room_completion': '🏗️',
+                        'time_based': '⚡',
+                        'default': '📋'
+                    },
+                    2: { // Network Nexus
+                        'level_completion': '🌐',
+                        'room_completion': '🔗',
+                        'score_based': '📡',
+                        'default': '🖧'
+                    },
+                    3: { // AI System
+                        'level_completion': '🤖',
+                        'room_completion': '🎯',
+                        'no_hints': '🧪',
+                        'default': '🔬'
+                    },
+                    4: { // Database Emergency
+                        'level_completion': '🗄️',
+                        'room_completion': '💾',
+                        'efficiency': '⚡',
+                        'default': '🔥'
+                    },
+                    5: { // Programming Crisis
+                        'level_completion': '💻',
+                        'room_completion': '🐛',
+                        'perfect_code': '✨',
+                        'default': '⚠️'
+                    }
+                };
+
+                const roomSet = roomIcons[badge.room_id] || roomIcons[0];
+                return roomSet[badge.requirement_type] || roomSet['default'] || badge.icon || '🏆';
+            }
+            getRoomName(roomId) {
+                const roomNames = {
+                    1: 'Flowchart Lab',
+                    2: 'Network Nexus', 
+                    3: 'AI Systems',
+                    4: 'Database Crisis',
+                    5: 'Programming Crisis'
+                };
+                return roomNames[roomId] || 'Unknown Room';
+            }
+
+            getRequirementText(badge) {
+                const reqType = badge.requirement_type;
+                const reqValue = badge.requirement_value;
+                
+                switch (reqType) {
+                    case 'level_completion':
+                        return `Complete level ${reqValue}`;
+                    case 'room_completion':
+                        return `Complete all levels in room`;
+                    case 'time_based':
+                        return `Complete in under ${Math.floor(reqValue / 60)} minutes`;
+                    case 'score_based':
+                        return `Achieve ${reqValue}% score`;
+                    case 'no_hints':
+                        return `Complete without using hints`;
+                    case 'total_levels':
+                        return `Complete ${reqValue} total levels`;
+                    case 'room_diversity':
+                        return `Complete levels in ${reqValue} different rooms`;
+                    case 'speed':
+                        return `Complete any level in under ${reqValue} seconds`;
+                    case 'all_rooms':
+                        return `Complete all 5 rooms`;
+                    default:
+                        return 'Complete the challenge';
+                }
+            }
+
+            showBadgeDetails(badge) {
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4';
+                
+                const isEarned = badge.earned;
+                const modalColor = isEarned ? 'yellow' : 'blue';
+                
+                modal.innerHTML = `
+                    <div class="bg-gray-800 border-2 border-${modalColor}-600 rounded-lg p-6 max-w-md w-full">
+                        <div class="text-center mb-4">
+                            <div class="text-6xl mb-3 ${isEarned ? 'animate-pulse' : ''}">${badge.icon || '🏆'}</div>
+                            <h3 class="text-2xl font-bold text-${modalColor}-300 mb-2">${badge.name}</h3>
+                            <p class="text-gray-300">${badge.description}</p>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div class="bg-gray-700 p-3 rounded">
+                                <p class="text-sm text-gray-400">Requirement:</p>
+                                <p class="text-white">${this.getRequirementText(badge)}</p>
+                            </div>
+                            
+                            ${isEarned ? `
+                                <div class="bg-green-800 p-3 rounded">
+                                    <p class="text-sm text-green-300">Earned on:</p>
+                                    <p class="text-white">${new Date(badge.earned_at).toLocaleDateString()}</p>
+                                </div>
+                            ` : `
+                                <div class="bg-blue-800 p-3 rounded">
+                                    <p class="text-sm text-blue-300">Status:</p>
+                                    <p class="text-white">Ready to earn - go complete the challenge!</p>
+                                </div>
+                            `}
+                        </div>
+                        
+                        <div class="flex gap-3 mt-6">
+                            <button class="close-modal flex-1 bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded transition-colors">
+                                Close
+                            </button>
+                            ${!isEarned && badge.room_id > 0 ? `
+                                <button class="go-to-room flex-1 bg-${modalColor}-600 hover:bg-${modalColor}-500 px-4 py-2 rounded transition-colors" data-room="${badge.room_id}">
+                                    Go to Room ${badge.room_id}
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Close modal
+                modal.querySelector('.close-modal').addEventListener('click', () => {
+                    document.body.removeChild(modal);
+                });
+                
+                // Go to room button
+                const goToRoomBtn = modal.querySelector('.go-to-room');
+                if (goToRoomBtn) {
+                    goToRoomBtn.addEventListener('click', () => {
+                        const roomId = goToRoomBtn.dataset.room;
+                        window.location.href = `/room/${roomId}/level/1`;
+                    });
+                }
+                
+                // Close on background click
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        document.body.removeChild(modal);
+                    }
+                });
             }
         }
 

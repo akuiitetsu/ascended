@@ -64,7 +64,6 @@ def create_default_admin():
         # Check if admin already exists
         conn = db_manager.get_connection()
         admin_exists = conn.execute('SELECT id FROM users WHERE is_admin = 1').fetchone()
-        conn.close()
         
         if not admin_exists:
             print("No admin account found. Creating default admin...")
@@ -84,8 +83,86 @@ def create_default_admin():
                 print(f"✗ Failed to create admin account: {result['error']}")
         else:
             print("✓ Admin account already exists")
+        
+        # Create default badges if they don't exist
+        create_default_badges(conn)
+        conn.close()
     except Exception as e:
         print(f"✗ Error checking/creating admin account: {str(e)}")
+
+def create_default_badges(conn):
+    """Create default badges for the game"""
+    try:
+        # Ensure badges table exists
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS badges (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                description TEXT,
+                icon TEXT,
+                room_id INTEGER DEFAULT 0,
+                requirement_type TEXT DEFAULT 'completion',
+                requirement_value TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Check if badges already exist
+        existing_badges = conn.execute('SELECT COUNT(*) FROM badges').fetchone()[0]
+        if existing_badges > 0:
+            print("✓ Default badges already exist")
+            return
+        
+        print("Creating default badges...")
+        
+        # Default badges for each room
+        default_badges = [
+            # Room 1 - Flowchart Lab
+            (1, 'Flowchart Novice', 'Complete your first flowchart challenge', '📊', 'level_completion', '1'),
+            (1, 'Logic Master', 'Complete all flowchart levels', '🧠', 'room_completion', '1'),
+            (1, 'Quick Thinker', 'Complete a flowchart level in under 2 minutes', '⚡', 'time_based', '120'),
+            
+            # Room 2 - Network Nexus
+            (2, 'Network Explorer', 'Complete your first network challenge', '🌐', 'level_completion', '1'),
+            (2, 'Connection Expert', 'Complete all network levels', '🔗', 'room_completion', '2'),
+            (2, 'Network Architect', 'Perfect score on a network challenge', '🏗️', 'score_based', '100'),
+            
+            # Room 3 - AI Systems
+            (3, 'AI Apprentice', 'Complete your first AI challenge', '🤖', 'level_completion', '1'),
+            (3, 'Machine Learning Master', 'Complete all AI levels', '🎯', 'room_completion', '3'),
+            (3, 'Neural Network Ninja', 'Solve an AI puzzle without hints', '🥷', 'no_hints', '1'),
+            
+            # Room 4 - Database Crisis
+            (4, 'Data Detective', 'Complete your first database challenge', '🗄️', 'level_completion', '1'),
+            (4, 'SQL Specialist', 'Complete all database levels', '💾', 'room_completion', '4'),
+            (4, 'Query Optimizer', 'Write an efficient database query', '⚡', 'efficiency', '1'),
+            
+            # Room 5 - Programming Crisis
+            (5, 'Code Rookie', 'Complete your first programming challenge', '💻', 'level_completion', '1'),
+            (5, 'Debug Champion', 'Complete all programming levels', '🐛', 'room_completion', '5'),
+            (5, 'Code Perfectionist', 'Write bug-free code on first try', '✨', 'perfect_code', '1'),
+            
+            # General Achievement Badges
+            (0, 'First Steps', 'Complete your very first level', '👶', 'any_completion', '1'),
+            (0, 'Persistent Learner', 'Complete 10 levels total', '📚', 'total_levels', '10'),
+            (0, 'Tech Savvy', 'Complete levels in 3 different rooms', '🔧', 'room_diversity', '3'),
+            (0, 'Speed Runner', 'Complete any level in under 1 minute', '🏃', 'speed', '60'),
+            (0, 'Problem Solver', 'Complete 5 levels without using hints', '💡', 'no_hints_total', '5'),
+            (0, 'Lab Escapee', 'Complete all rooms and escape the lab!', '🏆', 'all_rooms', '5'),
+        ]
+        
+        # Insert badges
+        for room_id, name, description, icon, req_type, req_value in default_badges:
+            conn.execute('''
+                INSERT INTO badges (room_id, name, description, icon, requirement_type, requirement_value)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (room_id, name, description, icon, req_type, req_value))
+        
+        conn.commit()
+        print(f"✓ Created {len(default_badges)} default badges")
+        
+    except Exception as e:
+        print(f"✗ Error creating default badges: {str(e)}")
 
 # Initialize database on startup
 with app.app_context():
@@ -257,7 +334,17 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return jsonify({'status': 'success'})
+    # Clear session data
+    session.clear()
+    return jsonify({'status': 'success', 'redirect': '/'})
+
+@app.route('/logout', methods=['POST'])
+def logout_post():
+    """Alternative logout endpoint for POST requests"""
+    if current_user.is_authenticated:
+        logout_user()
+    session.clear()
+    return redirect('/')
 
 def admin_required(f):
     """Decorator to require admin access"""
@@ -895,13 +982,17 @@ def get_user_badges():
     try:
         conn = db_manager.get_connection()
         
-        # Ensure badges table exists
+        # Ensure badges table exists with updated schema
         conn.execute('''
             CREATE TABLE IF NOT EXISTS badges (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 description TEXT,
-                icon TEXT
+                icon TEXT,
+                room_id INTEGER DEFAULT 0,
+                requirement_type TEXT DEFAULT 'completion',
+                requirement_value TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         
@@ -912,16 +1003,19 @@ def get_user_badges():
                 badge_id INTEGER NOT NULL,
                 earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id),
-                FOREIGN KEY (badge_id) REFERENCES badges (id)
+                FOREIGN KEY (badge_id) REFERENCES badges (id),
+                UNIQUE(user_id, badge_id)
             )
         ''')
         
         # Get all available badges with user's earned status
         badges = conn.execute('''
-            SELECT b.*, ub.earned_at
+            SELECT b.*, ub.earned_at,
+                   CASE WHEN ub.earned_at IS NOT NULL THEN 1 ELSE 0 END as earned,
+                   CASE WHEN ub.earned_at > datetime('now', '-7 days') THEN 1 ELSE 0 END as is_recent
             FROM badges b
             LEFT JOIN user_badges ub ON b.id = ub.badge_id AND ub.user_id = ?
-            ORDER BY b.id
+            ORDER BY b.room_id, b.id
         ''', (current_user.id,)).fetchall()
         
         conn.close()
@@ -933,8 +1027,12 @@ def get_user_badges():
                 'name': badge['name'],
                 'description': badge['description'],
                 'icon': badge['icon'],
-                'earned': badge['earned_at'] is not None,
-                'earned_at': badge['earned_at']
+                'room_id': badge['room_id'],
+                'requirement_type': badge['requirement_type'],
+                'requirement_value': badge['requirement_value'],
+                'earned': bool(badge['earned']),
+                'earned_at': badge['earned_at'],
+                'is_recent': bool(badge['is_recent'])
             })
         
         return jsonify({'status': 'success', 'badges': badges_data})
@@ -1283,9 +1381,8 @@ def save_report_to_history(report_type, config, file_data, file_format, descript
         # Insert into database
         conn.execute('''
             INSERT INTO report_history (
-                id, type, format, config, file_data, size, 
-                created_at, description, metadata
-            ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?)
+                id, type, format, config, file_data, size, description, metadata
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             report_id,
             report_type,
