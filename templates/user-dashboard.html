@@ -44,7 +44,7 @@
 
     <main class="container mx-auto p-6">
         <!-- User Stats Overview -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <!-- Overall Progress -->
             <div class="bg-gray-800 border border-gray-600 rounded-lg p-6">
                 <h3 class="text-xl font-bold mb-4 text-green-400">
@@ -77,23 +77,6 @@
                 <div class="space-y-2">
                     <p class="text-2xl font-bold text-yellow-300"><span id="badge-count">0</span></p>
                     <p class="text-sm text-gray-300">Total Achievements</p>
-                </div>
-            </div>
-
-            <!-- Time Played -->
-            <div class="bg-gray-800 border border-gray-600 rounded-lg p-6">
-                <h3 class="text-xl font-bold mb-4 text-purple-400">
-                    <i class="bi bi-clock"></i> Game Stats
-                </h3>
-                <div class="space-y-2">
-                    <div>
-                        <p class="text-sm text-gray-300">Sessions</p>
-                        <p class="text-xl font-bold text-purple-300" id="session-count">0</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-300">Last Played</p>
-                        <p class="text-sm text-gray-400" id="last-played">Never</p>
-                    </div>
                 </div>
             </div>
         </div>
@@ -432,15 +415,10 @@
 
             renderDefaultStats() {
                 document.getElementById('badge-count').textContent = '0';
-                document.getElementById('session-count').textContent = '0';
-                document.getElementById('last-played').textContent = 'Never';
             }
 
             renderUserStats(stats) {
                 document.getElementById('badge-count').textContent = stats.badge_count || 0;
-                document.getElementById('session-count').textContent = stats.session_count || 0;
-                document.getElementById('last-played').textContent = stats.last_played ? 
-                    new Date(stats.last_played).toLocaleDateString() : 'Never';
             }
 
             renderEmptyBadges() {
