@@ -65,6 +65,7 @@ class EscapeTheLabGame {
         
         console.log('AscendEd: Tech Lab Breakout initialized');
         this.setupTutorialButton();
+        this.setupWaveNavigation(); // Add this line
     }
 
     async checkUserAuthentication() {
@@ -467,8 +468,14 @@ class EscapeTheLabGame {
             btn.addEventListener('click', (e) => {
                 const roomNumber = parseInt(e.currentTarget.dataset.room);
                 console.log(`Wave navigation: Jumping to Room ${roomNumber}`);
-                this.levelManager.stopCurrentRoom(); // Stop current room before loading new one
-                this.levelManager.loadRoom(roomNumber);
+                
+                // Stop current room before loading new one
+                if (this.levelManager) {
+                    this.levelManager.stopCurrentRoom();
+                }
+                
+                // Load the new room
+                this.loadRoom(roomNumber);
             });
         });
         
@@ -489,6 +496,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     
+    // Setup room navigation immediately
+    setupGlobalRoomNavigation();
+    
     // Additional tutorial button setup as backup
     setTimeout(() => {
         const tutorialBtn = document.getElementById('show-tutorial-btn');
@@ -505,6 +515,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }, 100);
 });
+
+// Global function to setup room navigation (works even if game isn't fully loaded)
+function setupGlobalRoomNavigation() {
+    document.querySelectorAll('.wave-nav-btn').forEach(btn => {
+        // Remove any existing listeners
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+        newBtn.addEventListener('click', (e) => {
+            const roomNumber = parseInt(e.currentTarget.dataset.room);
+            console.log(`Global navigation: Jumping to Room ${roomNumber}`);
+            
+            // Try multiple navigation methods
+            if (window.game && window.game.loadRoom) {
+                // Stop current room if possible
+                if (window.game.levelManager && window.game.levelManager.stopCurrentRoom) {
+                    window.game.levelManager.stopCurrentRoom();
+                }
+                window.game.loadRoom(roomNumber);
+            } else {
+                // Fallback: direct URL navigation
+                window.location.href = `/room/${roomNumber}/level/1`;
+            }
+        });
+    });
+    
+    console.log('Global room navigation configured');
+}
 
 // Initialize the game
 const game = new EscapeTheLabGame();

@@ -383,5 +383,37 @@
     </script>
     <script type="module" src="static/js/auth.js"></script>
     <script type="module" src="static/js/main.js"></script>
+
+    <script>
+        // Set up room navigation buttons when DOM loads
+        document.addEventListener('DOMContentLoaded', () => {
+            setupRoomNavigation();
+        });
+
+        function setupRoomNavigation() {
+            // Set up wave navigation buttons
+            document.querySelectorAll('.wave-nav-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const roomNumber = parseInt(e.currentTarget.dataset.room);
+                    console.log(`Navigation: Jumping to Room ${roomNumber}`);
+                    
+                    // Stop current room if game exists
+                    if (window.game && window.game.levelManager) {
+                        window.game.levelManager.stopCurrentRoom();
+                    }
+                    
+                    // Navigate to room
+                    if (window.game && window.game.loadRoom) {
+                        window.game.loadRoom(roomNumber);
+                    } else {
+                        // Fallback: redirect to room URL
+                        window.location.href = `/room/${roomNumber}/level/1`;
+                    }
+                });
+            });
+            
+            console.log('Room navigation buttons configured');
+        }
+    </script>
 </body>
 </html>

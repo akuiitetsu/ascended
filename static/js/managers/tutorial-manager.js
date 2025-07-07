@@ -257,16 +257,6 @@ export class TutorialManager {
                             </div>
                         </div>
 
-                        <!-- Action Buttons -->
-                        <div class="flex justify-center gap-4 mt-8">
-                            <button id="start-room" class="bg-${tutorial.color}-600 hover:bg-${tutorial.color}-500 px-8 py-3 rounded-lg font-bold text-lg transition-colors">
-                                <i class="bi bi-play-fill mr-2"></i>Start Challenge
-                            </button>
-                            <button id="skip-tutorial" class="bg-gray-600 hover:bg-gray-500 px-6 py-3 rounded-lg font-bold transition-colors">
-                                <i class="bi bi-skip-forward mr-2"></i>Close Tutorial
-                            </button>
-                        </div>
-
                         <!-- Quick Reference -->
                         <div class="bg-gray-700 rounded-lg p-4 mt-6">
                             <h4 class="text-lg font-bold text-gray-300 mb-2 flex items-center">
@@ -302,21 +292,11 @@ export class TutorialManager {
 
     setupTutorialEventListeners() {
         try {
-            // Event listeners
+            // Event listeners - only for close button
             const closeBtn = document.getElementById('close-tutorial');
-            const startBtn = document.getElementById('start-room');
-            const skipBtn = document.getElementById('skip-tutorial');
 
             if (closeBtn) {
                 closeBtn.addEventListener('click', () => this.closeTutorial());
-            }
-
-            if (startBtn) {
-                startBtn.addEventListener('click', () => this.closeTutorial());
-            }
-
-            if (skipBtn) {
-                skipBtn.addEventListener('click', () => this.closeTutorial());
             }
 
             // Close on ESC key
