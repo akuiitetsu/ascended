@@ -12,6 +12,7 @@ class EscapeTheLabGame {
         this.gameActive = false;
         this.gameStarted = false;
         this.inRoom = false; // Track if we're currently in a room
+        this.sessionId = this.generateSessionId();
         
         // Initialize managers
         this.levelManager = new LevelManager(this);
@@ -41,19 +42,184 @@ class EscapeTheLabGame {
         this.init();
     }
 
-    init() {
-        // Load saved cosmetics and progress
-        this.cosmeticManager.loadPlayerData();
-        this.loadUserProgress();
+    generateSessionId() {
+        return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    async init() {
+        // Check if user is authenticated
+        const userStatus = await this.checkUserAuthentication();
         
-        // Initialize game state
-        this.gameActive = false;
-        this.inRoom = false;
+        if (userStatus.authenticated) {
+            // Load saved progress and cosmetics
+            await this.loadSavedProgress();
+            this.cosmeticManager.loadPlayerData();
+            
+            // Check if game was previously started
+            const gameState = this.getGameState();
+            if (gameState.gameStarted && gameState.currentRoom) {
+                // User was in middle of game - restore state
+                this.restoreGameState(gameState);
+            }
+        }
         
         console.log('AscendEd: Tech Lab Breakout initialized');
-        
-        // Setup tutorial button after DOM is ready
         this.setupTutorialButton();
+    }
+
+    async checkUserAuthentication() {
+        try {
+            const response = await fetch('/api/auth/user');
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                this.currentUser = data.user;
+                return { authenticated: true, user: data.user };
+            }
+            return { authenticated: false };
+        } catch (error) {
+            console.warn('Failed to check authentication:', error);
+            return { authenticated: false };
+        }
+    }
+
+    async loadSavedProgress() {
+        try {
+            // Load from server if authenticated
+            if (this.currentUser) {
+                const response = await fetch(`/api/load_progress/${this.sessionId}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    this.currentRoom = data.level || 1;
+                    this.player.roomsCompleted = Math.max(0, data.level - 1);
+                    
+                    // Merge any additional progress data
+                    if (data.progress) {
+                        Object.assign(this.player, data.progress);
+                    }
+                    
+                    console.log(`Loaded server progress: Room ${this.currentRoom}, ${this.player.roomsCompleted} completed`);
+                    return;
+                }
+            }
+            
+            // Fallback to local storage
+            const localProgress = localStorage.getItem('ascended_progress');
+            if (localProgress) {
+                const progress = JSON.parse(localProgress);
+                this.currentRoom = progress.currentRoom || 1;
+                this.player.roomsCompleted = progress.roomsCompleted || 0;
+                this.player.level = progress.level || 1;
+                
+                console.log(`Loaded local progress: Room ${this.currentRoom}, ${this.player.roomsCompleted} completed`);
+            }
+        } catch (error) {
+            console.warn('Failed to load saved progress:', error);
+        }
+    }
+
+    async saveProgress() {
+        const progressData = {
+            currentRoom: this.currentRoom,
+            roomsCompleted: this.player.roomsCompleted,
+            level: this.player.level,
+            gameStarted: this.gameStarted,
+            inRoom: this.inRoom,
+            sessionId: this.sessionId,
+            timestamp: Date.now(),
+            playerData: {
+                ...this.player,
+                cosmetics: this.player.cosmetics
+            }
+        };
+
+        // Save to local storage immediately
+        localStorage.setItem('ascended_progress', JSON.stringify(progressData));
+        this.saveGameState(progressData);
+
+        // Save to server if authenticated
+        if (this.currentUser) {
+            try {
+                const response = await fetch('/api/save_progress', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: this.sessionId,
+                        level: this.currentRoom,
+                        progress: progressData
+                    })
+                });
+
+                const result = await response.json();
+                if (result.status === 'success') {
+                    console.log('Progress saved to server successfully');
+                } else {
+                    console.warn('Failed to save progress to server:', result.message);
+                }
+            } catch (error) {
+                console.warn('Failed to save progress to server:', error);
+            }
+        }
+    }
+
+    saveGameState(state) {
+        // Save current game state to session storage (survives page refresh)
+        sessionStorage.setItem('ascended_game_state', JSON.stringify(state));
+    }
+
+    getGameState() {
+        try {
+            const state = sessionStorage.getItem('ascended_game_state');
+            return state ? JSON.parse(state) : {};
+        } catch (error) {
+            console.warn('Failed to get game state:', error);
+            return {};
+        }
+    }
+
+    restoreGameState(gameState) {
+        this.currentRoom = gameState.currentRoom || 1;
+        this.gameStarted = gameState.gameStarted || false;
+        this.inRoom = gameState.inRoom || false;
+        this.player.roomsCompleted = gameState.roomsCompleted || 0;
+        
+        if (gameState.playerData) {
+            Object.assign(this.player, gameState.playerData);
+        }
+
+        // If game was started, skip welcome screen and restore game UI
+        if (this.gameStarted) {
+            this.showGameInterface();
+            
+            // Load the current room if we were in one
+            if (this.inRoom && this.currentRoom) {
+                setTimeout(() => {
+                    this.loadRoom(this.currentRoom);
+                }, 100);
+            }
+        }
+
+        console.log(`Restored game state: Room ${this.currentRoom}, Started: ${this.gameStarted}, In Room: ${this.inRoom}`);
+    }
+
+    showGameInterface() {
+        // Hide welcome screen and show game interface
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const gameHeader = document.getElementById('game-header');
+        const gameMain = document.getElementById('game-main');
+        
+        if (welcomeScreen) welcomeScreen.classList.add('hidden');
+        if (gameHeader) gameHeader.classList.remove('hidden');
+        if (gameMain) gameMain.classList.remove('hidden');
+        
+        // Update room indicator
+        const roomIndicator = document.getElementById('current-room');
+        if (roomIndicator) {
+            roomIndicator.textContent = this.currentRoom;
+        }
+        
+        this.gameActive = true;
     }
     
     setupTutorialButton() {
@@ -88,9 +254,13 @@ class EscapeTheLabGame {
 
     async roomCompleted(message, roomData = {}) {
         try {
+            // Update progress
+            this.player.roomsCompleted++;
+            this.currentRoom = Math.min(this.currentRoom + 1, this.totalRooms);
+            
             // Prepare comprehensive progress data
             const progressData = {
-                room_name: `Room ${this.currentRoom}`,
+                room_name: `Room ${this.currentRoom - 1}`,
                 status: 'completed',
                 completion_percentage: 100,
                 completion_status: 'completed',
@@ -103,21 +273,20 @@ class EscapeTheLabGame {
                 }
             };
             
-            // Save progress to server
-            await this.progressManager.saveProgress(this.currentRoom, progressData);
+            // Save progress immediately
+            await this.saveProgress();
             
-            // Update local player data
-            this.player.roomsCompleted++;
+            // Save to progress manager if available
+            if (this.progressManager) {
+                await this.progressManager.saveProgress(this.currentRoom - 1, progressData);
+            }
+            
+            // Update cosmetics and save
             this.cosmeticManager.unlockCosmetics();
             this.cosmeticManager.savePlayerData();
             
             // Check if all rooms are completed
-            const summary = window.progressTracker.getProgressSummary();
-            const totalRoomsCompleted = Object.values(summary.roomsProgress).filter(room => 
-                room.percentage >= 80 // 80% completion threshold
-            ).length;
-            
-            if (totalRoomsCompleted >= this.totalRooms) {
+            if (this.player.roomsCompleted >= this.totalRooms) {
                 this.gameWon();
             } else {
                 this.modalManager.showSuccessModal(message);
@@ -130,46 +299,25 @@ class EscapeTheLabGame {
     }
 
     async loadUserProgress() {
-        try {
-            // Wait for progress tracker to be ready
-            if (!window.progressTracker) {
-                await new Promise(resolve => {
-                    const checkProgress = () => {
-                        if (window.progressTracker) {
-                            resolve();
-                        } else {
-                            setTimeout(checkProgress, 100);
-                        }
-                    };
-                    checkProgress();
-                });
-            }
-
-            // Get progress summary from progress tracker
-            const summary = window.progressTracker.getProgressSummary();
-            
-            // Calculate completed rooms (80% threshold)
-            let completedRooms = 0;
-            Object.values(summary.roomsProgress).forEach(room => {
-                if (room.percentage >= 80) completedRooms++;
-            });
-            
-            this.player.roomsCompleted = completedRooms;
-            console.log(`Loaded user progress: ${completedRooms} rooms completed, ${summary.totalLevelsCompleted} total levels completed`);
-            
-            // Update current position
-            this.currentRoom = summary.currentPosition.room;
-            
-        } catch (error) {
-            console.warn('Failed to load user progress:', error);
-        }
+        // This method is kept for compatibility but now handled in loadSavedProgress
+        await this.loadSavedProgress();
     }
 
     async loadRoom(roomNumber) {
         try {
             this.inRoom = true;
             this.gameActive = true;
+            this.gameStarted = true;
             this.currentRoom = roomNumber;
+            
+            // Update UI
+            const roomIndicator = document.getElementById('current-room');
+            if (roomIndicator) {
+                roomIndicator.textContent = roomNumber;
+            }
+            
+            // Save progress immediately when entering room
+            await this.saveProgress();
             
             // Update progress tracker current room
             if (window.progressTracker) {
@@ -195,6 +343,18 @@ class EscapeTheLabGame {
             document.body.appendChild(errorMessage);
             setTimeout(() => errorMessage.remove(), 5000);
         }
+    }
+
+    // Add method to start game (called from start button)
+    async startGame() {
+        this.gameStarted = true;
+        this.showGameInterface();
+        
+        // Save that game has been started
+        await this.saveProgress();
+        
+        // Load the current room (or room 1 if starting fresh)
+        await this.loadRoom(this.currentRoom);
     }
 
     // Add method to show tutorial for current room
@@ -224,8 +384,11 @@ class EscapeTheLabGame {
     async gameWon() {
         this.inRoom = false;
         this.gameActive = false;
-        const victoryContent = this.modalManager.showVictoryContent();
         
+        // Save final completion state
+        await this.saveProgress();
+        
+        const victoryContent = this.modalManager.showVictoryContent();
         document.getElementById('room-content').innerHTML = victoryContent;
     }
 
@@ -235,24 +398,38 @@ class EscapeTheLabGame {
         this.modalManager.showGameOverModal(message);
     }
 
-    nextRoom() {
+    async nextRoom() {
         if (this.currentRoom < this.totalRooms) {
-            this.loadRoom(this.currentRoom + 1);
+            await this.loadRoom(this.currentRoom + 1);
         } else {
             this.gameWon();
         }
     }
 
-    restart() {
+    async restart() {
+        // Reset game state
         this.player.roomsCompleted = 0;
         this.currentRoom = 1;
         this.inRoom = false;
         this.gameActive = false;
-        this.loadRoom(1);
+        this.gameStarted = true; // Keep game started to stay in game interface
+        
+        // Clear saved progress
+        localStorage.removeItem('ascended_progress');
+        sessionStorage.removeItem('ascended_game_state');
+        
+        // Save reset state
+        await this.saveProgress();
+        
+        // Load room 1
+        await this.loadRoom(1);
     }
 
-    // Cleanup method for when user logs out or closes game
-    cleanup() {
+    // Enhanced cleanup method
+    async cleanup() {
+        // Save final progress before cleanup
+        await this.saveProgress();
+        
         if (this.progressManager) {
             this.progressManager.cleanup();
         }
@@ -300,9 +477,17 @@ class EscapeTheLabGame {
 }
 
 // Initialize when DOM loads
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('DOM loaded, initializing game...');
     window.game = new EscapeTheLabGame();
+    
+    // Enhanced start game button functionality
+    const startGameBtn = document.getElementById('start-game');
+    if (startGameBtn) {
+        startGameBtn.addEventListener('click', async () => {
+            await window.game.startGame();
+        });
+    }
     
     // Additional tutorial button setup as backup
     setTimeout(() => {
@@ -325,12 +510,26 @@ document.addEventListener('DOMContentLoaded', () => {
 const game = new EscapeTheLabGame();
 window.game = game;
 
-// Handle page unload to save progress
-window.addEventListener('beforeunload', () => {
-    if (window.game && window.game.progressManager) {
-        window.game.cleanup();
+// Enhanced page unload handler
+window.addEventListener('beforeunload', async () => {
+    if (window.game) {
+        await window.game.cleanup();
     }
 });
+
+// Handle visibility change to save progress when tab becomes hidden
+document.addEventListener('visibilitychange', async () => {
+    if (document.hidden && window.game) {
+        await window.game.saveProgress();
+    }
+});
+
+// Periodic progress saving (every 30 seconds)
+setInterval(async () => {
+    if (window.game && window.game.gameStarted) {
+        await window.game.saveProgress();
+    }
+}, 30000);
 
 // Set up event listeners for modals
 document.addEventListener('DOMContentLoaded', () => {
@@ -338,15 +537,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const restartBtn = document.getElementById('restart-btn');
     
     if (nextRoomBtn) {
-        nextRoomBtn.addEventListener('click', () => {
-            game.modalManager.hideSuccessModal();
-            game.nextRoom();
+        nextRoomBtn.addEventListener('click', async () => {
+            if (window.game) {
+                window.game.modalManager.hideSuccessModal();
+                await window.game.nextRoom();
+            }
         });
     }
     
     if (restartBtn) {
-        restartBtn.addEventListener('click', () => {
-            game.restart();
+        restartBtn.addEventListener('click', async () => {
+            if (window.game) {
+                await window.game.restart();
+            }
         });
     }
 });

@@ -243,7 +243,7 @@
 
     <script>
         // Initialize character menu button functionality
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             // Password visibility toggle functionality
             document.querySelectorAll('.password-toggle').forEach(button => {
                 button.addEventListener('click', function() {
@@ -267,30 +267,34 @@
             const gameHeader = document.getElementById('game-header');
             const gameMain = document.getElementById('game-main');
             
+            // Check if user should skip welcome screen
+            if (window.game) {
+                const gameState = window.game.getGameState();
+                if (gameState.gameStarted && gameState.currentRoom) {
+                    console.log('Restoring previous game session');
+                    // Game interface will be shown by restoreGameState in main.js
+                    return;
+                }
+            }
+            
             startGameBtn.addEventListener('click', async () => {
-                // Hide welcome screen
-                welcomeScreen.classList.add('hidden');
-                // Show game elements
-                gameHeader.classList.remove('hidden');
-                gameMain.classList.remove('hidden');
-                
-                // Wait for progress tracker to be ready
-                if (window.progressTracker) {
-                    const position = window.progressTracker.restoreUserPosition();
-                    console.log('Restored position:', position);
-                    
-                    // Update room indicator
-                    document.getElementById('current-room').textContent = position.room;
-                    
-                    // Load appropriate room
-                    if (window.game && window.game.loadRoom) {
-                        window.game.loadRoom(position.room, position.level);
-                    }
+                if (window.game && typeof window.game.startGame === 'function') {
+                    await window.game.startGame();
                 } else {
-                    // Fallback to room 1 if progress tracker not ready
-                    if (window.game && window.game.loadRoom) {
-                        window.game.loadRoom(1);
-                    }
+                    // Fallback for when game object isn't ready yet
+                    welcomeScreen.classList.add('hidden');
+                    gameHeader.classList.remove('hidden');
+                    gameMain.classList.remove('hidden');
+                    
+                    // Wait for game to be ready and start
+                    const waitForGame = () => {
+                        if (window.game && typeof window.game.startGame === 'function') {
+                            window.game.startGame();
+                        } else {
+                            setTimeout(waitForGame, 100);
+                        }
+                    };
+                    waitForGame();
                 }
             });
             
@@ -303,11 +307,11 @@
             
             // Wave navigation for testing
             document.querySelectorAll('.wave-nav-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
+                btn.addEventListener('click', async (e) => {
                     const roomNumber = parseInt(e.currentTarget.dataset.room);
                     if (window.game && window.game.loadRoom) {
-                        console.log(`Testing: Jumping to Room ${roomNumber}`);
-                        window.game.loadRoom(roomNumber);
+                        console.log(`Navigation: Jumping to Room ${roomNumber}`);
+                        await window.game.loadRoom(roomNumber);
                     }
                 });
             });
@@ -343,29 +347,37 @@
                 logoutBtn.addEventListener('click', async () => {
                     try {
                         // Save current progress before logout
-                        if (window.progressTracker) {
-                            window.progressTracker.syncProgress();
+                        if (window.game && typeof window.game.saveProgress === 'function') {
+                            await window.game.saveProgress();
                         }
                         
                         // Try logout API
-                        await fetch('/logout', {
-                            method: 'POST',
+                        const response = await fetch('/api/auth/logout', {
+                            method: 'GET',
                             credentials: 'include'
                         });
+                        
+                        if (response.ok) {
+                            console.log('Logged out successfully');
+                        }
                     } catch (error) {
                         console.debug('Logout API error:', error);
                     }
                     
                     // Clear local storage and redirect
                     localStorage.clear();
-                    window.location.href = '/login';
+                    sessionStorage.clear();
+                    window.location.href = '/';
                 });
             }
 
             // Listen for progress updates to update room indicator
             window.addEventListener('progressUpdate', (event) => {
                 const { room } = event.detail;
-                document.getElementById('current-room').textContent = room;
+                const roomIndicator = document.getElementById('current-room');
+                if (roomIndicator) {
+                    roomIndicator.textContent = room;
+                }
             });
         });
     </script>

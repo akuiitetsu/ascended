@@ -57,19 +57,21 @@ class Auth {
             console.log('Response data:', result); // Debug logging
 
             if (result.status === 'success') {
-                // Check if user is admin and redirect accordingly
-                if (result.user && result.user.is_admin) {
-                    window.location.href = '/admin';
-                } else {
-                    // Redirect regular users to their dashboard
-                    window.location.href = '/dashboard';
+                this.currentUser = result.user;
+                this.updateUI();
+                this.showMessage('Login successful! Welcome back.', 'success');
+                
+                // Initialize game progress if game object exists
+                if (window.game && typeof window.game.checkUserAuthentication === 'function') {
+                    await window.game.checkUserAuthentication();
+                    await window.game.loadSavedProgress();
                 }
             } else {
                 this.showMessage(result.message || 'Login failed', 'error');
             }
         } catch (error) {
             console.error('Login error:', error);
-            this.showMessage('Login failed - network error', 'error');
+            this.showMessage('Login failed. Please try again.', 'error');
         }
     }
 
@@ -94,64 +96,85 @@ class Auth {
             const result = await response.json();
 
             if (result.status === 'success') {
-                // Switch to login form after successful registration
-                document.getElementById('show-login').click();
-                this.showMessage('Registration successful! Please login.', 'success');
+                this.showMessage('Registration successful! Please log in.', 'success');
+                this.showLoginForm();
             } else {
                 this.showMessage(result.message || 'Registration failed', 'error');
             }
         } catch (error) {
             console.error('Registration error:', error);
-            this.showMessage('Registration failed', 'error');
+            this.showMessage('Registration failed. Please try again.', 'error');
         }
+    }
+
+    showLoginForm() {
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        
+        if (loginForm) loginForm.classList.remove('hidden');
+        if (registerForm) registerForm.classList.add('hidden');
+    }
+
+    showRegisterForm() {
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        
+        if (loginForm) loginForm.classList.add('hidden');
+        if (registerForm) registerForm.classList.remove('hidden');
+    }
+
+    showMessage(message, type = 'info') {
+        const messageEl = document.createElement('div');
+        messageEl.className = `fixed top-4 right-4 z-50 p-4 rounded-lg text-white max-w-md ${
+            type === 'success' ? 'bg-green-600' : 
+            type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+        }`;
+        messageEl.innerHTML = `
+            <div class="flex items-center justify-between">
+                <span>${message}</span>
+                <button class="ml-2 text-white hover:text-gray-200" onclick="this.parentElement.parentElement.remove()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(messageEl);
+        
+        setTimeout(() => {
+            if (messageEl.parentElement) {
+                messageEl.remove();
+            }
+        }, 5000);
     }
 
     async logout() {
         try {
-            await fetch('/api/auth/logout');
-            window.location.reload();
+            // Save progress if game is active
+            if (window.game && typeof window.game.saveProgress === 'function') {
+                await window.game.saveProgress();
+            }
+            
+            const response = await fetch('/api/auth/logout');
+            if (response.ok) {
+                this.currentUser = null;
+                
+                // Clear all local data
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Redirect to home page
+                window.location.href = '/';
+            }
         } catch (error) {
             console.error('Logout error:', error);
+            // Force logout by clearing data and redirecting
+            this.currentUser = null;
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = '/';
         }
-    }
-
-    showMessage(message, type = 'info') {
-        // Create a simple notification system
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg text-white ${
-            type === 'error' ? 'bg-red-600' : 
-            type === 'success' ? 'bg-green-600' : 
-            'bg-blue-600'
-        }`;
-        messageDiv.textContent = message;
-        
-        document.body.appendChild(messageDiv);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-            messageDiv.remove();
-        }, 3000);
-    }
-
-    onLoginSuccess(user) {
-        // Check if user is admin and redirect to admin dashboard
-        if (user.is_admin) {
-            window.location.href = '/admin';
-            return;
-        }
-        
-        // Redirect regular users to their dashboard
-        window.location.href = '/dashboard';
     }
 }
-
-// Initialize auth when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    window.auth = new Auth();
-});
-        document.getElementById('logout-btn').classList.remove('hidden');
-        
-        this.showMessage(`Welcome back, ${user.username}!`, 'success');
 
 // Initialize auth when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
