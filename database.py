@@ -110,6 +110,69 @@ class DatabaseManager:
                 )
             ''')
             
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS badges (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    icon TEXT,
+                    room_id INTEGER DEFAULT 0,
+                    requirement_type TEXT DEFAULT 'completion',
+                    requirement_value TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS user_room_progress (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    room_number INTEGER NOT NULL,
+                    room_name TEXT,
+                    completion_status TEXT DEFAULT 'not_started',
+                    completion_percentage INTEGER DEFAULT 0,
+                    time_spent INTEGER DEFAULT 0,
+                    best_score INTEGER DEFAULT 0,
+                    attempts INTEGER DEFAULT 0,
+                    last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    completed_at TIMESTAMP NULL,
+                    room_data TEXT DEFAULT '{}',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id),
+                    UNIQUE(user_id, room_number)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS user_achievements (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    achievement_type TEXT NOT NULL,
+                    achievement_name TEXT NOT NULL,
+                    description TEXT,
+                    earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    room_number INTEGER,
+                    metadata TEXT DEFAULT '{}',
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS user_sessions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    session_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    session_end TIMESTAMP NULL,
+                    total_time INTEGER DEFAULT 0,
+                    rooms_visited TEXT DEFAULT '[]',
+                    actions_count INTEGER DEFAULT 0,
+                    ip_address TEXT,
+                    user_agent TEXT,
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+            ''')
+            
             conn.commit()
             conn.close()
             return True
@@ -146,6 +209,25 @@ class DatabaseManager:
                     )
                 ''')
                 migrations_applied.append('Created level_data table')
+            
+            # Check if badges table exists and has required columns
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='badges'")
+            if cursor.fetchone():
+                # Check if room_id column exists in badges table
+                cursor = conn.execute("PRAGMA table_info(badges)")
+                badge_columns = [column[1] for column in cursor.fetchall()]
+                
+                if 'room_id' not in badge_columns:
+                    conn.execute('ALTER TABLE badges ADD COLUMN room_id INTEGER DEFAULT 0')
+                    migrations_applied.append('Added room_id column to badges table')
+                
+                if 'requirement_type' not in badge_columns:
+                    conn.execute('ALTER TABLE badges ADD COLUMN requirement_type TEXT DEFAULT \'completion\'')
+                    migrations_applied.append('Added requirement_type column to badges table')
+                
+                if 'requirement_value' not in badge_columns:
+                    conn.execute('ALTER TABLE badges ADD COLUMN requirement_value TEXT')
+                    migrations_applied.append('Added requirement_value column to badges table')
             
             # Check if user_room_progress table exists
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='user_room_progress'")
@@ -768,3 +850,171 @@ class DatabaseManager:
             total_score += room_efficiency
         
         return min(100, total_score / len(progress_list))
+    
+    def ensure_badges_table(self, conn=None):
+        """Ensure badges table exists with all required columns"""
+        try:
+            close_connection = False
+            if conn is None:
+                conn = self.get_connection()
+                close_connection = True
+                
+            # First check if the table exists
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='badges'")
+            
+            if not cursor.fetchone():
+                # Create badges table with all required columns
+                conn.execute('''
+                    CREATE TABLE IF NOT EXISTS badges (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        description TEXT,
+                        icon TEXT,
+                        room_id INTEGER DEFAULT 0,
+                        requirement_type TEXT DEFAULT 'completion',
+                        requirement_value TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
+                
+                conn.execute('''
+                    CREATE TABLE IF NOT EXISTS user_badges (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        badge_id INTEGER NOT NULL,
+                        earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users (id),
+                        FOREIGN KEY (badge_id) REFERENCES badges (id),
+                        UNIQUE(user_id, badge_id)
+                    )
+                ''')
+                
+                if close_connection:
+                    conn.commit()
+                
+                return True, "Badges tables created successfully"
+            else:
+                # Check if all required columns exist
+                cursor = conn.execute("PRAGMA table_info(badges)")
+                columns = {column[1] for column in cursor.fetchall()}
+                
+                missing_columns = []
+                required_columns = {
+                    'id', 'name', 'description', 'icon', 'room_id', 
+                    'requirement_type', 'requirement_value', 'created_at'
+                }
+                
+                for col in required_columns:
+                    if col not in columns:
+                        missing_columns.append(col)
+                
+                # Add any missing columns
+                for col in missing_columns:
+                    if col == 'room_id':
+                        conn.execute('ALTER TABLE badges ADD COLUMN room_id INTEGER DEFAULT 0')
+                    elif col == 'requirement_type':
+                        conn.execute('ALTER TABLE badges ADD COLUMN requirement_type TEXT DEFAULT \'completion\'')
+                    elif col == 'requirement_value':
+                        conn.execute('ALTER TABLE badges ADD COLUMN requirement_value TEXT')
+                    elif col == 'description':
+                        conn.execute('ALTER TABLE badges ADD COLUMN description TEXT')
+                    elif col == 'icon':
+                        conn.execute('ALTER TABLE badges ADD COLUMN icon TEXT')
+                    elif col == 'created_at':
+                        conn.execute('ALTER TABLE badges ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP')
+                
+                if missing_columns and close_connection:
+                    conn.commit()
+                
+                return True, f"Added missing columns to badges table: {', '.join(missing_columns)}" if missing_columns else "Badges table is up to date"
+                
+        except Exception as e:
+            return False, f"Error ensuring badges table: {str(e)}"
+        finally:
+            if close_connection and 'conn' in locals():
+                conn.close()
+
+    def create_default_badges(self, conn=None):
+        """Create default badges for the game with proper error handling"""
+        try:
+            close_connection = False
+            if conn is None:
+                conn = self.get_connection()
+                close_connection = True
+            
+            # First ensure badges table has correct schema
+            badges_result, message = self.ensure_badges_table(conn)
+            if not badges_result:
+                print(f"⚠️ {message}")
+                return False
+            else:
+                print(f"✓ {message}")
+            
+            # Check if badges already exist
+            existing_badges = conn.execute('SELECT COUNT(*) FROM badges').fetchone()[0]
+            if existing_badges > 0:
+                print("✓ Default badges already exist")
+                return True
+            
+            print("Creating default badges...")
+            
+            # Default badges for each room
+            default_badges = [
+                # Room 1 - Flowchart Lab
+                (1, 'Flowchart Novice', 'Complete your first flowchart challenge', '📊', 'level_completion', '1'),
+                (1, 'Logic Master', 'Complete all flowchart levels', '🧠', 'room_completion', '1'),
+                (1, 'Quick Thinker', 'Complete a flowchart level in under 2 minutes', '⚡', 'time_based', '120'),
+                
+                # Room 2 - Network Nexus
+                (2, 'Network Explorer', 'Complete your first network challenge', '🌐', 'level_completion', '1'),
+                (2, 'Connection Expert', 'Complete all network levels', '🔗', 'room_completion', '2'),
+                (2, 'Network Architect', 'Perfect score on a network challenge', '🏗️', 'score_based', '100'),
+                
+                # Room 3 - AI Systems
+                (3, 'AI Apprentice', 'Complete your first AI challenge', '🤖', 'level_completion', '1'),
+                (3, 'Machine Learning Master', 'Complete all AI levels', '🎯', 'room_completion', '3'),
+                (3, 'Neural Network Ninja', 'Solve an AI puzzle without hints', '🥷', 'no_hints', '1'),
+                
+                # Room 4 - Database Crisis
+                (4, 'Data Detective', 'Complete your first database challenge', '🗄️', 'level_completion', '1'),
+                (4, 'SQL Specialist', 'Complete all database levels', '💾', 'room_completion', '4'),
+                (4, 'Query Optimizer', 'Write an efficient database query', '⚡', 'efficiency', '1'),
+                
+                # Room 5 - Programming Crisis
+                (5, 'Code Rookie', 'Complete your first programming challenge', '💻', 'level_completion', '1'),
+                (5, 'Debug Champion', 'Complete all programming levels', '🐛', 'room_completion', '5'),
+                (5, 'Code Perfectionist', 'Write bug-free code on first try', '✨', 'perfect_code', '1'),
+                
+                # General Achievement Badges
+                (0, 'First Steps', 'Complete your very first level', '👶', 'any_completion', '1'),
+                (0, 'Persistent Learner', 'Complete 10 levels total', '📚', 'total_levels', '10'),
+                (0, 'Tech Savvy', 'Complete levels in 3 different rooms', '🔧', 'room_diversity', '3'),
+                (0, 'Speed Runner', 'Complete any level in under 1 minute', '🏃', 'speed', '60'),
+                (0, 'Problem Solver', 'Complete 5 levels without using hints', '💡', 'no_hints_total', '5'),
+                (0, 'Lab Escapee', 'Complete all rooms and escape the lab!', '🏆', 'all_rooms', '5'),
+            ]
+            
+            # Insert badges with proper error handling
+            try:
+                for room_id, name, description, icon, req_type, req_value in default_badges:
+                    conn.execute('''
+                        INSERT INTO badges (room_id, name, description, icon, requirement_type, requirement_value)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (room_id, name, description, icon, req_type, req_value))
+                
+                if close_connection:
+                    conn.commit()
+                print(f"✓ Created {len(default_badges)} default badges")
+                return True
+            except sqlite3.Error as e:
+                if close_connection:
+                    conn.rollback()
+                print(f"✗ Error creating default badges: {str(e)}")
+                return False
+                
+        except Exception as e:
+            print(f"✗ Error creating default badges: {str(e)}")
+            return False
+        finally:
+            if close_connection and 'conn' in locals():
+                conn.close()
