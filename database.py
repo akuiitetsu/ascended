@@ -410,21 +410,41 @@ class DatabaseManager:
             return {'success': False, 'error': str(e)}
     
     def save_user_room_progress(self, user_id, room_number, progress_data):
-        """Save or update user progress for a specific room"""
+        """Save or update user progress for a specific room with detailed tracking"""
         try:
             conn = self.get_connection()
             
-            # Extract progress details
+            # Extract detailed progress information
             completion_status = progress_data.get('status', 'in_progress')
-            completion_percentage = min(100, max(0, progress_data.get('completion_percentage', 0)))
+            
+            # Calculate weighted completion percentage
+            completion_percentage = self._calculate_completion_percentage(progress_data)
+            
             time_spent = progress_data.get('time_spent', 0)
             score = progress_data.get('score', 0)
             room_name = progress_data.get('room_name', f'Room {room_number}')
-            room_data = json.dumps(progress_data.get('room_data', {}))
+            
+            # Enhanced room data tracking
+            room_data = {
+                'puzzles_completed': progress_data.get('puzzles_completed', []),
+                'challenges_solved': progress_data.get('challenges_solved', []),
+                'secrets_found': progress_data.get('secrets_found', []),
+                'items_collected': progress_data.get('items_collected', []),
+                'deaths': progress_data.get('deaths', 0),
+                'hints_used': progress_data.get('hints_used', 0),
+                'current_checkpoint': progress_data.get('current_checkpoint', 0),
+                'exploration_percentage': progress_data.get('exploration_percentage', 0),
+                'skill_points_earned': progress_data.get('skill_points_earned', 0),
+                'objectives_completed': progress_data.get('objectives_completed', []),
+                'last_position': progress_data.get('last_position', {}),
+                'game_state': progress_data.get('game_state', {}),
+                **progress_data.get('room_data', {})
+            }
+            room_data_json = json.dumps(room_data)
             
             # Check if progress already exists
             existing = conn.execute(
-                'SELECT id, attempts, best_score FROM user_room_progress WHERE user_id = ? AND room_number = ?',
+                'SELECT id, attempts, best_score, time_spent as existing_time FROM user_room_progress WHERE user_id = ? AND room_number = ?',
                 (user_id, room_number)
             ).fetchone()
             
@@ -432,39 +452,38 @@ class DatabaseManager:
                 # Update existing progress
                 new_attempts = existing['attempts'] + (1 if completion_status == 'completed' else 0)
                 new_best_score = max(existing['best_score'], score)
-                completed_at = 'CURRENT_TIMESTAMP' if completion_status == 'completed' else None
+                total_time_spent = existing['existing_time'] + time_spent
                 
-                if completed_at:
+                if completion_status == 'completed':
                     conn.execute('''
                         UPDATE user_room_progress 
-                        SET completion_status = ?, completion_percentage = ?, time_spent = time_spent + ?, 
+                        SET completion_status = ?, completion_percentage = ?, time_spent = ?, 
                             best_score = ?, attempts = ?, room_data = ?, last_accessed = CURRENT_TIMESTAMP,
                             completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
                         WHERE user_id = ? AND room_number = ?
-                    ''', (completion_status, completion_percentage, time_spent, new_best_score, 
-                          new_attempts, room_data, user_id, room_number))
+                    ''', (completion_status, completion_percentage, total_time_spent, new_best_score, 
+                          new_attempts, room_data_json, user_id, room_number))
                 else:
                     conn.execute('''
                         UPDATE user_room_progress 
-                        SET completion_status = ?, completion_percentage = ?, time_spent = time_spent + ?, 
+                        SET completion_status = ?, completion_percentage = ?, time_spent = ?, 
                             best_score = ?, room_data = ?, last_accessed = CURRENT_TIMESTAMP,
                             updated_at = CURRENT_TIMESTAMP
                         WHERE user_id = ? AND room_number = ?
-                    ''', (completion_status, completion_percentage, time_spent, new_best_score, 
-                          room_data, user_id, room_number))
+                    ''', (completion_status, completion_percentage, total_time_spent, new_best_score, 
+                          room_data_json, user_id, room_number))
             else:
                 # Insert new progress
                 attempts = 1 if completion_status == 'completed' else 0
-                completed_at_value = 'CURRENT_TIMESTAMP' if completion_status == 'completed' else None
                 
-                if completed_at_value:
+                if completion_status == 'completed':
                     conn.execute('''
                         INSERT INTO user_room_progress 
                         (user_id, room_number, room_name, completion_status, completion_percentage, 
                          time_spent, best_score, attempts, room_data, completed_at)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                     ''', (user_id, room_number, room_name, completion_status, completion_percentage,
-                          time_spent, score, attempts, room_data))
+                          time_spent, score, attempts, room_data_json))
                 else:
                     conn.execute('''
                         INSERT INTO user_room_progress 
@@ -472,209 +491,280 @@ class DatabaseManager:
                          time_spent, best_score, attempts, room_data)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ''', (user_id, room_number, room_name, completion_status, completion_percentage,
-                          time_spent, score, attempts, room_data))
+                          time_spent, score, attempts, room_data_json))
             
             conn.commit()
             conn.close()
-            return {'success': True}
+            return {'success': True, 'completion_percentage': completion_percentage}
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
-    def get_user_room_progress(self, user_id, room_number=None):
-        """Get user progress for specific room or all rooms"""
-        try:
-            conn = self.get_connection()
-            
-            if room_number:
-                progress = conn.execute(
-                    'SELECT * FROM user_room_progress WHERE user_id = ? AND room_number = ?',
-                    (user_id, room_number)
-                ).fetchone()
-                conn.close()
-                
-                if progress:
-                    return {
-                        'success': True,
-                        'progress': dict(progress)
-                    }
-                else:
-                    return {'success': True, 'progress': None}
-            else:
-                # Get all room progress for user
-                progress_list = conn.execute(
-                    'SELECT * FROM user_room_progress WHERE user_id = ? ORDER BY room_number',
-                    (user_id,)
-                ).fetchall()
-                conn.close()
-                
-                return {
-                    'success': True,
-                    'progress': [dict(row) for row in progress_list]
-                }
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
+    def _calculate_completion_percentage(self, progress_data):
+        """Calculate weighted completion percentage based on multiple factors"""
+        weights = {
+            'exploration': 25,      # 25% for exploring the room
+            'puzzles': 35,          # 35% for solving puzzles
+            'challenges': 20,       # 20% for completing challenges
+            'objectives': 15,       # 15% for main objectives
+            'secrets': 5            # 5% bonus for finding secrets
+        }
+        
+        # Get progress metrics
+        exploration_pct = min(100, progress_data.get('exploration_percentage', 0))
+        
+        # Calculate puzzle completion
+        total_puzzles = progress_data.get('total_puzzles', 1)
+        completed_puzzles = len(progress_data.get('puzzles_completed', []))
+        puzzle_pct = min(100, (completed_puzzles / total_puzzles) * 100) if total_puzzles > 0 else 0
+        
+        # Calculate challenge completion
+        total_challenges = progress_data.get('total_challenges', 1)
+        completed_challenges = len(progress_data.get('challenges_solved', []))
+        challenge_pct = min(100, (completed_challenges / total_challenges) * 100) if total_challenges > 0 else 0
+        
+        # Calculate objective completion
+        total_objectives = progress_data.get('total_objectives', 1)
+        completed_objectives = len(progress_data.get('objectives_completed', []))
+        objective_pct = min(100, (completed_objectives / total_objectives) * 100) if total_objectives > 0 else 0
+        
+        # Calculate secrets bonus
+        total_secrets = progress_data.get('total_secrets', 0)
+        found_secrets = len(progress_data.get('secrets_found', []))
+        secret_bonus = min(100, (found_secrets / total_secrets) * 100) if total_secrets > 0 else 0
+        
+        # Calculate weighted average
+        total_percentage = (
+            (exploration_pct * weights['exploration'] / 100) +
+            (puzzle_pct * weights['puzzles'] / 100) +
+            (challenge_pct * weights['challenges'] / 100) +
+            (objective_pct * weights['objectives'] / 100) +
+            (secret_bonus * weights['secrets'] / 100)
+        )
+        
+        return min(100, max(0, round(total_percentage)))
     
-    def save_user_achievement(self, user_id, achievement_type, achievement_name, description="", room_number=None, metadata=None):
-        """Save a new achievement for user"""
+    def track_game_event(self, user_id, room_number, event_type, event_data=None):
+        """Track specific game events for detailed progress analysis"""
         try:
             conn = self.get_connection()
             
-            # Check if achievement already exists
-            existing = conn.execute(
-                'SELECT id FROM user_achievements WHERE user_id = ? AND achievement_type = ? AND achievement_name = ?',
-                (user_id, achievement_type, achievement_name)
+            # Get current room data
+            current_progress = conn.execute(
+                'SELECT room_data FROM user_room_progress WHERE user_id = ? AND room_number = ?',
+                (user_id, room_number)
             ).fetchone()
             
-            if existing:
-                return {'success': True, 'message': 'Achievement already exists'}
+            if current_progress:
+                room_data = json.loads(current_progress['room_data'])
+            else:
+                room_data = {}
             
-            metadata_json = json.dumps(metadata or {})
+            # Update room data based on event type
+            if event_type == 'puzzle_solved':
+                puzzles = room_data.get('puzzles_completed', [])
+                puzzle_id = event_data.get('puzzle_id')
+                if puzzle_id not in puzzles:
+                    puzzles.append(puzzle_id)
+                    room_data['puzzles_completed'] = puzzles
             
-            conn.execute('''
-                INSERT INTO user_achievements 
-                (user_id, achievement_type, achievement_name, description, room_number, metadata)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (user_id, achievement_type, achievement_name, description, room_number, metadata_json))
+            elif event_type == 'challenge_completed':
+                challenges = room_data.get('challenges_solved', [])
+                challenge_id = event_data.get('challenge_id')
+                if challenge_id not in challenges:
+                    challenges.append(challenge_id)
+                    room_data['challenges_solved'] = challenges
+            
+            elif event_type == 'secret_found':
+                secrets = room_data.get('secrets_found', [])
+                secret_id = event_data.get('secret_id')
+                if secret_id not in secrets:
+                    secrets.append(secret_id)
+                    room_data['secrets_found'] = secrets
+            
+            elif event_type == 'item_collected':
+                items = room_data.get('items_collected', [])
+                item_id = event_data.get('item_id')
+                if item_id not in items:
+                    items.append(item_id)
+                    room_data['items_collected'] = items
+            
+            elif event_type == 'checkpoint_reached':
+                room_data['current_checkpoint'] = event_data.get('checkpoint_id', 0)
+            
+            elif event_type == 'death':
+                room_data['deaths'] = room_data.get('deaths', 0) + 1
+            
+            elif event_type == 'hint_used':
+                room_data['hints_used'] = room_data.get('hints_used', 0) + 1
+            
+            elif event_type == 'exploration_update':
+                room_data['exploration_percentage'] = event_data.get('percentage', 0)
+            
+            elif event_type == 'position_update':
+                room_data['last_position'] = event_data.get('position', {})
+            
+            elif event_type == 'objective_completed':
+                objectives = room_data.get('objectives_completed', [])
+                objective_id = event_data.get('objective_id')
+                if objective_id not in objectives:
+                    objectives.append(objective_id)
+                    room_data['objectives_completed'] = objectives
+            
+            # Update the database
+            room_data_json = json.dumps(room_data)
+            if current_progress:
+                conn.execute('''
+                    UPDATE user_room_progress 
+                    SET room_data = ?, last_accessed = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = ? AND room_number = ?
+                ''', (room_data_json, user_id, room_number))
+            else:
+                # Create initial progress entry
+                conn.execute('''
+                    INSERT INTO user_room_progress 
+                    (user_id, room_number, room_name, room_data)
+                    VALUES (?, ?, ?, ?)
+                ''', (user_id, room_number, f'Room {room_number}', room_data_json))
             
             conn.commit()
             conn.close()
-            return {'success': True, 'message': 'Achievement saved'}
+            return {'success': True, 'room_data': room_data}
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
-    def get_user_achievements(self, user_id):
-        """Get all achievements for a user"""
+    def get_detailed_progress(self, user_id, room_number):
+        """Get detailed progress breakdown for a specific room"""
         try:
             conn = self.get_connection()
-            achievements = conn.execute(
-                'SELECT * FROM user_achievements WHERE user_id = ? ORDER BY earned_at DESC',
+            
+            progress = conn.execute(
+                'SELECT * FROM user_room_progress WHERE user_id = ? AND room_number = ?',
+                (user_id, room_number)
+            ).fetchone()
+            
+            if not progress:
+                conn.close()
+                return {'success': True, 'progress': None}
+            
+            room_data = json.loads(progress['room_data']) if progress['room_data'] else {}
+            
+            # Calculate detailed metrics
+            detailed_progress = {
+                'room_number': room_number,
+                'completion_status': progress['completion_status'],
+                'completion_percentage': progress['completion_percentage'],
+                'time_spent': progress['time_spent'],
+                'best_score': progress['best_score'],
+                'attempts': progress['attempts'],
+                'last_accessed': progress['last_accessed'],
+                'completed_at': progress['completed_at'],
+                'metrics': {
+                    'puzzles_completed': len(room_data.get('puzzles_completed', [])),
+                    'challenges_solved': len(room_data.get('challenges_solved', [])),
+                    'secrets_found': len(room_data.get('secrets_found', [])),
+                    'items_collected': len(room_data.get('items_collected', [])),
+                    'objectives_completed': len(room_data.get('objectives_completed', [])),
+                    'deaths': room_data.get('deaths', 0),
+                    'hints_used': room_data.get('hints_used', 0),
+                    'current_checkpoint': room_data.get('current_checkpoint', 0),
+                    'exploration_percentage': room_data.get('exploration_percentage', 0),
+                    'skill_points_earned': room_data.get('skill_points_earned', 0)
+                },
+                'raw_data': room_data
+            }
+            
+            conn.close()
+            return {'success': True, 'progress': detailed_progress}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def get_overall_progress_summary(self, user_id):
+        """Get comprehensive progress summary across all rooms"""
+        try:
+            conn = self.get_connection()
+            
+            # Get all room progress
+            all_progress = conn.execute(
+                'SELECT * FROM user_room_progress WHERE user_id = ? ORDER BY room_number',
                 (user_id,)
             ).fetchall()
-            conn.close()
             
-            return {
-                'success': True,
-                'achievements': [dict(row) for row in achievements]
-            }
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-    
-    def start_user_session(self, user_id, ip_address=None, user_agent=None):
-        """Start a new user session"""
-        try:
-            conn = self.get_connection()
+            if not all_progress:
+                conn.close()
+                return {'success': True, 'summary': None}
             
-            cursor = conn.execute('''
-                INSERT INTO user_sessions (user_id, ip_address, user_agent)
-                VALUES (?, ?, ?)
-            ''', (user_id, ip_address, user_agent))
+            # Calculate overall statistics
+            total_rooms = len(all_progress)
+            completed_rooms = sum(1 for p in all_progress if p['completion_status'] == 'completed')
+            avg_completion = sum(p['completion_percentage'] for p in all_progress) / total_rooms
+            total_time = sum(p['time_spent'] for p in all_progress)
+            total_score = sum(p['best_score'] for p in all_progress)
             
-            session_id = cursor.lastrowid
-            conn.commit()
-            conn.close()
+            # Aggregate detailed metrics
+            total_puzzles = 0
+            total_challenges = 0
+            total_secrets = 0
+            total_items = 0
+            total_objectives = 0
+            total_deaths = 0
+            total_hints = 0
             
-            return {'success': True, 'session_id': session_id}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-    
-    def update_user_session(self, session_id, rooms_visited=None, actions_count=None):
-        """Update user session with activity data"""
-        try:
-            conn = self.get_connection()
+            for progress in all_progress:
+                room_data = json.loads(progress['room_data']) if progress['room_data'] else {}
+                total_puzzles += len(room_data.get('puzzles_completed', []))
+                total_challenges += len(room_data.get('challenges_solved', []))
+                total_secrets += len(room_data.get('secrets_found', []))
+                total_items += len(room_data.get('items_collected', []))
+                total_objectives += len(room_data.get('objectives_completed', []))
+                total_deaths += room_data.get('deaths', 0)
+                total_hints += room_data.get('hints_used', 0)
             
-            updates = []
-            params = []
-            
-            if rooms_visited is not None:
-                updates.append('rooms_visited = ?')
-                params.append(json.dumps(rooms_visited))
-            
-            if actions_count is not None:
-                updates.append('actions_count = ?')
-                params.append(actions_count)
-            
-            if updates:
-                params.append(session_id)
-                conn.execute(f'''
-                    UPDATE user_sessions 
-                    SET {', '.join(updates)}
-                    WHERE id = ?
-                ''', params)
-                
-                conn.commit()
-            
-            conn.close()
-            return {'success': True}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-    
-    def end_user_session(self, session_id):
-        """End a user session"""
-        try:
-            conn = self.get_connection()
-            
-            # Calculate total time
-            conn.execute('''
-                UPDATE user_sessions 
-                SET session_end = CURRENT_TIMESTAMP,
-                    total_time = (strftime('%s', 'now') - strftime('%s', session_start))
-                WHERE id = ?
-            ''', (session_id,))
-            
-            conn.commit()
-            conn.close()
-            return {'success': True}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-    
-    def get_user_statistics(self, user_id):
-        """Get comprehensive user statistics"""
-        try:
-            conn = self.get_connection()
-            
-            # Basic progress stats
-            progress_stats = conn.execute('''
-                SELECT 
-                    COUNT(*) as rooms_attempted,
-                    COUNT(CASE WHEN completion_status = 'completed' THEN 1 END) as rooms_completed,
-                    AVG(completion_percentage) as avg_completion,
-                    SUM(time_spent) as total_time,
-                    MAX(best_score) as highest_score,
-                    SUM(attempts) as total_attempts
-                FROM user_room_progress 
-                WHERE user_id = ?
-            ''', (user_id,)).fetchone()
-            
-            # Achievement stats
-            achievement_stats = conn.execute('''
-                SELECT 
-                    COUNT(*) as total_achievements,
-                    COUNT(CASE WHEN achievement_type = 'room_completion' THEN 1 END) as room_achievements,
-                    COUNT(CASE WHEN achievement_type = 'score_milestone' THEN 1 END) as score_achievements
-                FROM user_achievements 
-                WHERE user_id = ?
-            ''', (user_id,)).fetchone()
-            
-            # Session stats
-            session_stats = conn.execute('''
-                SELECT 
-                    COUNT(*) as total_sessions,
-                    AVG(total_time) as avg_session_time,
-                    SUM(total_time) as total_session_time,
-                    MAX(actions_count) as max_actions_per_session
-                FROM user_sessions 
-                WHERE user_id = ? AND session_end IS NOT NULL
-            ''', (user_id,)).fetchone()
-            
-            conn.close()
-            
-            return {
-                'success': True,
-                'statistics': {
-                    'progress': dict(progress_stats) if progress_stats else {},
-                    'achievements': dict(achievement_stats) if achievement_stats else {},
-                    'sessions': dict(session_stats) if session_stats else {}
+            summary = {
+                'total_rooms': total_rooms,
+                'completed_rooms': completed_rooms,
+                'completion_rate': (completed_rooms / total_rooms) * 100 if total_rooms > 0 else 0,
+                'average_completion': avg_completion,
+                'total_time_spent': total_time,
+                'total_score': total_score,
+                'aggregate_metrics': {
+                    'puzzles_solved': total_puzzles,
+                    'challenges_completed': total_challenges,
+                    'secrets_discovered': total_secrets,
+                    'items_collected': total_items,
+                    'objectives_completed': total_objectives,
+                    'total_deaths': total_deaths,
+                    'total_hints_used': total_hints
+                },
+                'performance_metrics': {
+                    'average_time_per_room': total_time / total_rooms if total_rooms > 0 else 0,
+                    'average_score_per_room': total_score / total_rooms if total_rooms > 0 else 0,
+                    'efficiency_rating': self._calculate_efficiency_rating(all_progress)
                 }
             }
+            
+            conn.close()
+            return {'success': True, 'summary': summary}
         except Exception as e:
             return {'success': False, 'error': str(e)}
+    
+    def _calculate_efficiency_rating(self, progress_list):
+        """Calculate player efficiency rating based on performance metrics"""
+        if not progress_list:
+            return 0
+        
+        total_score = 0
+        for progress in progress_list:
+            room_data = json.loads(progress['room_data']) if progress['room_data'] else {}
+            
+            # Factors that improve efficiency
+            completion_bonus = progress['completion_percentage']
+            speed_bonus = max(0, 100 - (progress['time_spent'] / 60))  # Bonus for completing quickly
+            
+            # Factors that reduce efficiency
+            death_penalty = room_data.get('deaths', 0) * 5
+            hint_penalty = room_data.get('hints_used', 0) * 2
+            
+            room_efficiency = max(0, completion_bonus + speed_bonus - death_penalty - hint_penalty)
+            total_score += room_efficiency
+        
+        return min(100, total_score / len(progress_list))
