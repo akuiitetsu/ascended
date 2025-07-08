@@ -354,15 +354,11 @@
             }
 
             setupProgressListeners() {
-                if (this.progressTracker) {
-                    window.addEventListener('progressUpdate', () => {
-                        this.updateProgressDisplay();
-                    });
-
-                    window.addEventListener('levelProgressUpdate', () => {
-                        this.updateProgressDisplay();
-                    });
-                }
+                // Listen for progress updates from anywhere in the application
+                window.addEventListener('progressUpdate', (event) => {
+                    console.log('Progress update received in dashboard', event.detail);
+                    this.updateProgressDisplay(event.detail);
+                });
             }
 
             bindEvents() {
@@ -419,6 +415,119 @@
                 this.renderRoomProgressFromTracker();
             }
 
+            updateProgressDisplay(progressData) {
+                if (!progressData) {
+                    // If no data provided, just refresh from tracker
+                    if (this.progressTracker) {
+                        this.renderProgressTrackerData();
+                    }
+                    return;
+                }
+                
+                // Update specific room progress bar if applicable
+                if (progressData.updatedRoomId && progressData.roomProgress) {
+                    const roomId = progressData.updatedRoomId;
+                    const roomProgress = progressData.roomProgress[roomId];
+                    
+                    if (roomProgress) {
+                        this.updateRoomProgressBar(roomId, roomProgress.percentage);
+                        
+                        // Update completion status if needed
+                        if (roomProgress.status === 'completed') {
+                            this.markRoomAsCompleted(roomId);
+                        }
+                    }
+                }
+                
+                // Update current position indicators
+                if (progressData.room) {
+                    document.getElementById('current-room').textContent = progressData.room;
+                }
+                
+                if (progressData.level) {
+                    document.getElementById('current-level').textContent = progressData.level;
+                }
+                
+                // Update overall progress
+                this.updateOverallProgress(progressData.roomProgress);
+            }
+            
+            updateRoomProgressBar(roomId, percentage) {
+                // Find the progress bar for this room
+                const roomCard = document.querySelector(`.room-card[data-room="${roomId}"]`);
+                if (!roomCard) return;
+                
+                const progressBar = roomCard.querySelector('.progress-bar');
+                const percentText = roomCard.querySelector('.progress-percent-text');
+                
+                if (progressBar) {
+                    progressBar.style.width = `${percentage}%`;
+                }
+                
+                if (percentText) {
+                    percentText.textContent = `${Math.round(percentage)}%`;
+                }
+            }
+            
+            markRoomAsCompleted(roomId) {
+                const roomCard = document.querySelector(`.room-card[data-room="${roomId}"]`);
+                if (!roomCard) return;
+                
+                // Add completed class and check icon
+                roomCard.classList.add('border-green-500');
+                
+                // Check if completion icon already exists
+                if (!roomCard.querySelector('.completion-icon')) {
+                    const headerDiv = roomCard.querySelector('.flex.items-center.mb-3 .flex-1');
+                    if (headerDiv) {
+                        const completionIcon = document.createElement('i');
+                        completionIcon.className = 'bi bi-check-circle-fill text-green-400 ml-2 completion-icon';
+                        headerDiv.appendChild(completionIcon);
+                    }
+                }
+                
+                // Update count of completed rooms
+                this.updateCompletedRoomsCount();
+            }
+            
+            updateCompletedRoomsCount() {
+                // Count completed rooms
+                const completedRooms = document.querySelectorAll('.room-card.border-green-500').length;
+                const completedLevelsElement = document.getElementById('completed-levels');
+                
+                if (completedLevelsElement) {
+                    completedLevelsElement.textContent = completedRooms;
+                }
+            }
+            
+            updateOverallProgress(roomProgress) {
+                if (!roomProgress) return;
+                
+                // Calculate overall percentage
+                let totalPercent = 0;
+                let roomCount = 0;
+                
+                for (const roomId in roomProgress) {
+                    totalPercent += roomProgress[roomId].percentage || 0;
+                    roomCount++;
+                }
+                
+                // If no rooms yet, default to 0
+                const overallPercent = roomCount > 0 ? Math.round(totalPercent / roomCount) : 0;
+                
+                // Update overall progress bar
+                const overallProgressBar = document.getElementById('overall-progress-bar');
+                const overallProgressText = document.getElementById('overall-progress-percent');
+                
+                if (overallProgressBar) {
+                    overallProgressBar.style.width = `${overallPercent}%`;
+                }
+                
+                if (overallProgressText) {
+                    overallProgressText.textContent = overallPercent;
+                }
+            }
+
             renderRoomProgressFromTracker() {
                 const container = document.getElementById('room-progress');
                 container.innerHTML = '';
@@ -432,15 +541,32 @@
                 ];
 
                 roomData.forEach(room => {
-                    const completedLevels = this.progressTracker.getCompletedLevelsCount(room.id);
-                    const progressPercent = Math.round((completedLevels / room.totalLevels) * 100);
-                    const isCompleted = progressPercent === 100;
-                    const isCurrent = this.progressTracker.currentRoom === room.id;
+                    // Get progress data from tracker
+                    let progressPercent = 0;
+                    let isCompleted = false;
+                    let bestScore = 0;
+                    
+                    if (this.progressTracker && this.progressTracker.roomProgress) {
+                        const roomProgress = this.progressTracker.roomProgress[room.id];
+                        if (roomProgress) {
+                            progressPercent = roomProgress.percentage || 0;
+                            isCompleted = roomProgress.status === 'completed' || progressPercent >= 100;
+                            bestScore = roomProgress.bestScore || 0;
+                        }
+                    } else {
+                        // Fallback to legacy method
+                        const completedLevels = this.progressTracker?.getCompletedLevelsCount(room.id) || 0;
+                        progressPercent = Math.round((completedLevels / room.totalLevels) * 100);
+                        isCompleted = progressPercent === 100;
+                    }
+                    
+                    const isCurrent = this.progressTracker?.currentRoom === room.id;
 
                     const card = document.createElement('div');
                     card.className = `room-card bg-gray-700 border border-gray-600 rounded-lg p-4 cursor-pointer transition-all hover:border-gray-500 ${
                         isCompleted ? 'border-green-500' : ''
                     } ${isCurrent ? 'border-blue-400' : ''}`;
+                    card.dataset.room = room.id;
                     
                     card.innerHTML = `
                         <div class="flex items-center mb-3">
@@ -451,44 +577,32 @@
                                 <h4 class="font-bold text-${room.color}-300">${room.name}</h4>
                                 <p class="text-xs text-gray-400">Room ${room.id}</p>
                             </div>
-                            ${isCompleted ? '<i class="bi bi-check-circle-fill text-green-400"></i>' : ''}
+                            ${isCompleted ? '<i class="bi bi-check-circle-fill text-green-400 completion-icon"></i>' : ''}
                             ${isCurrent && !isCompleted ? '<i class="bi bi-play-circle-fill text-blue-400"></i>' : ''}
                         </div>
                         <div class="space-y-2">
                             <div class="flex justify-between text-sm">
                                 <span>Progress</span>
-                                <span>${completedLevels}/${room.totalLevels}</span>
+                                ${bestScore > 0 ? `<span>Score: ${bestScore}</span>` : ''}
                             </div>
                             <div class="w-full bg-gray-600 rounded-full h-2">
                                 <div class="progress-bar bg-${room.color}-500 h-2 rounded-full" style="width: ${progressPercent}%"></div>
                             </div>
-                            <p class="text-xs text-gray-400">${progressPercent}% Complete</p>
+                            <p class="text-xs text-gray-400"><span class="progress-percent-text">${Math.round(progressPercent)}</span>% Complete</p>
                             ${isCurrent ? '<p class="text-xs text-blue-400 font-semibold">🎯 Current Room</p>' : ''}
                         </div>
                     `;
                     
-                    // Add click handler to navigate to appropriate level
+                    // Add click handler to navigate to appropriate room
                     card.addEventListener('click', () => {
-                        let targetLevel = 1;
-                        
-                        if (isCurrent) {
-                            // Go to current level in current room
-                            targetLevel = this.progressTracker.currentLevel;
-                        } else {
-                            // Find the first incomplete level, or level 1 if none completed
-                            for (let level = 1; level <= room.totalLevels; level++) {
-                                if (!this.progressTracker.isLevelCompleted(room.id, level)) {
-                                    targetLevel = level;
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        window.location.href = `/room/${room.id}/level/${targetLevel}`;
+                        window.location.href = `/room/${room.id}/level/1`;
                     });
                     
                     container.appendChild(card);
                 });
+                
+                // Update completed rooms count
+                this.updateCompletedRoomsCount();
             }
 
             updateProgressDisplay() {
@@ -554,6 +668,90 @@
                     console.error('Failed to load fallback data:', error);
                     this.renderDefaultState();
                 }
+            }
+
+            renderFallbackStats(stats) {
+                // Update main stats
+                document.getElementById('current-room').textContent = stats.current_room || 1;
+                document.getElementById('current-level').textContent = stats.current_level || 1;
+                document.getElementById('completed-levels').textContent = stats.completed_rooms || 0;
+                document.getElementById('badge-count').textContent = stats.badge_count || 0;
+                
+                // Update overall progress
+                const completionRate = stats.completion_rate || 0;
+                document.getElementById('overall-progress-percent').textContent = Math.round(completionRate);
+                document.getElementById('overall-progress-bar').style.width = `${completionRate}%`;
+            }
+
+            renderFallbackRoomProgress(rooms) {
+                if (!rooms || rooms.length === 0) {
+                    this.renderDefaultRoomProgress();
+                    return;
+                }
+                
+                const container = document.getElementById('room-progress');
+                container.innerHTML = '';
+                
+                const roomColors = {
+                    1: 'blue',
+                    2: 'green',
+                    3: 'purple',
+                    4: 'red',
+                    5: 'yellow'
+                };
+                
+                const roomIcons = {
+                    1: 'bi-diagram-3',
+                    2: 'bi-router',
+                    3: 'bi-robot',
+                    4: 'bi-database-x',
+                    5: 'bi-bug'
+                };
+                
+                rooms.forEach(room => {
+                    const roomId = room.room_number;
+                    const color = roomColors[roomId] || 'gray';
+                    const icon = roomIcons[roomId] || 'bi-box';
+                    const isCompleted = room.completion_status === 'completed';
+                    const progressPercent = room.completion_percentage || 0;
+                    
+                    const card = document.createElement('div');
+                    card.className = `room-card bg-gray-700 border border-gray-600 rounded-lg p-4 cursor-pointer transition-all hover:border-gray-500 ${
+                        isCompleted ? 'border-green-500' : ''
+                    }`;
+                    card.dataset.room = roomId;
+                    
+                    card.innerHTML = `
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 rounded-full bg-${color}-600 flex items-center justify-center mr-3">
+                                <i class="bi ${icon} text-white"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-bold text-${color}-300">${room.room_name}</h4>
+                                <p class="text-xs text-gray-400">Room ${roomId}</p>
+                            </div>
+                            ${isCompleted ? '<i class="bi bi-check-circle-fill text-green-400 completion-icon"></i>' : ''}
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span>Progress</span>
+                                ${room.best_score ? `<span>Score: ${room.best_score}</span>` : ''}
+                            </div>
+                            <div class="w-full bg-gray-600 rounded-full h-2">
+                                <div class="progress-bar bg-${color}-500 h-2 rounded-full" style="width: ${progressPercent}%"></div>
+                            </div>
+                            <p class="text-xs text-gray-400"><span class="progress-percent-text">${Math.round(progressPercent)}</span>% Complete</p>
+                            ${room.attempts ? `<p class="text-xs text-gray-400">Attempts: ${room.attempts}</p>` : ''}
+                        </div>
+                    `;
+                    
+                    // Add click handler to navigate to the room
+                    card.addEventListener('click', () => {
+                        window.location.href = `/room/${roomId}/level/1`;
+                    });
+                    
+                    container.appendChild(card);
+                });
             }
 
             async loadUserBadges() {

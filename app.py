@@ -360,6 +360,304 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def generate_report_data(report_type, config):
+    """Generate report data based on type and configuration"""
+    try:
+        conn = db_manager.get_connection()
+        
+        if report_type == 'user-performance':
+            # Get user performance metrics
+            data = conn.execute('''
+                SELECT u.username, u.email, u.created_at,
+                       COUNT(DISTINCT gs.session_id) as sessions,
+                       MAX(gs.current_level) as max_level,
+                       AVG(CAST(gs.current_level as FLOAT)) as avg_level
+                FROM users u
+                LEFT JOIN game_state gs ON gs.session_id LIKE 'user_' || u.id || '_%'
+                GROUP BY u.id
+                ORDER BY max_level DESC
+            ''').fetchall()
+            
+            return {
+                'report_type': report_type,
+                'generated_at': datetime.now().isoformat(),
+                'data': [dict(row) for row in data]
+            }
+            
+        elif report_type == 'challenge-completion':
+            # Get challenge completion statistics
+            data = conn.execute('''
+                SELECT current_level as level, 
+                       COUNT(*) as completions,
+                       AVG(CASE WHEN progress_data LIKE '%score%' 
+                           THEN CAST(json_extract(progress_data, '$.score') as INTEGER) 
+                           ELSE 0 END) as avg_score
+                FROM game_state
+                GROUP BY current_level
+                ORDER BY current_level
+            ''').fetchall()
+            
+            return {
+                'report_type': report_type,
+                'generated_at': datetime.now().isoformat(),
+                'data': [dict(row) for row in data]
+            }
+            
+        elif report_type == 'engagement-trends':
+            # Get engagement trends over time
+            data = conn.execute('''
+                SELECT DATE(updated_at) as date,
+                       COUNT(DISTINCT session_id) as active_sessions,
+                       COUNT(*) as total_actions
+                FROM game_state
+                WHERE updated_at > datetime('now', '-30 days')
+                GROUP BY DATE(updated_at)
+                ORDER BY date DESC
+            ''').fetchall()
+            
+            return {
+                'report_type': report_type,
+                'generated_at': datetime.now().isoformat(),
+                'data': [dict(row) for row in data]
+            }
+            
+        elif report_type == 'system-effectiveness':
+            # Get system effectiveness metrics
+            total_users = conn.execute('SELECT COUNT(*) FROM users').fetchone()[0]
+            active_users = conn.execute(
+                "SELECT COUNT(DISTINCT session_id) FROM game_state WHERE updated_at > datetime('now', '-7 days')"
+            ).fetchone()[0]
+            
+            level_distribution = conn.execute('''
+                SELECT current_level, COUNT(*) as user_count
+                FROM game_state
+                GROUP BY current_level
+                ORDER BY current_level
+            ''').fetchall()
+            
+            return {
+                'report_type': report_type,
+                'generated_at': datetime.now().isoformat(),
+                'summary': {
+                    'total_users': total_users,
+                    'active_users': active_users,
+                    'engagement_rate': (active_users / max(total_users, 1)) * 100
+                },
+                'level_distribution': [dict(row) for row in level_distribution]
+            }
+            
+        else:
+            return {
+                'report_type': report_type,
+                'generated_at': datetime.now().isoformat(),
+                'error': f'Unknown report type: {report_type}'
+            }
+            
+    except Exception as e:
+        return {
+            'report_type': report_type,
+            'generated_at': datetime.now().isoformat(),
+            'error': str(e)
+        }
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+def generate_csv_response(data, filename):
+    """Generate CSV response from report data"""
+    import csv
+    import io
+    from flask import make_response
+    
+    output = io.StringIO()
+    
+    if 'data' in data and data['data']:
+        # Get column headers from first row
+        headers = list(data['data'][0].keys())
+        writer = csv.DictWriter(output, fieldnames=headers)
+        writer.writeheader()
+        writer.writerows(data['data'])
+    else:
+        # Handle summary-style reports
+        writer = csv.writer(output)
+        writer.writerow(['Report Type', data.get('report_type', 'Unknown')])
+        writer.writerow(['Generated At', data.get('generated_at', '')])
+        if 'summary' in data:
+            writer.writerow([''])
+            writer.writerow(['Summary'])
+            for key, value in data['summary'].items():
+                writer.writerow([key, value])
+    
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv'
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}.csv'
+    
+    return response
+
+def generate_excel_response(data, filename):
+    """Generate Excel response from report data"""
+    try:
+        import openpyxl
+        from openpyxl.utils.dataframe import dataframe_to_rows
+        import pandas as pd
+        from flask import make_response
+        import io
+        
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Report Data"
+        
+        if 'data' in data and data['data']:
+            # Convert to DataFrame for easier Excel handling
+            df = pd.DataFrame(data['data'])
+            for r in dataframe_to_rows(df, index=False, header=True):
+                ws.append(r)
+        else:
+            # Handle summary-style reports
+            ws.append(['Report Type', data.get('report_type', 'Unknown')])
+            ws.append(['Generated At', data.get('generated_at', '')])
+            if 'summary' in data:
+                ws.append([''])
+                ws.append(['Summary'])
+                for key, value in data['summary'].items():
+                    ws.append([key, value])
+        
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}.xlsx'
+        
+        return response
+        
+    except ImportError:
+        # Fallback to CSV if Excel libraries not available
+        return generate_csv_response(data, filename)
+
+def generate_pdf_response(data, filename):
+    """Generate PDF response from report data"""
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib import colors
+        from flask import make_response
+        import io
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Title
+        title = Paragraph(f"Report: {data.get('report_type', 'Unknown')}", styles['Title'])
+        elements.append(title)
+        
+        # Generated date
+        date_para = Paragraph(f"Generated: {data.get('generated_at', '')}", styles['Normal'])
+        elements.append(date_para)
+        
+        if 'data' in data and data['data']:
+            # Create table from data
+            table_data = []
+            if data['data']:
+                headers = list(data['data'][0].keys())
+                table_data.append(headers)
+                for row in data['data']:
+                    table_data.append([str(row.get(h, '')) for h in headers])
+                
+                table = Table(table_data)
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 14),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ]))
+                elements.append(table)
+        
+        doc.build(elements)
+        buffer.seek(0)
+        
+        response = make_response(buffer.getvalue())
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}.pdf'
+        
+        return response
+        
+    except ImportError:
+        # Fallback to CSV if PDF libraries not available
+        return generate_csv_response(data, filename)
+
+def generate_csv_content(data):
+    """Generate CSV content string from report data"""
+    import csv
+    import io
+    
+    output = io.StringIO()
+    
+    if 'data' in data and data['data']:
+        headers = list(data['data'][0].keys())
+        writer = csv.DictWriter(output, fieldnames=headers)
+        writer.writeheader()
+        writer.writerows(data['data'])
+    else:
+        writer = csv.writer(output)
+        writer.writerow(['Report Type', data.get('report_type', 'Unknown')])
+        writer.writerow(['Generated At', data.get('generated_at', '')])
+        if 'summary' in data:
+            writer.writerow([''])
+            writer.writerow(['Summary'])
+            for key, value in data['summary'].items():
+                writer.writerow([key, value])
+    
+    return output.getvalue()
+
+def save_report_to_history(report_type, config, file_data, format_type):
+    """Save generated report to history"""
+    try:
+        import uuid
+        
+        conn = db_manager.get_connection()
+        
+        # Ensure report_history table exists
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS report_history (
+                id TEXT PRIMARY KEY,
+                type TEXT NOT NULL,
+                format TEXT NOT NULL,
+                config TEXT,
+                file_data BLOB,
+                size INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                description TEXT,
+                metadata TEXT
+            )
+        ''')
+        
+        report_id = str(uuid.uuid4())
+        config_json = json.dumps(config) if config else None
+        file_size = len(file_data) if file_data else 0
+        description = f"{report_type} report in {format_type} format"
+        
+        conn.execute('''
+            INSERT INTO report_history (id, type, format, config, file_data, size, description)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (report_id, report_type, format_type, config_json, file_data, file_size, description))
+        
+        conn.commit()
+        conn.close()
+        
+        return {'success': True, 'report_id': report_id}
+        
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
 @app.route('/admin')
 @login_required
 @admin_required
@@ -907,512 +1205,232 @@ def user_dashboard():
 @app.route('/api/user/progress')
 @login_required
 def get_user_progress():
-    """Get user's game progress"""
+    """Get user's game progress with detailed metrics for dashboard"""
     try:
+        # Get comprehensive progress summary
+        progress_summary = db_manager.get_overall_progress_summary(current_user.id)
+        
+        if not progress_summary['success']:
+            return jsonify({'status': 'error', 'message': progress_summary.get('error', 'Failed to load progress')}), 500
+        
+        # If no progress data yet, return default structure
+        if not progress_summary['summary']:
+            return jsonify({
+                'status': 'success',
+                'stats': {
+                    'completed_rooms': 0,
+                    'current_room': 1,
+                    'current_level': 1,
+                    'badge_count': 0,
+                    'session_count': 0,
+                    'last_played': None,
+                    'total_score': 0,
+                    'completion_rate': 0
+                },
+                'rooms': []
+            })
+        
+        # Get room-specific progress
+        rooms = []
+        for room_id in range(1, 6):  # 5 game rooms
+            room_progress = db_manager.get_detailed_progress(current_user.id, room_id)
+            if room_progress['success'] and room_progress['progress']:
+                rooms.append(room_progress['progress'])
+            else:
+                # Add placeholder for rooms not started yet
+                rooms.append({
+                    'room_number': room_id,
+                    'room_name': f"Room {room_id}",
+                    'completion_status': 'not_started',
+                    'completion_percentage': 0,
+                    'time_spent': 0,
+                    'best_score': 0,
+                    'attempts': 0
+                })
+        
+        # Get badge count
         conn = db_manager.get_connection()
-        
-        # Get user's overall stats
-        user_sessions = conn.execute(
-            "SELECT COUNT(*) FROM game_state WHERE session_id LIKE ?",
-            (f'user_{current_user.id}_%',)
-        ).fetchone()[0]
-        
-        # Get current level
-        current_level_row = conn.execute(
-            "SELECT MAX(current_level) FROM game_state WHERE session_id LIKE ?",
-            (f'user_{current_user.id}_%',)
-        ).fetchone()
-        current_level = current_level_row[0] if current_level_row[0] else 1
-        
-        # Get last played
-        last_played_row = conn.execute(
-            "SELECT MAX(updated_at) FROM game_state WHERE session_id LIKE ?",
-            (f'user_{current_user.id}_%',)
-        ).fetchone()
-        last_played = last_played_row[0] if last_played_row[0] else None
-        
-        # Get badge count (if badges table exists)
+        badge_count = 0
         try:
             badge_count = conn.execute(
                 "SELECT COUNT(*) FROM user_badges WHERE user_id = ?",
                 (current_user.id,)
             ).fetchone()[0]
         except:
-            badge_count = 0
+            pass
         
-        # Calculate completed rooms (assuming 10 levels per room)
-        completed_rooms = max(0, (current_level - 1) // 10)
-        
-        # Get room-specific progress
-        rooms_progress = []
-        for room_id in range(1, 6):  # 5 rooms
-            start_level = (room_id - 1) * 10 + 1
-            end_level = room_id * 10
-            
-            completed_levels = 0
-            if current_level > start_level:
-                completed_levels = min(10, current_level - start_level + 1)
-            
-            rooms_progress.append({
-                'room_id': room_id,
-                'completed_levels': completed_levels,
-                'total_levels': 10
-            })
+        # Get session count
+        session_count = 0
+        try:
+            session_count = conn.execute(
+                "SELECT COUNT(*) FROM user_sessions WHERE user_id = ?",
+                (current_user.id,)
+            ).fetchone()[0]
+        except:
+            pass
         
         conn.close()
         
+        # Get current position
+        current_room = 1
+        current_level = 1
+        # Use the room with highest percentage that's not completed, or the first one
+        for room in rooms:
+            if room['completion_status'] != 'completed' and room['completion_percentage'] > 0:
+                current_room = room['room_number']
+                break
+            elif room['completion_status'] == 'completed':
+                current_room = room['room_number'] + 1
+                if current_room > 5:
+                    current_room = 5  # Cap at max room
+        
+        summary = progress_summary['summary']
         return jsonify({
             'status': 'success',
             'stats': {
-                'completed_rooms': completed_rooms,
+                'completed_rooms': summary['completed_rooms'],
+                'total_rooms': summary['total_rooms'],
+                'current_room': current_room,
                 'current_level': current_level,
                 'badge_count': badge_count,
-                'session_count': user_sessions,
-                'last_played': last_played
+                'session_count': session_count,
+                'last_played': rooms[0].get('last_accessed') if rooms else None,
+                'total_score': summary['total_score'],
+                'total_time_spent': summary['total_time_spent'],
+                'completion_rate': round(summary['completion_rate'], 1),
+                'performance': summary['performance_metrics']
             },
-            'rooms': rooms_progress
+            'rooms': rooms
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-@app.route('/api/user/badges')
+@app.route('/api/user/room-progress/<int:room_id>')
 @login_required
-def get_user_badges():
-    """Get user's badges"""
+def get_room_progress(room_id):
+    """Get detailed progress for a specific room"""
     try:
-        conn = db_manager.get_connection()
-        
-        # Ensure badges table exists with updated schema
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS badges (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                description TEXT,
-                icon TEXT,
-                room_id INTEGER DEFAULT 0,
-                requirement_type TEXT DEFAULT 'completion',
-                requirement_value TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS user_badges (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                badge_id INTEGER NOT NULL,
-                earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id),
-                FOREIGN KEY (badge_id) REFERENCES badges (id),
-                UNIQUE(user_id, badge_id)
-            )
-        ''')
-        
-        # Get all available badges with user's earned status
-        badges = conn.execute('''
-            SELECT b.*, ub.earned_at,
-                   CASE WHEN ub.earned_at IS NOT NULL THEN 1 ELSE 0 END as earned,
-                   CASE WHEN ub.earned_at > datetime('now', '-7 days') THEN 1 ELSE 0 END as is_recent
-            FROM badges b
-            LEFT JOIN user_badges ub ON b.id = ub.badge_id AND ub.user_id = ?
-            ORDER BY b.room_id, b.id
-        ''', (current_user.id,)).fetchall()
-        
-        conn.close()
-        
-        badges_data = []
-        for badge in badges:
-            badges_data.append({
-                'id': badge['id'],
-                'name': badge['name'],
-                'description': badge['description'],
-                'icon': badge['icon'],
-                'room_id': badge['room_id'],
-                'requirement_type': badge['requirement_type'],
-                'requirement_value': badge['requirement_value'],
-                'earned': bool(badge['earned']),
-                'earned_at': badge['earned_at'],
-                'is_recent': bool(badge['is_recent'])
-            })
-        
-        return jsonify({'status': 'success', 'badges': badges_data})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-@app.route('/api/game/levels/<int:room_id>')
-def get_game_levels(room_id):
-    """Get levels for game play (public endpoint)"""
-    try:
-        conn = db_manager.get_connection()
-        
-        # Ensure level_data table exists
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS level_data (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                room_id INTEGER NOT NULL,
-                level_number INTEGER NOT NULL,
-                name TEXT NOT NULL,
-                data TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        levels = conn.execute('''
-            SELECT level_number, name, data FROM level_data 
-            WHERE room_id = ?
-            ORDER BY level_number
-        ''', (room_id,)).fetchall()
-        conn.close()
-        
-        levels_data = []
-        for level in levels:
-            level_data = json.loads(level['data']) if level['data'] else {}
-            levels_data.append({
-                'level_number': level['level_number'],
-                'name': level['name'],
-                **level_data  # Merge level data into response
-            })
-        
-        return jsonify({'status': 'success', 'levels': levels_data})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-def generate_report_data(report_type, config):
-    """Generate report data based on type and configuration"""
-    try:
-        conn = db_manager.get_connection()
-        
-        if report_type == 'user-performance':
-            # User performance report
-            data = conn.execute('''
-                SELECT u.username, u.email, u.created_at,
-                       COUNT(gs.session_id) as total_sessions,
-                       MAX(gs.current_level) as max_level,
-                       AVG(gs.current_level) as avg_level
-                FROM users u
-                LEFT JOIN game_state gs ON gs.session_id LIKE 'user_' || u.id || '_%'
-                GROUP BY u.id
-                ORDER BY max_level DESC
-            ''').fetchall()
-            
-            return [dict(row) for row in data]
-            
-        elif report_type == 'challenge-completion':
-            # Challenge completion report
-            data = conn.execute('''
-                SELECT current_level as level, 
-                       COUNT(*) as completions,
-                       COUNT(DISTINCT session_id) as unique_users
-                FROM game_state 
-                GROUP BY current_level 
-                ORDER BY current_level
-            ''').fetchall()
-            
-            return [dict(row) for row in data]
-            
-        elif report_type == 'engagement-trends':
-            # Engagement trends report
-            data = conn.execute('''
-                SELECT DATE(updated_at) as date,
-                       COUNT(DISTINCT session_id) as active_users,
-                       COUNT(*) as total_activities
-                FROM game_state 
-                WHERE updated_at >= datetime('now', '-30 days')
-                GROUP BY DATE(updated_at)
-                ORDER BY date DESC
-            ''').fetchall()
-            
-            return [dict(row) for row in data]
-            
-        elif report_type == 'system-effectiveness':
-            # System effectiveness report
-            total_users = conn.execute('SELECT COUNT(*) FROM users').fetchone()[0]
-            active_users = conn.execute(
-                "SELECT COUNT(DISTINCT session_id) FROM game_state WHERE updated_at > datetime('now', '-7 days')"
-            ).fetchone()[0]
-            
-            level_distribution = conn.execute('''
-                SELECT current_level as level, COUNT(*) as users
-                FROM game_state 
-                GROUP BY current_level 
-                ORDER BY current_level
-            ''').fetchall()
-            
-            return {
-                'total_users': total_users,
-                'active_users': active_users,
-                'engagement_rate': (active_users / total_users * 100) if total_users > 0 else 0,
-                'level_distribution': [dict(row) for row in level_distribution]
-            }
-            
+        result = db_manager.get_detailed_progress(current_user.id, room_id)
+        if result['success']:
+            return jsonify({'status': 'success', 'progress': result['progress']})
         else:
-            raise ValueError(f"Unknown report type: {report_type}")
-            
+            return jsonify({'status': 'error', 'message': result.get('error', 'Failed to load room progress')}), 500
     except Exception as e:
-        raise Exception(f"Failed to generate {report_type} report: {str(e)}")
-    finally:
-        if 'conn' in locals():
-            conn.close()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
-def generate_csv_response(data, filename):
-    """Generate CSV response from data"""
-    import csv
-    import io
-    from flask import make_response
-    
-    output = io.StringIO()
-    
-    if isinstance(data, list) and data:
-        writer = csv.DictWriter(output, fieldnames=data[0].keys())
-        writer.writeheader()
-        writer.writerows(data)
-    elif isinstance(data, dict):
-        # Handle dictionary data by flattening it
-        flattened_data = []
-        for key, value in data.items():
-            if isinstance(value, list):
-                for item in value:
-                    if isinstance(item, dict):
-                        item['category'] = key
-                        flattened_data.append(item)
-            else:
-                flattened_data.append({'metric': key, 'value': value})
-        
-        if flattened_data:
-            writer = csv.DictWriter(output, fieldnames=flattened_data[0].keys())
-            writer.writeheader()
-            writer.writerows(flattened_data)
-    
-    csv_content = output.getvalue()
-    output.close()
-    
-    response = make_response(csv_content)
-    response.headers['Content-Type'] = 'text/csv'
-    response.headers['Content-Disposition'] = f'attachment; filename={filename}.csv'
-    
-    return response
-
-def generate_excel_response(data, filename):
-    """Generate Excel response from data"""
+@app.route('/api/user/track-progress', methods=['POST'])
+@login_required
+def track_user_progress():
+    """Update user's progress for a room"""
     try:
-        # Check if pandas and openpyxl are available
-        import importlib.util
-        if importlib.util.find_spec("pandas") is None or importlib.util.find_spec("openpyxl") is None:
-            raise ImportError("pandas or openpyxl not available")
+        data = request.get_json()
+        room_id = data.get('room_id')
+        progress_data = data.get('progress_data', {})
+        
+        if not room_id:
+            return jsonify({'status': 'error', 'message': 'Room ID is required'}), 400
             
-        import pandas as pd
-        import io
-        from flask import make_response
+        result = db_manager.save_user_room_progress(current_user.id, room_id, progress_data)
         
-        output = io.BytesIO()
-        
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            if isinstance(data, list) and data:
-                df = pd.DataFrame(data)
-                df.to_excel(writer, sheet_name='Report', index=False)
-            elif isinstance(data, dict):
-                # Create multiple sheets for complex data
-                for key, value in data.items():
-                    if isinstance(value, list) and value:
-                        df = pd.DataFrame(value)
-                        sheet_name = key.replace('_', ' ').title()[:31]  # Excel sheet name limit
-                        df.to_excel(writer, sheet_name=sheet_name, index=False)
-                    else:
-                        # Single value metrics
-                        df = pd.DataFrame([{key: value}])
-                        df.to_excel(writer, sheet_name='Metrics', index=False)
-        
-        excel_content = output.getvalue()
-        output.close()
-        
-        response = make_response(excel_content)
-        response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        response.headers['Content-Disposition'] = f'attachment; filename={filename}.xlsx'
-        
-        return response
-    except (ImportError, Exception):
-        # Fallback to CSV if pandas/openpyxl not available
-        return generate_csv_response(data, filename)
-
-def generate_pdf_response(data, filename):
-    """Generate PDF response from data"""
-    try:
-        # Check if reportlab is available
-        import importlib.util
-        if importlib.util.find_spec("reportlab") is None:
-            raise ImportError("reportlab not available")
-        
-        # Import reportlab components only if available
-        try:
-            from reportlab.lib.pagesizes import letter
-            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
-            from reportlab.lib.styles import getSampleStyleSheet
-            from reportlab.lib import colors
-        except ImportError:
-            raise ImportError("reportlab components not available")
+        if not result['success']:
+            return jsonify({'status': 'error', 'message': result.get('error', 'Failed to save progress')}), 500
             
-        import io
-        from flask import make_response
-        
-        buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=letter)
-        elements = []
-        styles = getSampleStyleSheet()
-        
-        # Title
-        title = Paragraph(f"Ascended Game Report: {filename.replace('-', ' ').title()}", styles['Title'])
-        elements.append(title)
-        
-        # Convert data to table
-        if isinstance(data, list) and data:
-            # Create table from list of dictionaries
-            headers = list(data[0].keys())
-            table_data = [headers]
-            for row in data:
-                table_data.append([str(row.get(key, '')) for key in headers])
-            
-            table = Table(table_data)
-            table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 14),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black)
-            ]))
-            elements.append(table)
-        
-        elif isinstance(data, dict):
-            # Create paragraphs for dictionary data
-            for key, value in data.items():
-                if isinstance(value, (str, int, float)):
-                    text = f"{key.replace('_', ' ').title()}: {value}"
-                    elements.append(Paragraph(text, styles['Normal']))
-        
-        doc.build(elements)
-        pdf_content = buffer.getvalue()
-        buffer.close()
-        
-        response = make_response(pdf_content)
-        response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = f'attachment; filename={filename}.pdf'
-        
-        return response
-    except (ImportError, Exception):
-        # Fallback to JSON if reportlab not available or other error occurs
-        from flask import make_response
-        json_content = json.dumps(data, indent=2)
-        response = make_response(json_content)
-        response.headers['Content-Type'] = 'application/json'
-        response.headers['Content-Disposition'] = f'attachment; filename={filename}.json'
-        return response
-
-def generate_csv_content(data):
-    """Generate CSV content string from data"""
-    import csv
-    import io
-    
-    output = io.StringIO()
-    
-    if isinstance(data, list) and data:
-        writer = csv.DictWriter(output, fieldnames=data[0].keys())
-        writer.writeheader()
-        writer.writerows(data)
-    elif isinstance(data, dict):
-        # Handle dictionary data by flattening it
-        flattened_data = []
-        for key, value in data.items():
-            if isinstance(value, list):
-                for item in value:
-                    if isinstance(item, dict):
-                        item['category'] = key
-                        flattened_data.append(item)
-            else:
-                flattened_data.append({'metric': key, 'value': value})
-        
-        if flattened_data:
-            writer = csv.DictWriter(output, fieldnames=flattened_data[0].keys())
-            writer.writeheader()
-            writer.writerows(flattened_data)
-    
-    csv_content = output.getvalue()
-    output.close()
-    
-    return csv_content
-
-def save_report_to_history(report_type, config, file_data, file_format, description=None):
-    """Save a generated report to history"""
-    try:
-        conn = db_manager.get_connection()
-        
-        # Ensure report_history table exists
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS report_history (
-                id TEXT PRIMARY KEY,
-                type TEXT NOT NULL,
-                format TEXT NOT NULL,
-                config TEXT,
-                file_data BLOB,
-                size INTEGER,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                description TEXT,
-                metadata TEXT
-            )
-        ''')
-        
-        # Generate unique ID
-        import uuid
-        report_id = str(uuid.uuid4())
-        
-        # Calculate file size
-        file_size = len(file_data) if file_data else 0
-        
-        # Create metadata
-        metadata = {
-            'generated_by': current_user.username if current_user.is_authenticated else 'system',
-            'user_id': current_user.id if current_user.is_authenticated else None,
-            'file_size': file_size,
-            'timestamp': datetime.now().isoformat()
-        }
-        
-        # Insert into database
-        conn.execute('''
-            INSERT INTO report_history (
-                id, type, format, config, file_data, size, description, metadata
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            report_id,
-            report_type,
-            file_format,
-            json.dumps(config),
-            file_data,
-            file_size,
-            description,
-            json.dumps(metadata)
-        ))
-        
-        conn.commit()
-        
-        # Clean up old reports (keep only last 50)
-        conn.execute('''
-            DELETE FROM report_history 
-            WHERE id NOT IN (
-                SELECT id FROM report_history 
-                ORDER BY created_at DESC 
-                LIMIT 50
-            )
-        ''')
-        
-        conn.commit()
-        conn.close()
-        
-        return report_id
+        # Return updated completion percentage
+        return jsonify({
+            'status': 'success', 
+            'completion_percentage': result.get('completion_percentage', 0)
+        })
     except Exception as e:
-        print(f"Failed to save report to history: {str(e)}")
-        return None
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/user/track-event', methods=['POST'])
+@login_required
+def track_user_event():
+    """Track a game event for progress tracking"""
+    try:
+        data = request.get_json()
+        room_id = data.get('room_id')
+        event_type = data.get('event_type')
+        event_data = data.get('event_data', {})
+        
+        if not all([room_id, event_type]):
+            return jsonify({'status': 'error', 'message': 'Missing required fields'}), 400
+            
+        result = db_manager.track_game_event(current_user.id, room_id, event_type, event_data)
+        
+        if not result['success']:
+            return jsonify({'status': 'error', 'message': result.get('error', 'Failed to track event')}), 500
+            
+        return jsonify({
+            'status': 'success',
+            'room_data': result.get('room_data', {})
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/user/all-room-progress')
+@login_required
+def get_all_room_progress():
+    """Get progress for all rooms for dashboard display"""
+    try:
+        rooms = []
+        for room_id in range(1, 6):  # 5 game rooms
+            room_progress = db_manager.get_detailed_progress(current_user.id, room_id)
+            if room_progress['success'] and room_progress['progress']:
+                rooms.append(room_progress['progress'])
+            else:
+                # Add placeholder for rooms not started yet
+                rooms.append({
+                    'room_number': room_id,
+                    'room_name': get_room_name(room_id),
+                    'completion_status': 'not_started',
+                    'completion_percentage': 0,
+                    'time_spent': 0,
+                    'best_score': 0,
+                    'attempts': 0
+                })
+                
+        return jsonify({'status': 'success', 'rooms': rooms})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+def get_room_name(room_id):
+    """Get standard room name by ID"""
+    room_names = {
+        1: 'Flowchart Lab',
+        2: 'Network Nexus',
+        3: 'AI Systems',
+        4: 'Database Crisis',
+        5: 'Programming Crisis'
+    }
+    return room_names.get(room_id, f'Room {room_id}')
+
+# Add utility function to database manager class
+def get_all_room_progress(self, user_id):
+    """Get progress for all rooms"""
+    try:
+        rooms = []
+        for room_id in range(1, 6):  # 5 game rooms
+            room_progress = self.get_detailed_progress(user_id, room_id)
+            if room_progress['success'] and room_progress['progress']:
+                rooms.append(room_progress['progress'])
+            else:
+                # Add placeholder for rooms not started yet
+                rooms.append({
+                    'room_number': room_id,
+                    'room_name': get_room_name(room_id),
+                    'completion_status': 'not_started',
+                    'completion_percentage': 0,
+                    'time_spent': 0,
+                    'best_score': 0,
+                    'attempts': 0
+                })
+        return {'success': True, 'rooms': rooms}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+# Add the method to the DatabaseManager class
+DatabaseManager.get_all_room_progress = get_all_room_progress
 
 if __name__ == '__main__':
     config_obj = config[config_name]
