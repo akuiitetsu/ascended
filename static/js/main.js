@@ -4,6 +4,7 @@ import { CosmeticManager } from './managers/cosmetic-manager.js';
 import { ModalManager } from './managers/modal-manager.js';
 import { GameManager } from './managers/game-manager.js';
 import { ProgressManager } from './managers/progress-manager.js';
+import { CutsceneManager } from './managers/cutscene-manager.js';
 
 class EscapeTheLabGame {
     constructor() {
@@ -20,6 +21,7 @@ class EscapeTheLabGame {
         this.modalManager = new ModalManager(this);
         this.gameManager = new GameManager(this);
         this.progressManager = new ProgressManager(this);
+        this.cutsceneManager = new CutsceneManager(this);
         
         // Initialize tutorial manager from level manager
         this.tutorialManager = this.levelManager.tutorialManager;
@@ -237,7 +239,13 @@ class EscapeTheLabGame {
         }
     }
     
+    // Don't show tutorial if cutscene is playing
     showTutorial(roomNumber = null) {
+        if (this.cutsceneManager && this.cutsceneManager.isPlaying) {
+            console.log('Tutorial blocked: cutscene is playing');
+            return;
+        }
+
         const room = roomNumber || this.currentRoom || 1;
         console.log('Showing tutorial for room:', room);
         
@@ -253,100 +261,75 @@ class EscapeTheLabGame {
         }
     }
 
-    async roomCompleted(message, roomData = {}) {
+    // Enhanced method to start game with cutscene
+    async startGameWithCutscene() {
         try {
-            // Update progress
-            this.player.roomsCompleted++;
-            this.currentRoom = Math.min(this.currentRoom + 1, this.totalRooms);
+            console.log('Starting game with intro cutscene...');
             
-            // Prepare comprehensive progress data
-            const progressData = {
-                room_name: `Room ${this.currentRoom - 1}`,
-                status: 'completed',
-                completion_percentage: 100,
-                completion_status: 'completed',
-                score: roomData.score || 100,
-                time_spent: roomData.timeSpent || Date.now() - (this.progressManager.roomStartTime || this.progressManager.sessionStartTime),
-                room_data: {
-                    ...roomData,
-                    completed_at: new Date().toISOString(),
-                    message: message
-                }
-            };
+            // Prevent any navigation or tutorial access during cutscene
+            this.blockGameAccess(true);
             
-            // Save progress immediately
-            await this.saveProgress();
+            // Hide welcome screen first
+            this.hideWelcomeScreen();
             
-            // Save to progress manager if available
-            if (this.progressManager) {
-                await this.progressManager.saveProgress(this.currentRoom - 1, progressData);
-            }
+            // Show loading screen while attempting cutscene
+            this.showCutsceneLoading();
             
-            // Update cosmetics and save
-            this.cosmeticManager.unlockCosmetics();
-            this.cosmeticManager.savePlayerData();
+            // Try to play intro cutscene - let cutscene manager handle loading screen removal
+            await this.cutsceneManager.playIntroCutscene();
             
-            // Check if all rooms are completed
-            if (this.player.roomsCompleted >= this.totalRooms) {
-                this.gameWon();
-            } else {
-                this.modalManager.showSuccessModal(message);
-            }
+            // Re-enable game access after cutscene
+            this.blockGameAccess(false);
+            
+            // After cutscene, proceed to game
+            await this.proceedToGame();
+            
         } catch (error) {
-            console.error('Failed to save room completion:', error);
-            // Still show success modal even if save failed
-            this.modalManager.showSuccessModal(message + ' (Progress saved locally)');
+            console.error('Failed to start game with cutscene:', error);
+            // Re-enable game access on error
+            this.blockGameAccess(false);
+            // Clean up any remaining loading screens
+            const loadingScreen = document.getElementById('cutscene-loading');
+            if (loadingScreen) {
+                loadingScreen.remove();
+            }
+            // Fallback to normal game start
+            await this.startGame();
         }
     }
 
-    async loadUserProgress() {
-        // This method is kept for compatibility but now handled in loadSavedProgress
-        await this.loadSavedProgress();
-    }
-
-    async loadRoom(roomNumber) {
-        try {
-            this.inRoom = true;
-            this.gameActive = true;
-            this.gameStarted = true;
-            this.currentRoom = roomNumber;
-            
-            // Update UI
-            const roomIndicator = document.getElementById('current-room');
-            if (roomIndicator) {
-                roomIndicator.textContent = roomNumber;
-            }
-            
-            // Save progress immediately when entering room
-            await this.saveProgress();
-            
-            // Update progress tracker current room
-            if (window.progressTracker) {
-                window.progressTracker.setCurrentRoom(roomNumber);
-            }
-            
-            // Track room entry if progress manager is available
-            if (this.progressManager && typeof this.progressManager.enterRoom === 'function') {
-                this.progressManager.enterRoom(roomNumber);
-            }
-            
-            await this.levelManager.loadRoom(roomNumber);
-            console.log(`Successfully loaded room ${roomNumber}`);
-        } catch (error) {
-            console.error('Failed to load room:', error);
-            this.inRoom = false;
-            this.gameActive = false;
-            
-            // Show error message to user
-            const errorMessage = document.createElement('div');
-            errorMessage.className = 'fixed top-4 right-4 bg-red-800 text-red-200 p-3 rounded z-50';
-            errorMessage.textContent = `Failed to load room ${roomNumber}. Please try again.`;
-            document.body.appendChild(errorMessage);
-            setTimeout(() => errorMessage.remove(), 5000);
+    hideWelcomeScreen() {
+        const welcomeScreen = document.getElementById('welcome-screen');
+        if (welcomeScreen) {
+            welcomeScreen.style.transition = 'opacity 0.5s ease-out';
+            welcomeScreen.style.opacity = '0';
+            setTimeout(() => {
+                welcomeScreen.classList.add('hidden');
+            }, 500);
         }
     }
 
-    // Add method to start game (called from start button)
+    showCutsceneLoading() {
+        // Create a loading screen specifically for cutscene
+        const loadingScreen = document.createElement('div');
+        loadingScreen.id = 'cutscene-loading';
+        loadingScreen.className = 'fixed inset-0 bg-black flex items-center justify-center z-40';
+        loadingScreen.innerHTML = `
+            <div class="text-center text-white">
+                <div class="mb-4">
+                    <i class="bi bi-film text-6xl text-blue-400 animate-pulse"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-2">Initializing Neural Link...</h2>
+                <p class="text-gray-400 mb-4">Preparing immersive experience</p>
+                <div class="flex justify-center">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(loadingScreen);
+    }
+
     async startGame() {
         this.gameStarted = true;
         this.showGameInterface();
@@ -623,6 +606,13 @@ class EscapeTheLabGame {
         // Set up wave navigation buttons
         document.querySelectorAll('.wave-nav-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                // Block navigation if cutscene is playing
+                if (this.cutsceneManager && this.cutsceneManager.isPlaying) {
+                    console.log('Navigation blocked: cutscene is playing');
+                    this.showNavigationBlockedMessage();
+                    return;
+                }
+
                 const roomNumber = parseInt(e.currentTarget.dataset.room);
                 console.log(`Wave navigation: Jumping to Room ${roomNumber}`);
                 
@@ -638,6 +628,75 @@ class EscapeTheLabGame {
         
         console.log('Wave navigation buttons configured');
     }
+
+    showNavigationBlockedMessage() {
+        const message = document.createElement('div');
+        message.className = 'fixed top-4 right-4 bg-yellow-800 border border-yellow-600 text-yellow-200 p-3 rounded z-50';
+        message.innerHTML = `
+            <div class="flex items-center">
+                <i class="bi bi-exclamation-triangle text-yellow-400 mr-2"></i>
+                <span class="text-sm">Please finish watching the cutscene first!</span>
+            </div>
+        `;
+        
+        document.body.appendChild(message);
+        
+        setTimeout(() => {
+            if (message.parentNode) {
+                message.style.transition = 'opacity 0.5s ease-out';
+                message.style.opacity = '0';
+                setTimeout(() => message.remove(), 500);
+            }
+        }, 3000);
+    }
+
+    blockGameAccess(block) {
+        // Method to block/unblock game access during cutscenes
+        const gameInterface = document.getElementById('game-interface');
+        if (gameInterface) {
+            if (block) {
+                gameInterface.style.pointerEvents = 'none';
+                gameInterface.style.opacity = '0.7';
+            } else {
+                gameInterface.style.pointerEvents = '';
+                gameInterface.style.opacity = '';
+            }
+        }
+    }
+
+    async proceedToGame() {
+        // Hide any loading screens
+        const loadingScreen = document.getElementById('cutscene-loading');
+        if (loadingScreen) {
+            loadingScreen.remove();
+        }
+        
+        // Start the actual game
+        await this.startGame();
+    }
+
+    async loadRoom(roomNumber) {
+        if (this.levelManager && this.levelManager.loadRoom) {
+            await this.levelManager.loadRoom(roomNumber);
+        }
+    }
+
+    async nextRoom() {
+        if (this.gameManager && this.gameManager.nextRoom) {
+            await this.gameManager.nextRoom();
+        }
+    }
+
+    async restart() {
+        if (this.gameManager && this.gameManager.restart) {
+            await this.gameManager.restart();
+        }
+    }
+
+    async cleanup() {
+        // Cleanup method for page unload
+        await this.saveProgress();
+    }
 }
 
 // Initialize when DOM loads
@@ -645,14 +704,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('DOM loaded, initializing game...');
     window.game = new EscapeTheLabGame();
     
-    // Enhanced start game button functionality
+    // Enhanced start game button functionality - ensure it uses cutscene
     const startGameBtn = document.getElementById('start-game');
     if (startGameBtn) {
         startGameBtn.addEventListener('click', async () => {
-            await window.game.startGame();
+            console.log('Link Start button pressed - starting game with cutscene');
+            await window.game.startGameWithCutscene();
         });
     }
     
+    // Also handle any other start buttons (like "Link Start")
+    const linkStartBtn = document.querySelector('[data-action="start-game"]') || document.querySelector('.link-start-btn');
+    if (linkStartBtn && linkStartBtn !== startGameBtn) {
+        linkStartBtn.addEventListener('click', async () => {
+            console.log('Link Start button pressed - starting game with cutscene');
+            await window.game.startGameWithCutscene();
+        });
+    }
+
     // Setup room navigation immediately
     setupGlobalRoomNavigation();
     
@@ -700,10 +769,6 @@ function setupGlobalRoomNavigation() {
     
     console.log('Global room navigation configured');
 }
-
-// Initialize the game
-const game = new EscapeTheLabGame();
-window.game = game;
 
 // Enhanced page unload handler
 window.addEventListener('beforeunload', async () => {
