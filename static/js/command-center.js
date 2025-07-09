@@ -244,7 +244,6 @@ class CommandCenter {
                         <h4 class="font-semibold text-yellow-400 mb-2">Keyboard Shortcuts</h4>
                         <ul class="space-y-1 text-gray-300">
                             <li>• <kbd class="bg-gray-600 px-1 rounded">Esc</kbd> - Open/Close Command Center</li>
-                            <li>• <kbd class="bg-gray-600 px-1 rounded">R</kbd> - Restart Level</li>
                             <li>• <kbd class="bg-gray-600 px-1 rounded">H</kbd> - Show Hint</li>
                         </ul>
                     </div>
@@ -280,11 +279,6 @@ document.addEventListener('keydown', (e) => {
         const commandCenter = window.commandCenter;
         if (commandCenter) {
             commandCenter.togglePanel();
-        }
-    } else if (e.key === 'r' || e.key === 'R') {
-        if (e.ctrlKey || e.metaKey) return; // Don't interfere with browser refresh
-        if (confirm('Restart the current level?')) {
-            window.location.reload();
         }
     } else if (e.key === 'h' || e.key === 'H') {
         // Trigger hint if available

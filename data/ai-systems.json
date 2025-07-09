@@ -10,6 +10,10 @@
   "scenarios_by_category": [
     {
       "category": "Ethics",
+      "theme_color": "purple",
+      "icon": "🤖",
+      "description": "AI Ethics & Moral Decision Making",
+      "unlock_message": "Teaching AI about right and wrong...",
       "scenarios": [
         {
           "title": "Medical Resource Allocation",
@@ -18,7 +22,9 @@
           "icon": "🏥",
           "is_ethical": true,
           "relevant_principles": ["Beneficence", "Justice", "Utility"],
-          "explanation": "Medical triage based on survival probability and life expectancy is an ethical approach that maximizes benefit while treating all patients with dignity."
+          "explanation": "Medical triage based on survival probability and life expectancy is an ethical approach that maximizes benefit while treating all patients with dignity.",
+          "swipe_right_label": "Ethical",
+          "swipe_left_label": "Unethical"
         },
         {
           "title": "Autonomous Vehicle Dilemma",
@@ -27,7 +33,9 @@
           "icon": "🚗",
           "is_ethical": false,
           "relevant_principles": ["Non-maleficence", "Responsibility"],
-          "explanation": "The AI should not make calculated decisions about who lives or dies. The correct approach is to minimize harm without discriminating based on age or number."
+          "explanation": "The AI should not make calculated decisions about who lives or dies. The correct approach is to minimize harm without discriminating based on age or number.",
+          "swipe_right_label": "Ethical",
+          "swipe_left_label": "Unethical"
         },
         {
           "title": "Privacy vs Security",
@@ -36,7 +44,9 @@
           "icon": "🔒",
           "is_ethical": false,
           "relevant_principles": ["Privacy", "Human Dignity", "Proportionality"],
-          "explanation": "Mass surveillance violates fundamental rights. The ethical approach requires specific warrants and judicial oversight, not blanket access to private communications."
+          "explanation": "Mass surveillance violates fundamental rights. The ethical approach requires specific warrants and judicial oversight, not blanket access to private communications.",
+          "swipe_right_label": "Ethical",
+          "swipe_left_label": "Unethical"
         },
         {
           "title": "AI Job Displacement",
@@ -45,7 +55,9 @@
           "icon": "🤖",
           "is_ethical": false,
           "relevant_principles": ["Social Responsibility", "Human Dignity"],
-          "explanation": "Ethical AI deployment considers human impact. The correct approach includes retraining programs, gradual transition, and social responsibility measures."
+          "explanation": "Ethical AI deployment considers human impact. The correct approach includes retraining programs, gradual transition, and social responsibility measures.",
+          "swipe_right_label": "Ethical",
+          "swipe_left_label": "Unethical"
         },
         {
           "title": "Data Bias in Hiring",
@@ -54,227 +66,245 @@
           "icon": "📊",
           "is_ethical": false,
           "relevant_principles": ["Justice", "Fairness", "Non-discrimination"],
-          "explanation": "Using biased historical data perpetuates discrimination. Ethical AI requires actively correcting for bias and ensuring fair representation across all groups."
+          "explanation": "Using biased historical data perpetuates discrimination. Ethical AI requires actively correcting for bias and ensuring fair representation across all groups.",
+          "swipe_right_label": "Ethical",
+          "swipe_left_label": "Unethical"
         }
       ]
     },
     {
       "category": "Supervised",
+      "theme_color": "blue",
+      "icon": "👨‍🏫",
+      "description": "Supervised Learning with Labeled Data",
+      "unlock_message": "Learning from examples with known answers...",
       "scenarios": [
         {
-          "title": "Incorrect Labeling",
-          "description": "A training image of a cat is mistakenly labeled as a dog in the dataset.",
-          "proposed_action": "Keep the incorrect label to save time.",
-          "icon": "🐱",
-          "is_ethical": false,
-          "relevant_principles": ["Accuracy", "Data Integrity"],
-          "explanation": "Incorrect labels harm model performance. Data should be corrected for reliable supervised learning.",
-          "is_correct": false
+          "title": "Email Spam Detection",
+          "description": "You want to train an AI to automatically detect spam emails. You have 10,000 emails already labeled as 'spam' or 'not spam'.",
+          "proposed_action": "Use the labeled email dataset to train a model that can classify new emails.",
+          "icon": "📧",
+          "is_correct": true,
+          "explanation": "This is supervised learning! You're using labeled training data (spam/not spam) to teach the model to make predictions on new, unseen emails.",
+          "swipe_right_label": "Supervised",
+          "swipe_left_label": "Not Supervised"
         },
         {
-          "title": "Balanced Dataset",
-          "description": "The dataset for disease detection has 90% healthy and 10% sick samples.",
-          "proposed_action": "Add more sick samples to balance the dataset.",
-          "icon": "⚖️",
-          "is_ethical": true,
-          "relevant_principles": ["Fairness", "Representation"],
-          "explanation": "Balanced datasets prevent bias and improve model generalization.",
-          "is_correct": true
+          "title": "Medical Diagnosis",
+          "description": "A hospital wants AI to help diagnose diseases from X-ray images. They have thousands of X-rays with confirmed diagnoses from doctors.",
+          "proposed_action": "Train the AI using X-ray images paired with their correct diagnoses.",
+          "icon": "🩻",
+          "is_correct": true,
+          "explanation": "Perfect example of supervised learning! The AI learns from input-output pairs: X-ray images (input) and diagnoses (output labels).",
+          "swipe_right_label": "Supervised",
+          "swipe_left_label": "Not Supervised"
         },
         {
-          "title": "Sensitive Attributes",
-          "description": "A dataset includes race and gender as features for loan approval.",
-          "proposed_action": "Remove sensitive attributes to avoid discrimination.",
-          "icon": "🏦",
-          "is_ethical": true,
-          "relevant_principles": ["Non-discrimination", "Justice"],
-          "explanation": "Sensitive attributes can introduce bias. Removing them supports fairness.",
-          "is_correct": true
-        },
-        {
-          "title": "Overfitting",
-          "description": "A model achieves 100% accuracy on training data but performs poorly on new data.",
-          "proposed_action": "Reduce model complexity or use regularization.",
+          "title": "Stock Price Prediction",
+          "description": "You want to predict tomorrow's stock prices using historical data, but you don't have labels for 'correct' future prices.",
+          "proposed_action": "Use historical stock data without future price labels to find patterns.",
           "icon": "📈",
-          "is_ethical": true,
-          "relevant_principles": ["Generalization", "Reliability"],
-          "explanation": "Overfitting leads to poor real-world performance. Regularization helps models generalize.",
-          "is_correct": true
+          "is_correct": false,
+          "explanation": "This isn't supervised learning because you don't have labeled examples of correct future predictions. This would be more like time series forecasting or unsupervised pattern detection.",
+          "swipe_right_label": "Supervised",
+          "swipe_left_label": "Not Supervised"
         },
         {
-          "title": "Data Privacy",
-          "description": "Training data contains personal information without user consent.",
-          "proposed_action": "Remove personal data or obtain consent before using it.",
-          "icon": "🔏",
-          "is_ethical": true,
-          "relevant_principles": ["Privacy", "Consent"],
-          "explanation": "Supervised learning should respect privacy and data protection laws.",
-          "is_correct": true
+          "title": "Image Recognition",
+          "description": "You have 50,000 photos labeled with what objects they contain (cat, dog, car, etc.) and want to train AI to recognize objects in new photos.",
+          "proposed_action": "Train the model using the labeled photos to classify objects in new images.",
+          "icon": "🖼️",
+          "is_correct": true,
+          "explanation": "Classic supervised learning! You have input data (images) with corresponding labels (object names) to train the model.",
+          "swipe_right_label": "Supervised",
+          "swipe_left_label": "Not Supervised"
+        },
+        {
+          "title": "Customer Segmentation",
+          "description": "A company wants to group customers into segments, but they don't know what the segments should be or have examples of 'correct' groupings.",
+          "proposed_action": "Analyze customer data to discover hidden patterns and natural groupings.",
+          "icon": "👥",
+          "is_correct": false,
+          "explanation": "This is unsupervised learning! There are no labels or known correct answers - you're discovering hidden patterns in the data.",
+          "swipe_right_label": "Supervised",
+          "swipe_left_label": "Not Supervised"
         }
       ]
     },
     {
       "category": "Reinforcement",
+      "theme_color": "green",
+      "icon": "🎯",
+      "description": "Reinforcement Learning through Rewards",
+      "unlock_message": "Learning through trial, error, and feedback...",
       "scenarios": [
         {
-          "title": "Reward Hacking",
-          "description": "An agent finds a loophole to maximize its reward in a game by exploiting a bug.",
-          "proposed_action": "Patch the bug and adjust the reward function.",
-          "icon": "🎮",
-          "is_ethical": true,
-          "relevant_principles": ["Robustness", "Alignment"],
-          "explanation": "Reward functions should be designed to prevent unintended behaviors.",
-          "is_right": true
+          "title": "Game Playing AI",
+          "description": "An AI learns to play chess by playing thousands of games, getting rewarded for wins and penalized for losses.",
+          "proposed_action": "Let the AI learn through trial and error, using wins and losses as feedback.",
+          "icon": "♟️",
+          "is_right": true,
+          "explanation": "Perfect reinforcement learning! The AI learns by taking actions (moves) and receiving rewards (wins) or penalties (losses) to improve its strategy.",
+          "swipe_right_label": "Reinforcement",
+          "swipe_left_label": "Not Reinforcement"
         },
         {
-          "title": "Sparse Rewards",
-          "description": "The agent receives rewards only at the end of a long task.",
-          "proposed_action": "Introduce intermediate rewards for progress.",
-          "icon": "🏁",
-          "is_ethical": true,
-          "relevant_principles": ["Learning Efficiency"],
-          "explanation": "Intermediate rewards help agents learn complex tasks more efficiently.",
-          "is_right": true
+          "title": "Robot Navigation",
+          "description": "A robot learns to navigate a maze by getting positive rewards when it moves toward the exit and negative rewards when it hits walls.",
+          "proposed_action": "Use reward signals to guide the robot's learning process.",
+          "icon": "🤖",
+          "is_right": true,
+          "explanation": "Classic reinforcement learning! The robot learns through environmental feedback - rewards and penalties guide its learning.",
+          "swipe_right_label": "Reinforcement",
+          "swipe_left_label": "Not Reinforcement"
         },
         {
-          "title": "Unsafe Exploration",
-          "description": "An agent tries dangerous actions to learn faster.",
-          "proposed_action": "Limit exploration to safe actions only.",
-          "icon": "⚠️",
-          "is_ethical": true,
-          "relevant_principles": ["Safety", "Non-maleficence"],
-          "explanation": "Exploration should not endanger the agent or environment.",
-          "is_right": true
+          "title": "Supervised Image Training",
+          "description": "An AI is trained on 100,000 labeled images to recognize different dog breeds using correct breed names.",
+          "proposed_action": "Train using the pre-labeled dataset with known correct answers.",
+          "icon": "🐕",
+          "is_right": false,
+          "explanation": "This is supervised learning, not reinforcement learning! You're using labeled data with known correct answers, not learning through trial and error with rewards.",
+          "swipe_right_label": "Reinforcement",
+          "swipe_left_label": "Not Reinforcement"
         },
         {
-          "title": "Negative Side Effects",
-          "description": "An agent cleans a room but knocks over a vase to finish faster.",
-          "proposed_action": "Penalize damaging objects in the reward function.",
-          "icon": "🧹",
-          "is_ethical": true,
-          "relevant_principles": ["Responsibility", "Non-maleficence"],
-          "explanation": "Reward functions should discourage harmful side effects.",
-          "is_right": true
+          "title": "Trading Algorithm",
+          "description": "An AI trading system learns by making buy/sell decisions and receiving feedback based on whether it makes or loses money.",
+          "proposed_action": "Let the AI learn trading strategies through profit/loss feedback.",
+          "icon": "💰",
+          "is_right": true,
+          "explanation": "This is reinforcement learning! The AI takes actions (trades) and learns from rewards (profits) or penalties (losses) to improve its trading strategy.",
+          "swipe_right_label": "Reinforcement",
+          "swipe_left_label": "Not Reinforcement"
         },
         {
-          "title": "Delayed Gratification",
-          "description": "An agent can take a shortcut for immediate reward or work longer for a bigger reward.",
-          "proposed_action": "Encourage the agent to maximize long-term rewards.",
-          "icon": "⏳",
-          "is_ethical": true,
-          "relevant_principles": ["Long-term Thinking"],
-          "explanation": "Reinforcement learning should value long-term benefits over short-term gains.",
-          "is_right": true
+          "title": "Chatbot Responses",
+          "description": "A chatbot learns to improve its responses by analyzing user satisfaction ratings and adjusting its behavior based on positive or negative feedback.",
+          "proposed_action": "Use user feedback ratings to improve response quality over time.",
+          "icon": "💬",
+          "is_right": true,
+          "explanation": "Yes, this is reinforcement learning! The chatbot receives rewards (positive ratings) or penalties (negative ratings) and learns to adjust its behavior accordingly.",
+          "swipe_right_label": "Reinforcement",
+          "swipe_left_label": "Not Reinforcement"
         }
       ]
     },
     {
       "category": "Unsupervised",
+      "theme_color": "orange",
+      "icon": "🔍",
+      "description": "Unsupervised Learning - Finding Hidden Patterns",
+      "unlock_message": "Discovering patterns without guidance...",
       "scenarios": [
         {
-          "title": "Cluster Bias",
-          "description": "Clustering groups people by zip code, unintentionally segregating by income.",
-          "proposed_action": "Review clustering features to avoid reinforcing social divides.",
-          "icon": "📍",
-          "is_ethical": true,
-          "relevant_principles": ["Fairness", "Social Responsibility"],
-          "explanation": "Unsupervised learning should be monitored for unintended social consequences.",
-          "is_cluster": true
+          "title": "Customer Segmentation",
+          "description": "A company analyzes customer purchase data to discover natural groupings of customers with similar buying patterns, without knowing what groups should exist.",
+          "proposed_action": "Find hidden patterns and clusters in customer data without predefined categories.",
+          "icon": "🛒",
+          "is_cluster": true,
+          "explanation": "Perfect unsupervised learning! You're discovering hidden patterns and clusters in data without any labels or predefined categories.",
+          "swipe_right_label": "Unsupervised",
+          "swipe_left_label": "Not Unsupervised"
         },
         {
-          "title": "Data Privacy",
-          "description": "Unsupervised learning on anonymized data could still reveal identities.",
-          "proposed_action": "Apply stronger anonymization or aggregation.",
-          "icon": "🕵️",
-          "is_ethical": true,
-          "relevant_principles": ["Privacy", "Data Protection"],
-          "explanation": "Protecting privacy is essential, even with unsupervised methods.",
-          "is_cluster": true
+          "title": "Gene Expression Analysis",
+          "description": "Scientists want to find groups of genes that behave similarly across different conditions, without knowing what groups exist beforehand.",
+          "proposed_action": "Analyze gene expression data to discover natural groupings and patterns.",
+          "icon": "🧬",
+          "is_cluster": true,
+          "explanation": "This is unsupervised learning! Scientists are discovering hidden patterns in gene expression without predefined labels or known groupings.",
+          "swipe_right_label": "Unsupervised",
+          "swipe_left_label": "Not Unsupervised"
         },
         {
-          "title": "Meaningful Features",
-          "description": "The algorithm clusters based on irrelevant features.",
-          "proposed_action": "Select features that are meaningful for the task.",
-          "icon": "🔬",
-          "is_ethical": true,
-          "relevant_principles": ["Relevance", "Accuracy"],
-          "explanation": "Feature selection is critical for meaningful unsupervised results.",
-          "is_cluster": true
+          "title": "Email Classification",
+          "description": "You have 10,000 emails already labeled as 'spam', 'promotional', 'personal', or 'work' and want to train a classifier.",
+          "proposed_action": "Use the labeled email categories to train a classification model.",
+          "icon": "📧",
+          "is_cluster": false,
+          "explanation": "This is supervised learning, not unsupervised! You have labeled data with known categories. Unsupervised learning discovers patterns without labels.",
+          "swipe_right_label": "Unsupervised",
+          "swipe_left_label": "Not Unsupervised"
         },
         {
-          "title": "Overclustering",
-          "description": "Too many clusters are created, making results hard to interpret.",
-          "proposed_action": "Reduce the number of clusters for clarity.",
-          "icon": "🔢",
-          "is_ethical": true,
-          "relevant_principles": ["Interpretability"],
-          "explanation": "Clustering should balance detail with interpretability.",
-          "is_cluster": true
+          "title": "Market Research",
+          "description": "A company wants to understand different types of customer behavior patterns in their data, but they don't know what patterns exist or how many types there are.",
+          "proposed_action": "Analyze customer behavior data to discover underlying patterns and segments.",
+          "icon": "📊",
+          "is_cluster": true,
+          "explanation": "Yes! This is unsupervised learning. You're exploring data to find hidden patterns and natural groupings without predefined categories.",
+          "swipe_right_label": "Unsupervised",
+          "swipe_left_label": "Not Unsupervised"
         },
         {
-          "title": "Ignoring Outliers",
-          "description": "The algorithm ignores rare but important data points.",
-          "proposed_action": "Investigate and consider outliers in analysis.",
-          "icon": "🌟",
-          "is_ethical": true,
-          "relevant_principles": ["Comprehensiveness"],
-          "explanation": "Outliers can reveal important insights and should not be dismissed.",
-          "is_cluster": true
+          "title": "Fraud Detection Training",
+          "description": "A bank has examples of confirmed fraudulent and legitimate transactions and wants to train a system to detect new fraud cases.",
+          "proposed_action": "Train a model using the labeled fraud/legitimate transaction examples.",
+          "icon": "🏦",
+          "is_cluster": false,
+          "explanation": "This is supervised learning! You have labeled examples (fraud/legitimate) to train with. Unsupervised learning would discover patterns without these labels.",
+          "swipe_right_label": "Unsupervised",
+          "swipe_left_label": "Not Unsupervised"
         }
       ]
     },
     {
       "category": "Deep",
+      "theme_color": "indigo",
+      "icon": "🧠",
+      "description": "Deep Learning with Neural Networks",
+      "unlock_message": "Building complex neural networks...",
       "scenarios": [
         {
-          "title": "Black Box Decisions",
-          "description": "A deep learning model makes a critical medical decision, but its reasoning is not explainable.",
-          "proposed_action": "Use explainable AI techniques or require human oversight.",
-          "icon": "🧠",
-          "is_ethical": true,
-          "relevant_principles": ["Transparency", "Accountability"],
-          "explanation": "Critical decisions require transparency and explainability.",
-          "is_neural_net": true
+          "title": "Image Recognition",
+          "description": "You're building a system to recognize objects in photos using multiple layers of artificial neurons that can learn complex visual patterns.",
+          "proposed_action": "Use a multi-layer neural network with many hidden layers to process and understand images.",
+          "icon": "🖼️",
+          "is_neural_net": true,
+          "explanation": "This is deep learning! Multi-layer neural networks (deep networks) are perfect for complex pattern recognition like image analysis.",
+          "swipe_right_label": "Deep Learning",
+          "swipe_left_label": "Not Deep Learning"
         },
         {
-          "title": "Adversarial Attacks",
-          "description": "A small change in input causes the model to make a dangerous mistake.",
-          "proposed_action": "Harden the model against adversarial examples.",
-          "icon": "🛡️",
-          "is_ethical": true,
-          "relevant_principles": ["Robustness", "Safety"],
-          "explanation": "Deep models should be robust to adversarial manipulation.",
-          "is_neural_net": true
+          "title": "Natural Language Processing",
+          "description": "You're creating an AI that can understand and generate human language using transformer networks with attention mechanisms and multiple layers.",
+          "proposed_action": "Use deep neural networks with transformer architecture for language understanding.",
+          "icon": "💬",
+          "is_neural_net": true,
+          "explanation": "Absolutely deep learning! Modern NLP uses deep neural networks like transformers, which have many layers and complex architectures.",
+          "swipe_right_label": "Deep Learning",
+          "swipe_left_label": "Not Deep Learning"
         },
         {
-          "title": "Data Hunger",
-          "description": "A deep model requires massive amounts of data, raising privacy concerns.",
-          "proposed_action": "Limit data collection and use privacy-preserving techniques.",
-          "icon": "🍽️",
-          "is_ethical": true,
-          "relevant_principles": ["Privacy", "Data Minimization"],
-          "explanation": "Deep learning should respect privacy and minimize data use.",
-          "is_neural_net": true
+          "title": "Simple Linear Regression",
+          "description": "You want to predict house prices using just the square footage with a simple mathematical formula: price = slope × size + intercept.",
+          "proposed_action": "Use a basic linear equation to predict prices based on size.",
+          "icon": "🏠",
+          "is_neural_net": false,
+          "explanation": "This is classical machine learning, not deep learning! Simple linear regression uses basic math, not neural networks with multiple layers.",
+          "swipe_right_label": "Deep Learning",
+          "swipe_left_label": "Not Deep Learning"
         },
         {
-          "title": "Energy Consumption",
-          "description": "Training a deep model consumes as much energy as 100 households.",
-          "proposed_action": "Optimize model size and use green energy sources.",
-          "icon": "⚡",
-          "is_ethical": true,
-          "relevant_principles": ["Sustainability"],
-          "explanation": "Deep learning should consider environmental impact.",
-          "is_neural_net": true
+          "title": "Medical Diagnosis from Scans",
+          "description": "You're developing an AI to diagnose diseases from medical scans using convolutional neural networks with dozens of layers to detect subtle patterns.",
+          "proposed_action": "Use deep convolutional neural networks to analyze medical images.",
+          "icon": "🏥",
+          "is_neural_net": true,
+          "explanation": "This is deep learning! Convolutional neural networks with many layers are a classic example of deep learning for medical image analysis.",
+          "swipe_right_label": "Deep Learning",
+          "swipe_left_label": "Not Deep Learning"
         },
         {
-          "title": "Bias Amplification",
-          "description": "A deep model amplifies subtle biases present in the training data.",
-          "proposed_action": "Audit and mitigate bias in model outputs.",
-          "icon": "🔎",
-          "is_ethical": true,
-          "relevant_principles": ["Fairness", "Justice"],
-          "explanation": "Bias in deep learning must be actively detected and corrected.",
-          "is_neural_net": true
+          "title": "Decision Tree Classification",
+          "description": "You're classifying data using a tree structure with simple if-then rules: 'if age > 30 and income > 50k, then approve loan'.",
+          "proposed_action": "Use decision tree algorithms with rule-based branching.",
+          "icon": "🌳",
+          "is_neural_net": false,
+          "explanation": "This is classical machine learning! Decision trees use simple rule-based logic, not neural networks. Deep learning requires multiple layers of artificial neurons.",
+          "swipe_right_label": "Deep Learning",
+          "swipe_left_label": "Not Deep Learning"
         }
       ]
     }
@@ -288,8 +318,46 @@
     "fairness_constraints": "Applied"
   },
   "training_outcomes": {
-    "successful_completion": "AI demonstrates comprehensive ethical reasoning through card-based training",
-    "partial_success": "AI shows basic ethical understanding with some gaps in moral reasoning",
-    "failure": "AI lacks sufficient moral foundation for autonomous decision making"
+    "successful_completion": "AI demonstrates comprehensive understanding across all ML domains through card-based training",
+    "partial_success": "AI shows basic understanding with some gaps in specific learning types",
+    "failure": "AI lacks sufficient understanding of machine learning fundamentals"
+  },
+  "achievement_badges": {
+    "ethics_expert": {
+      "name": "Ethics Guardian",
+      "description": "Master AI ethical decision making",
+      "icon": "⚖️",
+      "requirement": "Score 80%+ on Ethics category"
+    },
+    "ml_initiate": {
+      "name": "ML Initiate", 
+      "description": "Understand supervised learning fundamentals",
+      "icon": "🎓",
+      "requirement": "Complete Supervised Learning category"
+    },
+    "reinforcement_master": {
+      "name": "Reward Optimizer",
+      "description": "Master reinforcement learning concepts",
+      "icon": "🎯",
+      "requirement": "Score 80%+ on Reinforcement category"
+    },
+    "pattern_finder": {
+      "name": "Pattern Detective",
+      "description": "Excel at unsupervised learning",
+      "icon": "🔍",
+      "requirement": "Score 80%+ on Unsupervised category"
+    },
+    "neural_architect": {
+      "name": "Neural Architect",
+      "description": "Master deep learning and neural networks",
+      "icon": "🧠",
+      "requirement": "Score 80%+ on Deep Learning category"
+    },
+    "ai_master": {
+      "name": "AI Master",
+      "description": "Complete all categories with excellence",
+      "icon": "🤖",
+      "requirement": "Score 80%+ on all categories"
+    }
   }
 }
