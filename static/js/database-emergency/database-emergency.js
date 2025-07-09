@@ -195,7 +195,7 @@ class Room4 {
                     <div class="text-left text-sm text-gray-300">
                         <p>✅ Database assessment completed using SQL diagnostics</p>
                         <p>✅ Backup recovery executed with optimal integrity selection</p>
-                        <p>✅ Manual table repairs performed using REPAIR commands</p>
+                        <p>✅ All 8 critical tables manually repaired using REPAIR commands</p>
                         <p>✅ Data verification tests passed with full integrity</p>
                         <p>✅ All critical business data preserved and accessible</p>
                         <p>✅ Database performance restored to optimal levels</p>
@@ -205,7 +205,22 @@ class Room4 {
         `;
         
         setTimeout(() => {
-            this.game.roomCompleted(`Database emergency resolved through expert SQL recovery! ${this.recoveredTables}/8 tables recovered with ${Math.round(this.dataIntegrity)}% data integrity using hands-on database administration.`);
+            // Enhanced completion data for badge system
+            const completionData = {
+                score: Math.round(this.dataIntegrity),
+                timeSpent: Date.now() - this.startTime,
+                hintsUsed: 0,
+                tablesRepaired: this.recoveredTables,
+                sqlCommands: this.sqlCommands.length,
+                dataIntegrity: Math.round(this.dataIntegrity),
+                attempts: 1,
+                databaseRecovery: true
+            };
+            
+            this.game.roomCompleted(
+                `Database emergency resolved through expert SQL recovery! All ${this.recoveredTables} tables recovered with ${Math.round(this.dataIntegrity)}% data integrity using hands-on database administration.`,
+                completionData
+            );
         }, 3000);
     }
 

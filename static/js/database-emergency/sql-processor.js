@@ -279,15 +279,28 @@ export class SQLProcessor {
                     this.room.terminalManager.scrollTerminalToBottom();
                 }
                 
-                // Check if ready for next step
-                if (this.room.recoveredTables >= 6) {
+                // Check if ready for next step - require ALL 8 tables to be recovered
+                if (this.room.recoveredTables >= 8) {
                     setTimeout(() => {
                         this.room.currentStep = 'verification';
                         this.room.render();
                     }, 1000);
                 } else {
-                    // Update the current display
+                    // Update the current display and show progress message
                     this.room.updateStatusDisplays();
+                    
+                    // Show progress message
+                    const remainingTables = 8 - this.room.recoveredTables;
+                    const progressMessage = document.createElement('div');
+                    progressMessage.className = 'mb-2';
+                    progressMessage.innerHTML = `
+                        <div class="text-yellow-400">Progress: ${this.room.recoveredTables}/8 tables repaired. ${remainingTables} tables remaining.</div>
+                        <div class="text-blue-400">Continue repairing remaining corrupted tables...</div>
+                    `;
+                    if (terminalOutput) {
+                        terminalOutput.appendChild(progressMessage);
+                        this.room.terminalManager.scrollTerminalToBottom();
+                    }
                 }
             }, 3000);
 
