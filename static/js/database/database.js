@@ -204,8 +204,20 @@ class Room4 {
 
     completeRoom() {
         this.isActive = false;
+        
+        // Enhanced completion data for badge system
+        const completionData = {
+            score: Math.round(this.completionScore),
+            timeSpent: Date.now() - (this.startTime || Date.now()),
+            hintsUsed: 0,
+            queryTime: Math.round(this.queryTime),
+            indexesCreated: this.indexCount,
+            databaseOptimized: true,
+            attempts: 1
+        };
+        
         const message = `Database optimized successfully! Query time: ${Math.round(this.queryTime)}ms`;
-        this.game.roomCompleted(message);
+        this.game.roomCompleted(message, completionData);
     }
 
     exitRoom() {

@@ -26,18 +26,63 @@ export class GameManager {
         console.log('✓ Game started successfully');
     }
 
-    roomCompleted(message) {
-        // On first room completion, initialize badges if not present
+    async roomCompleted(message, completionData = {}) {
+        // Enhanced room completion with badge system integration
+        console.log(`Room ${this.game.currentRoom} completed:`, message);
+        
+        // Initialize badge manager if not exists
+        if (!this.game.badgeManager) {
+            const { BadgeManager } = await import('./badge-manager.js');
+            this.game.badgeManager = new BadgeManager(this.game);
+        }
+
+        // Update player progress
         if (!Array.isArray(this.game.player.unlockedCosmetics)) {
             this.game.player.unlockedCosmetics = [];
         }
         this.game.player.roomsCompleted++;
+        
+        // Unlock cosmetics for this room (handled by cosmetic manager)
         this.game.cosmeticManager.unlockCosmetics();
         
-        if (this.game.currentRoom === this.game.totalRooms) {
-            this.gameWon();
-        } else {
-            this.game.modalManager.showSuccessModal(message);
+        // Check and award badges for room completion using badge manager
+        const roomCompletionData = {
+            roomNumber: this.game.currentRoom,
+            message: message,
+            score: completionData.score || 100,
+            timeSpent: completionData.timeSpent || 0,
+            hintsUsed: completionData.hintsUsed || 0,
+            attempts: completionData.attempts || 1,
+            isFirstCompletion: this.game.player.roomsCompleted === this.game.currentRoom,
+            ...completionData
+        };
+
+        try {
+            // Award badges using the dedicated badge manager
+            const earnedBadges = await this.game.badgeManager.checkAndAwardRoomBadges(
+                this.game.currentRoom, 
+                roomCompletionData
+            );
+            
+            console.log(`Earned ${earnedBadges.length} badges for room completion`);
+            
+            // Show success modal after badge rewards
+            setTimeout(() => {
+                if (this.game.currentRoom === this.game.totalRooms) {
+                    this.gameWon();
+                } else {
+                    this.game.modalManager.showSuccessModal(message);
+                }
+            }, earnedBadges.length > 0 ? 3000 : 0); // Delay if badges were shown
+            
+        } catch (error) {
+            console.error('Error in badge checking:', error);
+            // Continue with normal flow even if badge system fails
+            if (this.game.currentRoom === this.game.totalRooms) {
+                this.gameWon();
+            } else {
+                this.game.modalManager.showSuccessModal(message);
+            }
         }
     }
 

@@ -539,7 +539,22 @@ class Room3 {
             `;
             
             setTimeout(() => {
-                this.game.roomCompleted(`AI ethics training successful! AI learned fundamental moral principles with ${Math.round(successRate)}% understanding.`);
+                // Enhanced completion data for badge system
+                const completionData = {
+                    score: Math.round(successRate),
+                    timeSpent: Date.now() - (this.startTime || Date.now()),
+                    hintsUsed: 0, // Ethics training doesn't use traditional hints
+                    ethicalUnderstanding: Math.round(this.ethicalUnderstanding),
+                    cardsAnswered: this.totalCards,
+                    correctAnswers: this.correctAnswers,
+                    attempts: 1,
+                    aiTraining: true
+                };
+                
+                this.game.roomCompleted(
+                    `AI ethics training successful! AI learned fundamental moral principles with ${Math.round(successRate)}% understanding.`,
+                    completionData
+                );
             }, 3000);
         }
     }

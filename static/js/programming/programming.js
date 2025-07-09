@@ -162,8 +162,21 @@ class Room6 {
 
     completeRoom() {
         this.isActive = false;
+        
+        // Enhanced completion data for badge system
+        const completionData = {
+            score: Math.round(this.completionScore),
+            timeSpent: Date.now() - (this.startTime || Date.now()),
+            hintsUsed: 0,
+            linesOfCode: this.linesOfCode,
+            bugsFixed: this.bugsFixed,
+            testsWritten: this.testsWritten,
+            programmingSkills: true,
+            attempts: 1
+        };
+        
         const message = `Programming challenge completed! Code quality: ${Math.round(this.completionScore)}%`;
-        this.game.roomCompleted(message);
+        this.game.roomCompleted(message, completionData);
     }
 
     exitRoom() {

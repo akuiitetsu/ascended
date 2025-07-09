@@ -200,7 +200,20 @@ class Room1 {
         this.ui.renderSuccessScreen();
         
         setTimeout(() => {
-            this.game.roomCompleted(`Flowchart mastery achieved! Created ${this.nodesPlaced} flowchart elements with ${Math.round(this.completionScore)}% completion score. Ready to design professional flowcharts!`);
+            // Enhanced completion data for badge system
+            const completionData = {
+                score: Math.round(this.completionScore),
+                timeSpent: Date.now() - (this.startTime || Date.now()), // Milliseconds
+                hintsUsed: this.hintsUsed,
+                nodesPlaced: this.nodesPlaced,
+                levelsCompleted: this.currentLevel,
+                attempts: 1
+            };
+            
+            this.game.roomCompleted(
+                `Flowchart mastery achieved! Created ${this.nodesPlaced} flowchart elements with ${Math.round(this.completionScore)}% completion score. Ready to design professional flowcharts!`,
+                completionData
+            );
         }, 3000);
     }
 

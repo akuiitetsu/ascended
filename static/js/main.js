@@ -12,7 +12,7 @@ class EscapeTheLabGame {
         this.totalRooms = 5;
         this.gameActive = false;
         this.gameStarted = false;
-        this.inRoom = false; // Track if we're currently in a room
+        this.inRoom = false;
         this.sessionId = this.generateSessionId();
         
         // Initialize managers
@@ -22,6 +22,7 @@ class EscapeTheLabGame {
         this.gameManager = new GameManager(this);
         this.progressManager = new ProgressManager(this);
         this.cutsceneManager = new CutsceneManager(this);
+        this.badgeManager = null; // Lazy loaded when needed
         
         // Initialize tutorial manager from level manager
         this.tutorialManager = this.levelManager.tutorialManager;
@@ -459,12 +460,12 @@ class EscapeTheLabGame {
                 }
             }
             
-            console.log('Failed to load badges from API, showing default');
-            // Fallback to default badges
-            this.renderDefaultBadges();
+            console.log('Failed to load badges from API, using fallback system');
+            // Use fallback badge system
+            this.renderFallbackBadges();
         } catch (error) {
             console.error('Failed to load badges:', error);
-            this.renderDefaultBadges();
+            this.renderFallbackBadges();
         }
     }
 
@@ -517,6 +518,73 @@ class EscapeTheLabGame {
         });
     }
 
+    renderFallbackBadges() {
+        const content = document.getElementById('badges-content');
+        if (!content) return;
+        
+        // Get stored badges from local storage
+        const storedBadges = JSON.parse(localStorage.getItem('earned_badges') || '[]');
+        
+        // Create fallback badge structure
+        const roomBadges = {
+            1: { name: 'Flowchart Lab', color: 'blue', icon: 'bi-diagram-3', badges: [] },
+            2: { name: 'Network Nexus', color: 'green', icon: 'bi-router', badges: [] },
+            3: { name: 'AI Systems', color: 'purple', icon: 'bi-robot', badges: [] },
+            4: { name: 'Database Crisis', color: 'red', icon: 'bi-database-x', badges: [] },
+            5: { name: 'Programming Crisis', color: 'yellow', icon: 'bi-bug', badges: [] }
+        };
+        
+        // Initialize with all possible badges
+        if (this.badgeManager) {
+            Object.entries(this.badgeManager.fallbackBadges).forEach(([roomId, badges]) => {
+                badges.forEach(badge => {
+                    const earnedBadge = storedBadges.find(b => b.id === badge.id);
+                    roomBadges[roomId].badges.push({
+                        ...badge,
+                        earned: !!earnedBadge,
+                        earned_at: earnedBadge?.earned_at || null
+                    });
+                });
+            });
+        }
+        
+        // Render room sections
+        content.innerHTML = '';
+        Object.entries(roomBadges).forEach(([roomId, roomData]) => {
+            const roomSection = document.createElement('div');
+            roomSection.className = `room-badges-section border border-${roomData.color}-600 rounded-lg p-4 mb-4`;
+            
+            const earnedCount = roomData.badges.filter(b => b.earned).length;
+            const totalCount = roomData.badges.length;
+            
+            roomSection.innerHTML = `
+                <div class="flex items-center mb-4">
+                    <div class="w-8 h-8 rounded-full bg-${roomData.color}-600 flex items-center justify-center mr-3">
+                        <i class="bi ${roomData.icon} text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-${roomData.color}-300">${roomData.name}</h3>
+                    <span class="ml-auto text-sm text-gray-400">
+                        ${earnedCount}/${totalCount} earned
+                    </span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    ${roomData.badges.map(badge => this.createBadgeCard(badge, roomData.color)).join('')}
+                </div>
+            `;
+            
+            content.appendChild(roomSection);
+        });
+        
+        // Add fallback notice
+        const notice = document.createElement('div');
+        notice.className = 'text-center text-gray-400 text-sm mt-4 p-3 bg-gray-900 rounded';
+        notice.innerHTML = `
+            <i class="bi bi-info-circle mr-2"></i>
+            Badge system running in offline mode. Progress is saved locally.
+        `;
+        content.appendChild(notice);
+    }
+
     createBadgeCard(badge, roomColor) {
         const earnedClass = badge.earned 
             ? `bg-${roomColor}-900 border-${roomColor}-500 text-${roomColor}-100` 
@@ -534,12 +602,8 @@ class EscapeTheLabGame {
                         <i class="bi bi-check-circle mr-1"></i>
                         ${earnedDate}
                     </div>
-                ` : `
-                    <div class="text-xs text-gray-500">
-                        <i class="bi bi-lock mr-1"></i>
-                        Not earned
-                    </div>
-                `}
+                ` : ``
+                }
                 ${badge.earned && badge.is_recent ? `
                     <span class="inline-block bg-green-600 text-white text-xs px-2 py-1 rounded-full mt-1">New!</span>
                 ` : ''}
@@ -566,8 +630,30 @@ class EscapeTheLabGame {
         content.innerHTML = `
             <div class="text-center py-8">
                 <i class="bi bi-award text-6xl text-yellow-400 mb-4"></i>
-                <h3 class="text-xl font-bold text-yellow-300 mb-2">No Badges Yet</h3>
-                <p class="text-gray-400 mb-4">Complete levels and challenges to earn badges!</p>
+                <h3 class="text-xl font-bold text-yellow-300 mb-2">Ready to Earn Badges!</h3>
+                <p class="text-gray-400 mb-4">Complete levels and challenges to unlock achievements!</p>
+                <div class="grid grid-cols-5 gap-4 mb-6">
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">📊</div>
+                        <div class="text-sm text-blue-400">Flowchart Lab</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">🌐</div>
+                        <div class="text-sm text-green-400">Network Nexus</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">🤖</div>
+                        <div class="text-sm text-purple-400">AI Systems</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">🗄️</div>
+                        <div class="text-sm text-red-400">Database Crisis</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">🐛</div>
+                        <div class="text-sm text-yellow-400">Programming Crisis</div>
+                    </div>
+                </div>
                 <button class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded transition-colors" onclick="this.closest('#badges-modal').remove()">
                     Start Playing
                 </button>
@@ -696,6 +782,12 @@ class EscapeTheLabGame {
     async cleanup() {
         // Cleanup method for page unload
         await this.saveProgress();
+    }
+
+    // Simplified room completion method
+    async roomCompleted(message, completionData = {}) {
+        // Delegate to game manager which now handles badge rewards with badge manager
+        await this.gameManager.roomCompleted(message, completionData);
     }
 }
 

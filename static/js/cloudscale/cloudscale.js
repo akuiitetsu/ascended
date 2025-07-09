@@ -1211,11 +1211,20 @@ class Room2 {
 
         if (this.currentLevel >= this.maxLevels) {
             setTimeout(() => {
-                this.game.roomCompleted(`Network Nexus mastered! All ${this.maxLevels} networking challenges completed with expertise in topology, IP addressing, switching, routing, and CLI operations.`, {
-                    score: this.completionScore,
+                // Enhanced completion data for badge system - fix successRate reference
+                const completionData = {
+                    score: Math.round(this.completionScore), // Use this.completionScore instead of successRate
+                    timeSpent: Date.now() - (this.levelStartTime || Date.now()),
+                    hintsUsed: 0, // Network levels don't use hints
                     levelsCompleted: this.maxLevels,
-                    roomId: 2
-                });
+                    attempts: this.sessionData?.attempts || 1,
+                    networkingSkills: true
+                };
+                
+                this.game.roomCompleted(
+                    `Network Nexus mastered! All ${this.maxLevels} networking challenges completed with expertise in topology, IP addressing, switching, routing, and CLI operations.`,
+                    completionData
+                );
             }, 2000);
             return;
         }
@@ -1541,7 +1550,7 @@ class Room2 {
         // Check required devices are placed
         if (switches.length >= 1) score += 25;
         if (pcs.length >= 2) score += 25;
-        if (routers.length >= 1) score += 25;
+               if (routers.length >= 1) score += 25;
         
         // Check optimal connections (PCs to switch, switch to router)
         const pcToSwitchConnections = this.switchConnections.filter(conn => {

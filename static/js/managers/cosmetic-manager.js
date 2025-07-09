@@ -156,7 +156,6 @@ export class CosmeticManager {
         document.getElementById('close-cosmetics').addEventListener('click', () => {
             cosmeticModal.remove();
         });
-        // No cosmetic selection events needed since only badges are shown
     }
 
     renderCosmeticOptions(category) {
